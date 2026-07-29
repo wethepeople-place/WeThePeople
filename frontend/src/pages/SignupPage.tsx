@@ -158,7 +158,7 @@ export default function SignupPage() {
             lineHeight: 1.55,
           }}
         >
-          Free forever. No ads. Three emails a month, max — and only if you
+          Free forever. Three emails a month, max — and only if you
           want them.
         </p>
 

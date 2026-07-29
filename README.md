@@ -5,11 +5,11 @@
 <h1 align="center">WeThePeople</h1>
 
 <p align="center">
-  <strong>Follow the money from industry to politics.</strong>
+  <strong>See the issue. Share your voice. Follow the evidence. Build the solution.</strong>
 </p>
 
 <p align="center">
-  <a href="https://wethepeopleforus.com">wethepeopleforus.com</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://twitter.com/WTPForUs">@WTPForUs</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/sponsors/Obelus-Labs-LLC">Sponsor</a>
+  <a href="https://wethepeople.place">wethepeople.place</a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## What is this?
 
-WeThePeople is an open-source civic transparency platform that tracks how corporations lobby Congress, win government contracts, face enforcement actions, trade stocks alongside legislators, and donate to politicians. It pulls from 40+ government APIs and covers 11 sectors: Politics, Finance, Health, Technology, Energy, Transportation, Defense, Chemicals, Agriculture, Education, and Telecom — plus all 50 states. 537 politicians and 1,000+ companies tracked. Every data point links back to its authoritative public source.
+WeThePeople is an open-source civic social video network where people share perspectives on public issues, explore trusted data insights, propose solutions, and turn conversation into accountable action. Its evidence layer draws from 40+ government APIs across 11 sectors and all 50 states, tracking 537 politicians and 1,000+ companies. Every data point links back to its authoritative public source.
 
 ---
 

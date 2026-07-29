@@ -145,7 +145,7 @@ export default function DigestSignupPage() {
             >
               Every Sunday, one short email. Biggest lobbying filings, the vote
               nobody&apos;s covering, the anomaly we flagged, and what to watch
-              for. No ads, no upsells, one-click unsubscribe.
+              for. No upsells, one-click unsubscribe.
             </p>
             <div style={{ display: 'flex', gap: 22 }}>
               {STATS.map(([value, label]) => (
