@@ -9,15 +9,116 @@ Docs: https://github.com/LibraryOfCongress/api.congress.gov/
 import logging
 import os
 import requests
-from datetime import datetime
+import hashlib
+from datetime import datetime, time
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import IntegrityError
-from models.database import SessionLocal, Vote, MemberVote
+from models.database import Bill, BillAction, SessionLocal, Vote, MemberVote
 
 logger = logging.getLogger(__name__)
 
 CONGRESS_API_KEY = os.getenv("API_KEY_CONGRESS") or os.getenv("CONGRESS_API_KEY", "")
 BASE_URL = "https://api.congress.gov/v3"
+
+
+def _bill_label(bill_type: str, bill_number: int) -> str:
+    labels = {
+        "hr": "H.R.",
+        "s": "S.",
+        "hres": "H.Res.",
+        "sres": "S.Res.",
+        "hjres": "H.J.Res.",
+        "sjres": "S.J.Res.",
+        "hconres": "H.Con.Res.",
+        "sconres": "S.Con.Res.",
+    }
+    normalized = bill_type.lower()
+    return f"{labels.get(normalized, normalized.upper())} {bill_number}"
+
+
+def ensure_related_bill_from_vote(db, vote: Vote) -> bool:
+    """Create an explicitly vote-sourced bill shell when the full bill is absent."""
+    if not all([
+        vote.related_bill_congress,
+        vote.related_bill_type,
+        vote.related_bill_number,
+    ]):
+        return False
+
+    bill_type = vote.related_bill_type.lower()
+    bill_id = f"{bill_type}{vote.related_bill_number}-{vote.related_bill_congress}"
+    if db.query(Bill).filter(Bill.bill_id == bill_id).first():
+        return False
+
+    metadata = vote.metadata_json if isinstance(vote.metadata_json, dict) else {}
+    chamber_label = "house" if bill_type.startswith("h") else "senate"
+    measure_label = "resolution" if "res" in bill_type else "bill"
+    congress_url = metadata.get("legislationUrl") or (
+        f"https://www.congress.gov/bill/{vote.related_bill_congress}th-congress/"
+        f"{chamber_label}-{measure_label}/{vote.related_bill_number}"
+    )
+    action_text = (
+        f"{vote.question or 'Recorded vote'} — {vote.result or 'result unavailable'} "
+        f"({vote.yea_count or 0}-{vote.nay_count or 0}, Roll no. {vote.roll_number})."
+    )
+    action_datetime = (
+        datetime.combine(vote.vote_date, time.min)
+        if vote.vote_date
+        else datetime.utcnow()
+    )
+    passed = (vote.result or "").lower() == "passed"
+
+    db.add(Bill(
+        bill_id=bill_id,
+        congress=vote.related_bill_congress,
+        bill_type=bill_type,
+        bill_number=vote.related_bill_number,
+        title=_bill_label(bill_type, vote.related_bill_number),
+        status_bucket="passed_house" if passed and vote.chamber == "house" else None,
+        status_reason=action_text,
+        latest_action_text=action_text,
+        latest_action_date=action_datetime,
+        needs_enrichment=1,
+        full_text_url=congress_url,
+        metadata_json={
+            "record_status": "vote-sourced-shell",
+            "vote_id": vote.id,
+            "vote_source_url": vote.source_url,
+            "congress_url": congress_url,
+        },
+    ))
+    db.flush()
+
+    dedupe_hash = hashlib.sha256(
+        f"{bill_id}|{action_datetime.isoformat()}|{action_text}".encode()
+    ).hexdigest()
+    db.add(BillAction(
+        bill_id=bill_id,
+        action_date=action_datetime,
+        action_text=action_text,
+        action_code="recorded-vote",
+        chamber=vote.chamber,
+        raw_json={
+            "vote_id": vote.id,
+            "source_url": vote.source_url,
+            "vote_metadata": metadata,
+        },
+        dedupe_hash=dedupe_hash,
+    ))
+    return True
+
+
+def backfill_related_bills(session) -> int:
+    created = 0
+    votes = session.query(Vote).filter(
+        Vote.related_bill_congress.isnot(None),
+        Vote.related_bill_type.isnot(None),
+        Vote.related_bill_number.isnot(None),
+    ).all()
+    for vote in votes:
+        created += int(ensure_related_bill_from_vote(session, vote))
+    session.commit()
+    return created
 
 
 def fetch_house_votes(congress: int = 119, limit: int = 250) -> List[Dict[str, Any]]:
@@ -172,6 +273,8 @@ def ingest_vote_with_members(congress: int, chamber: str, roll_number: int, pers
                 Vote.roll_number == roll_number
             ).first()
             return existing.id if existing else None
+
+        ensure_related_bill_from_vote(db, vote)
         
         # Ingest member votes
         members = vote_data.get("members", [])

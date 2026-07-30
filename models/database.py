@@ -685,4 +685,10 @@ import models.token_usage  # noqa: F401 — register token usage tracking table
 
 
 if __name__ == "__main__":
-    Base.metadata.create_all(bind=engine)
+    # `python -m models.database` executes this file as `__main__`.
+    # Domain model modules import `models.database`, which is a separate
+    # module identity with its own Base. Create from that canonical module
+    # so every registered table (committees, sectors, auth, etc.) is included.
+    from models.database import Base as canonical_base, engine as canonical_engine
+
+    canonical_base.metadata.create_all(bind=canonical_engine)

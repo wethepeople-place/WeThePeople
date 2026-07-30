@@ -28,6 +28,8 @@ import os
 import sys
 import argparse
 import logging
+import re
+import unicodedata
 from datetime import datetime
 
 # Add project root to path
@@ -45,7 +47,7 @@ from sqlalchemy.orm import sessionmaker
 
 from models.database import Base
 from models.committee_models import Committee, CommitteeMembership
-from models.database import TrackedMember
+from models.database import MemberVote, TrackedMember
 from utils.db_compat import is_sqlite, set_pragmas_if_sqlite
 
 load_dotenv()
@@ -104,6 +106,136 @@ def normalize_role(title: str) -> str:
     if "ex officio" in title_lower:
         return "ex_officio"
     return "member"
+
+
+def _person_id(display_name: str, bioguide_id: str) -> str:
+    """Build the stable application slug used by existing profile URLs."""
+    ascii_name = unicodedata.normalize("NFKD", display_name).encode("ascii", "ignore").decode()
+    slug = re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
+    return slug or bioguide_id.lower()
+
+
+def _display_name(legislator: dict) -> str:
+    name = legislator.get("name", {})
+    if name.get("official_full"):
+        return name["official_full"].strip()
+    parts = [name.get("first"), name.get("middle"), name.get("last"), name.get("suffix")]
+    return " ".join(part.strip() for part in parts if part and part.strip())
+
+
+def bootstrap_tracked_members(session, data_dir: str, dry_run: bool = False):
+    """Create/update the current congressional directory and link stored votes.
+
+    Source: unitedstates/congress-legislators legislators-current.yaml (CC0),
+    whose bioguide IDs and current terms are derived from official records.
+    Existing person_id values are preserved so saved URLs remain stable.
+    """
+    filepath = os.path.join(data_dir, "legislators-current.yaml")
+    if not os.path.exists(filepath):
+        log.error(f"File not found: {filepath}")
+        return 0, 0, 0
+
+    legislators = load_yaml(filepath) or []
+    source_json = (
+        '[{"url":"https://github.com/unitedstates/congress-legislators/'
+        'blob/main/legislators-current.yaml","type":"public-identity-index"}]'
+    )
+    existing_by_bioguide = {
+        member.bioguide_id: member
+        for member in session.query(TrackedMember).all()
+    }
+    person_id_owners = {
+        member.person_id: member.bioguide_id
+        for member in existing_by_bioguide.values()
+    }
+
+    created = 0
+    updated = 0
+
+    for legislator in legislators:
+        bioguide_id = legislator.get("id", {}).get("bioguide")
+        terms = legislator.get("terms", [])
+        current_term = terms[-1] if terms else {}
+        display_name = _display_name(legislator)
+        chamber = {"sen": "senate", "rep": "house"}.get(current_term.get("type"))
+        state = current_term.get("state")
+        party_raw = current_term.get("party", "")
+        party = {
+            "Democrat": "D",
+            "Republican": "R",
+            "Independent": "I",
+        }.get(party_raw, party_raw[:1] if party_raw else None)
+
+        if not bioguide_id or not display_name or not chamber:
+            continue
+
+        member = existing_by_bioguide.get(bioguide_id)
+        if member:
+            changed = any([
+                member.display_name != display_name,
+                member.chamber != chamber,
+                member.state != state,
+                member.party != party,
+                member.is_active != 1,
+                member.claim_sources_json != source_json,
+            ])
+            if changed:
+                if not dry_run:
+                    member.display_name = display_name
+                    member.chamber = chamber
+                    member.state = state
+                    member.party = party
+                    member.is_active = 1
+                    member.claim_sources_json = source_json
+                updated += 1
+            continue
+
+        person_id = _person_id(display_name, bioguide_id)
+        if person_id in person_id_owners and person_id_owners[person_id] != bioguide_id:
+            person_id = f"{person_id}_{bioguide_id.lower()}"
+
+        if not dry_run:
+            member = TrackedMember(
+                person_id=person_id,
+                bioguide_id=bioguide_id,
+                display_name=display_name,
+                chamber=chamber,
+                state=state,
+                party=party,
+                is_active=1,
+                claim_sources_json=source_json,
+            )
+            session.add(member)
+        person_id_owners[person_id] = bioguide_id
+        created += 1
+
+    if not dry_run:
+        session.flush()
+        person_ids_by_bioguide = {
+            member.bioguide_id: member.person_id
+            for member in session.query(TrackedMember).all()
+        }
+        linked_votes = 0
+        for bioguide_id, person_id in person_ids_by_bioguide.items():
+            linked_votes += (
+                session.query(MemberVote)
+                .filter(
+                    MemberVote.bioguide_id == bioguide_id,
+                    MemberVote.person_id.is_(None),
+                )
+                .update({MemberVote.person_id: person_id}, synchronize_session=False)
+            )
+        session.commit()
+    else:
+        linked_votes = 0
+
+    log.info(
+        "Tracked members: %d created, %d updated; member votes: %d linked",
+        created,
+        updated,
+        linked_votes,
+    )
+    return created, updated, linked_votes
 
 
 def import_committees(session, data_dir: str, dry_run: bool = False):
@@ -360,6 +492,14 @@ def main():
         help="Also update TrackedMember fields from legislators-current.yaml"
     )
     parser.add_argument(
+        "--bootstrap-members", action="store_true",
+        help="Create/update current TrackedMember rows and link stored votes by bioguide ID"
+    )
+    parser.add_argument(
+        "--members-only", action="store_true",
+        help="Only bootstrap/update tracked members (skip committees and memberships)"
+    )
+    parser.add_argument(
         "--committees-only", action="store_true",
         help="Only import committees (skip memberships)"
     )
@@ -368,6 +508,12 @@ def main():
         help="Only import memberships (skip committees)"
     )
     args = parser.parse_args()
+
+    selection_flags = [args.members_only, args.committees_only, args.memberships_only]
+    if sum(bool(flag) for flag in selection_flags) > 1:
+        parser.error("--members-only, --committees-only, and --memberships-only are mutually exclusive")
+    if args.members_only and not (args.bootstrap_members or args.update_members):
+        parser.error("--members-only requires --bootstrap-members or --update-members")
 
     if not os.path.isdir(args.data_dir):
         log.error(f"Data directory not found: {args.data_dir}")
@@ -384,15 +530,25 @@ def main():
         log.info("=== DRY RUN MODE ===")
 
     try:
+        # Step 0: Bootstrap members before memberships so links resolve.
+        n_member_creates = 0
+        n_member_bootstrap_updates = 0
+        n_vote_links = 0
+        if args.bootstrap_members:
+            log.info("--- Bootstrapping tracked members ---")
+            n_member_creates, n_member_bootstrap_updates, n_vote_links = bootstrap_tracked_members(
+                session, args.data_dir, args.dry_run
+            )
+
         # Step 1: Import committees
-        if not args.memberships_only:
+        if not args.memberships_only and not args.members_only:
             log.info("--- Importing committees ---")
             n_committees, n_subcommittees = import_committees(session, args.data_dir, args.dry_run)
         else:
             n_committees, n_subcommittees = 0, 0
 
         # Step 2: Import memberships
-        if not args.committees_only:
+        if not args.committees_only and not args.members_only:
             log.info("--- Importing memberships ---")
             n_memberships, n_linked, n_unlinked = import_memberships(session, args.data_dir, args.dry_run)
         else:
@@ -413,6 +569,10 @@ def main():
         log.info(f"  Memberships:       {n_memberships} total")
         log.info(f"    Linked:          {n_linked} (matched to TrackedMember)")
         log.info(f"    Unlinked:        {n_unlinked} (bioguide not in tracked_members)")
+        if args.bootstrap_members:
+            log.info(f"  Members created:   {n_member_creates}")
+            log.info(f"  Members refreshed: {n_member_bootstrap_updates}")
+            log.info(f"  Vote rows linked:  {n_vote_links}")
         if args.update_members:
             log.info(f"  Members updated:   {n_member_updates}")
         log.info("=" * 60)
