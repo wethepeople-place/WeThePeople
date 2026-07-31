@@ -83,6 +83,10 @@ backups/
 *.md
 !README.md
 !**/README.md
+!ATTRIBUTION.md
+!DEVELOPMENT.md
+!ENVIRONMENT.md
+!UPSTREAM.md
 # Specific READMEs that should ALSO stay local-only
 frontend/README.md
 frontend/src/api/README.md

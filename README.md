@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="https://wethepeople.place">wethepeople.place</a>
+  ·
+  <a href="https://github.com/wethepeople-place/WeThePeople">Source code</a>
 </p>
 
 <p align="center">
@@ -177,12 +179,14 @@ All data is sourced from official government APIs and open-source datasets. No s
 
 ## Quick Start
 
+For the supported clean-clone setup, Windows commands, verification gate, and troubleshooting, see [`DEVELOPMENT.md`](DEVELOPMENT.md). Environment variables are inventoried in [`ENVIRONMENT.md`](ENVIRONMENT.md).
+
 ### Backend
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # Add your API keys
+cp .env.example .env          # No API keys required for local boot
 uvicorn main:app --port 8006  # API at http://localhost:8006/docs
 ```
 
@@ -190,7 +194,7 @@ uvicorn main:app --port 8006  # API at http://localhost:8006/docs
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -278,7 +282,7 @@ python scripts/apply_retraction_patches.py --apply
 ### Mobile (Expo)
 
 ```bash
-cd mobile && npm install && npx expo start
+cd mobile && npm ci && npm run start
 ```
 
 ---
@@ -325,7 +329,7 @@ Contributions are welcome. Here are some areas where help would be especially va
 - **Visualization improvements** — New ways to surface patterns in influence data
 - **Testing** — Backend and frontend test coverage
 
-Check the [issues page](https://github.com/Obelus-Labs-LLC/WeThePeople/issues) for open tasks, or open a new issue to discuss your idea.
+Check the [issues page](https://github.com/wethepeople-place/WeThePeople/issues) for open tasks, or open a new issue to discuss your idea. See [`UPSTREAM.md`](UPSTREAM.md) before bringing changes in from the original project.
 
 ---
 
@@ -340,6 +344,8 @@ WeThePeople is free and open source. If you find it useful:
 ---
 
 ## Acknowledgments
+
+See [`ATTRIBUTION.md`](ATTRIBUTION.md) for the fork's upstream relationship, license attribution, and third-party notice policy.
 
 | Project | License | What We Use |
 |---------|---------|-------------|
