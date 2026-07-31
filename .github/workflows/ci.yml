@@ -32,6 +32,10 @@ jobs:
           DISABLE_STARTUP_FETCH: "1"
         run: >-
           python -m pytest --tb=short -q
+          tests/test_housing_rent_contract.py
+          tests/test_housing_rent_schema.py
+          tests/test_housing_rent_loader.py
+          tests/test_housing_rent_fetch_adapters.py
           tests/test_civic_slice_contract.py
           tests/test_committee_initialization.py
           tests/test_congress_legislators_import.py
