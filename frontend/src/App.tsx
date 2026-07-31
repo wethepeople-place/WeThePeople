@@ -29,6 +29,7 @@ import EcosystemNav from "./components/EcosystemNav";
 // ── Lazy-loaded pages ──
 
 const HomePage = React.lazy(() => import("./pages/HomePage"));
+const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage"));
 const PoliticsDashboardPage = React.lazy(() => import("./pages/PoliticsDashboardPage"));
 const PeoplePage = React.lazy(() => import("./pages/PeoplePage"));
 const PersonProfilePage = React.lazy(() => import("./pages/PersonProfilePage"));
@@ -167,7 +168,8 @@ function SectorRedirect({ to }: { to: string }) {
 const GlobalOverlays: React.FC = () => {
   const { pathname } = useLocation();
   const isLanding = pathname === "/";
-  if (isLanding) return null;
+  const isReadOnlyIssue = pathname.startsWith("/issues/");
+  if (isLanding || isReadOnlyIssue) return null;
   // Null fallback: ChatAgent is a floating button that materializes
   // once its chunk lands. There's nothing to paint while it's loading,
   // and the spinner used for full-route Suspense would look out of place
@@ -197,6 +199,7 @@ const App: React.FC = () => (
         <Routes>
           {/* Sector selector */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/issues/:slug" element={<IssueDetailPage />} />
 
           {/*
             Capture the natural /<sector>/companies/<id> guess that 404'd

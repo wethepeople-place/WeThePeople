@@ -71,7 +71,7 @@ In PowerShell, set `$env:WTP_API_URL` before `npm run start`. Expo web can be st
 Run these commands before opening a pull request:
 
 ```bash
-python -m pytest -q tests/test_housing_rent_contract.py tests/test_housing_rent_schema.py tests/test_housing_rent_loader.py tests/test_housing_rent_fetch_adapters.py tests/test_civic_slice_contract.py tests/test_committee_initialization.py tests/test_congress_legislators_import.py tests/test_vote_bill_backfill.py
+python -m pytest -q tests/test_housing_rent_contract.py tests/test_housing_rent_schema.py tests/test_housing_rent_loader.py tests/test_housing_rent_fetch_adapters.py tests/test_housing_rent_api.py tests/test_civic_slice_contract.py tests/test_committee_initialization.py tests/test_congress_legislators_import.py tests/test_vote_bill_backfill.py
 
 cd frontend
 npm ci
