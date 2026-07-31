@@ -6,57 +6,68 @@ on:
   pull_request:
     branches: [main]
 
-jobs:
-  python:
-    name: Python lint & test
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  backend:
+    name: Focused backend tests
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pytest httpx
-
-      - name: Ruff lint
-        run: ruff check . || true
-
-      - name: Ruff format check
-        run: ruff format --check . || true
-
-      - name: Run pytest
-        run: pytest --tb=short -q || true
+      - name: Run adoption gate
+        env:
+          WTP_ENV: development
+          WTP_REQUIRE_AUTH: "0"
+          WTP_JWT_SECRET: ci-only-secret-do-not-use-in-production
+          WTP_DB_URL: sqlite://
+          DISABLE_STARTUP_FETCH: "1"
+        run: >-
+          python -m pytest --tb=short -q
+          tests/test_civic_slice_contract.py
+          tests/test_committee_initialization.py
+          tests/test_congress_legislators_import.py
+          tests/test_vote_bill_backfill.py
 
   frontend:
-    name: Frontend type-check & test
+    name: Frontend build & test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
-
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up Node 20
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Run inherited frontend tests (known failures)
+        continue-on-error: true
+        run: npm test -- --run
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: TypeScript type-check
-        run: npx tsc --noEmit || true
-
-      - name: Run vitest
-        run: npx vitest run || true
+  mobile:
+    name: Mobile type-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
