@@ -31,7 +31,7 @@ jobs:
           WTP_DB_URL: sqlite://
           DISABLE_STARTUP_FETCH: "1"
         run: >-
-          pytest --tb=short -q
+          python -m pytest --tb=short -q
           tests/test_civic_slice_contract.py
           tests/test_committee_initialization.py
           tests/test_congress_legislators_import.py
