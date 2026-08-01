@@ -1,0 +1,12 @@
+{
+  "solutions": [
+    {
+      "issue_slug": "housing-rent",
+      "title": "Pilot faster rental assistance delivery",
+      "summary": "Test a time-limited process for reducing verified rental-assistance processing delays while preserving eligibility review and public reporting.",
+      "body": "Congress should authorize a bounded demonstration in participating jurisdictions that publishes eligibility rules, processing-time measures, administrative costs, and independent evaluation results. The pilot should sunset unless lawmakers review the evidence and renew it.",
+      "change_note": "Initial reviewed Housing & Rent solution",
+      "discussion_body": "What should Congress prioritize first to make rent more affordable? Start with the evidence, then explain the tradeoff behind your answer."
+    }
+  ]
+}

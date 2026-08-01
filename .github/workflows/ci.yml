@@ -41,6 +41,8 @@ jobs:
           tests/test_discuss_schema.py
           tests/test_discussions_api.py
           tests/test_discuss_mobile_contract.py
+          tests/test_solutions_api.py
+          tests/test_solution_fixture.py
           tests/test_civic_slice_contract.py
           tests/test_committee_initialization.py
           tests/test_congress_legislators_import.py
