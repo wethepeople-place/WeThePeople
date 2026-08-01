@@ -3205,7 +3205,7 @@ def upgrade() -> None:
     sa.Column('label', sa.String(length=500), nullable=True),
     sa.Column('source_id', sa.Integer(), nullable=True),
     sa.CheckConstraint("attachment_type IN ('video','issue','bill','politician','solution','source')", name='ck_discussion_attachment_type'),
-    sa.CheckConstraint('(video_id IS NOT NULL) + (issue_slug IS NOT NULL) + (bill_id IS NOT NULL) + (politician_id IS NOT NULL) + (solution_id IS NOT NULL) + (source_id IS NOT NULL) = 1', name='ck_discussion_attachment_one_target'),
+    sa.CheckConstraint('(CASE WHEN video_id IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN issue_slug IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN bill_id IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN politician_id IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN solution_id IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN source_id IS NOT NULL THEN 1 ELSE 0 END) = 1', name='ck_discussion_attachment_one_target'),
     sa.ForeignKeyConstraint(['bill_id'], ['bills.bill_id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['issue_slug'], ['issues.slug'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['politician_id'], ['tracked_members.person_id'], ondelete='RESTRICT'),

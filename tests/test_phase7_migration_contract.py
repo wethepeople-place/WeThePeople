@@ -2,11 +2,14 @@ import json
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import JSON, Column, String, create_engine, inspect
+
+from alembic_canonical.defaults import compare_server_default
 
 from models.database import Base
 
@@ -53,6 +56,18 @@ def test_canonical_postgresql_offline_sql_has_no_sqlite_only_ddl():
     assert "pragma" not in sql
     assert "virtual table" not in sql
     assert "fts5" not in sql
+    assert "(video_id is not null) +" not in sql
+    assert "case when video_id is not null then 1 else 0 end" in sql
+
+
+def test_postgresql_json_defaults_compare_without_json_equality_operator():
+    context = SimpleNamespace(dialect=SimpleNamespace(name="postgresql"))
+    json_column = Column("payload", JSON())
+    text_column = Column("payload", String())
+
+    assert compare_server_default(context, None, json_column, "'[]'::json", None, "'[]'") is False
+    assert compare_server_default(context, None, json_column, "'{}'::jsonb", None, "'[]'") is True
+    assert compare_server_default(context, None, text_column, "'[]'", None, "'[]'") is None
 
 
 def test_canonical_graph_is_single_root_and_isolated_from_legacy():

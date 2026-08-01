@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from models.database import Base  # noqa: E402
+from alembic_canonical.defaults import compare_server_default  # noqa: E402
 
 config = context.config
 if config.config_file_name:
@@ -27,8 +28,6 @@ config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
 VERSION_TABLE = "alembic_version_canonical"
-
-
 def run_migrations_offline() -> None:
     context.configure(
         url=database_url,
@@ -36,7 +35,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
-        compare_server_default=True,
+        compare_server_default=compare_server_default,
         version_table=VERSION_TABLE,
     )
     with context.begin_transaction():
@@ -54,7 +53,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            compare_server_default=True,
+            compare_server_default=compare_server_default,
             render_as_batch=connection.dialect.name == "sqlite",
             version_table=VERSION_TABLE,
         )
