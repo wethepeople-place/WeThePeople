@@ -54,6 +54,7 @@ import InfluenceNetworkScreen from '../screens/InfluenceNetworkScreen';
 import CompareScreen from '../screens/CompareScreen';
 import LegislationTrackerScreen from '../screens/LegislationTrackerScreen';
 import ActivityFeedScreen from '../screens/ActivityFeedScreen';
+import WatchScreen from '../screens/WatchScreen';
 
 // Wave A (civic + cross-sector trackers + detail views)
 import BadgesScreen from '../screens/BadgesScreen';
@@ -577,6 +578,7 @@ function TechnologyStackScreen() {
 }
 
 const TAB_ICONS: Record<string, { focused: IoniconsName; default: IoniconsName }> = {
+  WatchTab: { focused: 'play-circle', default: 'play-circle-outline' },
   HomeTab: { focused: 'home', default: 'home-outline' },
   PoliticsTab: { focused: 'business', default: 'business-outline' },
   FinanceTab: { focused: 'trending-up', default: 'trending-up-outline' },
@@ -612,6 +614,11 @@ export default function TabNavigator() {
         headerShown: false,
       })}
     >
+      <Tab.Screen
+        name="WatchTab"
+        component={WatchScreen}
+        options={{ title: 'Watch' }}
+      />
       <Tab.Screen
         name="HomeTab"
         component={HomeStackScreen}

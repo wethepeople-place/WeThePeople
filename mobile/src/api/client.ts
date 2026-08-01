@@ -48,6 +48,7 @@ import type {
   InfluenceTopLobbyingItem,
   InfluenceTopContractItem,
   RecentActivityItem,
+  WatchVideosResponse,
 } from './types';
 
 // Last-resort fallback if expo Constants isn't readable for any reason.
@@ -190,6 +191,10 @@ class WTPClient {
       clearTimeout(timeoutId);
       if (opts.signal) opts.signal.removeEventListener('abort', onCallerAbort);
     }
+  }
+
+  async getWatchVideos(opts?: FetchOptions): Promise<WatchVideosResponse> {
+    return this.fetchJSON<WatchVideosResponse>(`${this.baseUrl}/videos`, opts);
   }
 
   async getPeople(params?: {

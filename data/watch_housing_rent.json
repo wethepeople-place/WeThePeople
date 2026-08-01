@@ -1,0 +1,20 @@
+{
+  "videos": [
+    {
+      "video_id": "housing-rent-why-rents-move",
+      "creator_label": "WeThePeople.place",
+      "caption": "Housing costs are policy outcomes. Start with the official evidence, then inspect the bill.",
+      "transcript": "Housing and rent costs reflect supply, wages, financing, and public policy. Open Evidence to inspect the official Housing and Rent sources, then follow the related bill to Congress.gov.",
+      "captions_url": null,
+      "media_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "published_at": "2026-07-31T00:00:00Z",
+      "issue_slug": "housing-rent",
+      "bill_ids": ["hr1-119"],
+      "source": {
+        "url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+        "publisher": "Congress.gov",
+        "retrieved_at": "2026-07-31T00:00:00Z"
+      }
+    }
+  ]
+}

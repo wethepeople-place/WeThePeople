@@ -149,3 +149,43 @@ class BillCommitteeReferral(Base):
     committee = relationship("Committee", backref="bill_referrals")
     bill_action = relationship("BillAction")
     source = relationship("SourceDocument")
+
+
+class Video(Base):
+    """A curated, source-backed Watch item; social activity is intentionally absent."""
+
+    __tablename__ = "videos"
+
+    video_id = Column(String(100), primary_key=True)
+    creator_label = Column(String(200), nullable=False)
+    caption = Column(Text, nullable=False)
+    transcript = Column(Text, nullable=True)
+    captions_url = Column(String(1000), nullable=True)
+    media_url = Column(String(1000), nullable=False)
+    source_id = Column(Integer, ForeignKey("source_documents.id", ondelete="RESTRICT"), nullable=False)
+    published_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    sort_order = Column(Integer, nullable=False, server_default="0", index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    source = relationship("SourceDocument")
+
+
+class VideoIssue(Base):
+    __tablename__ = "video_issues"
+
+    video_id = Column(String(100), ForeignKey("videos.video_id", ondelete="CASCADE"), primary_key=True)
+    issue_slug = Column(String(100), ForeignKey("issues.slug", ondelete="CASCADE"), primary_key=True)
+
+    video = relationship("Video", backref="issue_links")
+    issue = relationship("Issue")
+
+
+class VideoBill(Base):
+    __tablename__ = "video_bills"
+
+    video_id = Column(String(100), ForeignKey("videos.video_id", ondelete="CASCADE"), primary_key=True)
+    bill_id = Column(String, ForeignKey("bills.bill_id", ondelete="CASCADE"), primary_key=True)
+
+    video = relationship("Video", backref="bill_links")
+    bill = relationship("Bill")
