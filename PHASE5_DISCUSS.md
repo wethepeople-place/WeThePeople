@@ -27,3 +27,16 @@ requires a validated PostgreSQL deployment.
 The next narrow step is a curated Housing & Rent thread fixture plus public
 paginated feed/detail APIs and authenticated, rate-limited reply/report/block
 routes. UI work begins only after those contracts pass focused tests.
+
+## Discuss API checkpoint
+
+The network-free fixture loader now creates exactly one editorial Housing &
+Rent thread and four typed attachments: the Watch video, issue, bill, and
+Congress.gov source. Public feed and detail routes expose only `published`
+content, stable chronological pagination, and complete source provenance.
+
+Authenticated writes are limited to replies, reports, and blocks. Each uses
+the canonical user identity and a persistent per-user/IP rate-limit key.
+Reports and block relationships remain private; an authenticated feed filters
+authors the current user has blocked. Root-post creation, editing, reactions,
+follows, bookmarks, ranking, and all Expo UI remain deferred.

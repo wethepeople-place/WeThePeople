@@ -106,6 +106,7 @@ data/
 !data/
 data/*
 !data/watch_housing_rent.json
+!data/discuss_housing_rent.json
 !frontend/src/data/
 !mobile/src/data/
 audit/
