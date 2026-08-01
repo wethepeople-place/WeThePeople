@@ -5,6 +5,7 @@ import pytest
 
 from models.auth_models import AuditLog, EmailVerificationToken, User
 from routers.auth import pwd_context
+from services.jwt_auth import create_access_token
 
 
 EMAIL = "email-verification@example.test"
@@ -26,10 +27,15 @@ def verification_user(db_session):
         db_session.commit()
 
 
-def _auth_headers(client):
-    login = client.post("/auth/login", json={"email": EMAIL, "password": PASSWORD})
-    assert login.status_code == 200
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+def _auth_headers(db_session):
+    user = db_session.query(User).filter_by(email=EMAIL).one()
+    token = create_access_token({
+        "sub": user.email,
+        "user_id": user.id,
+        "role": user.role,
+        "session_version": user.session_version or 1,
+    })
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_request_requires_auth_and_stores_only_a_hash(client, db_session, monkeypatch):
@@ -39,7 +45,7 @@ def test_request_requires_auth_and_stores_only_a_hash(client, db_session, monkey
     monkeypatch.setattr("services.email.send_email", lambda **kwargs: sent.append(kwargs) or True)
 
     assert client.post("/auth/email-verification/request").status_code == 401
-    response = client.post("/auth/email-verification/request", headers=_auth_headers(client))
+    response = client.post("/auth/email-verification/request", headers=_auth_headers(db_session))
     assert response.status_code == 200
     assert TOKEN_ONE not in response.text
 
@@ -63,7 +69,7 @@ def test_disabled_delivery_preserves_existing_token_and_sends_nothing(
         lambda **_kwargs: (_ for _ in ()).throw(AssertionError("delivery must remain disabled")),
     )
 
-    response = client.post("/auth/email-verification/request", headers=_auth_headers(client))
+    response = client.post("/auth/email-verification/request", headers=_auth_headers(db_session))
     assert response.status_code == 200
     db_session.expire_all()
     first = db_session.query(EmailVerificationToken).filter_by(
@@ -76,7 +82,7 @@ def test_new_delivered_request_revokes_previous(client, db_session, monkeypatch)
     monkeypatch.setenv("WTP_EMAIL_VERIFICATION_DELIVERY_ENABLED", "1")
     monkeypatch.setattr("routers.auth.secrets.token_urlsafe", lambda _size: TOKEN_TWO)
     monkeypatch.setattr("services.email.send_email", lambda **_kwargs: True)
-    response = client.post("/auth/email-verification/request", headers=_auth_headers(client))
+    response = client.post("/auth/email-verification/request", headers=_auth_headers(db_session))
     assert response.status_code == 200
     db_session.expire_all()
     first = db_session.query(EmailVerificationToken).filter_by(
@@ -97,9 +103,8 @@ def test_confirm_is_single_use_and_updates_profile(client, db_session):
     assert user.email_verified_at is not None
     assert db_session.query(AuditLog).filter_by(user_id=user.id, action="email_verified").count() == 1
 
-    login = client.post("/auth/login", json={"email": EMAIL, "password": PASSWORD})
     profile = client.get(
-        "/auth/me", headers={"Authorization": f"Bearer {login.json()['access_token']}"}
+        "/auth/me", headers=_auth_headers(db_session)
     )
     assert profile.status_code == 200
     assert profile.json()["email_verified"] is True
