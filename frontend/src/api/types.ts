@@ -444,3 +444,12 @@ export interface ActionSearchResponse {
   offset: number;
   actions: ActionSearchResult[];
 }
+
+export interface VideoSharePreview {
+  video_id: string;
+  canonical_url: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  source: { url: string; publisher: string; retrieved_at: string };
+}

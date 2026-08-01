@@ -116,6 +116,8 @@ frontend/public/logos/
 
 # Build artifacts
 frontend/tsconfig.tsbuildinfo
+preview.db-shm
+preview.db-wal
 
 # Alembic generated readme
 alembic/README
