@@ -31,6 +31,8 @@ import EcosystemNav from "./components/EcosystemNav";
 const HomePage = React.lazy(() => import("./pages/HomePage"));
 const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage"));
 const SolutionsPage = React.lazy(() => import("./pages/SolutionsPage"));
+const SolutionDetailPage = React.lazy(() => import("./pages/SolutionDetailPage"));
+const DiscussionDetailPage = React.lazy(() => import("./pages/DiscussionDetailPage"));
 const WatchVideoPage = React.lazy(() => import("./pages/WatchVideoPage"));
 const PoliticsDashboardPage = React.lazy(() => import("./pages/PoliticsDashboardPage"));
 const PeoplePage = React.lazy(() => import("./pages/PeoplePage"));
@@ -203,6 +205,8 @@ const App: React.FC = () => (
           <Route path="/" element={<HomePage />} />
           <Route path="/issues/:slug" element={<IssueDetailPage />} />
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
+          <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />
+          <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
           <Route path="/watch/:videoId" element={<WatchVideoPage />} />
 
           {/*

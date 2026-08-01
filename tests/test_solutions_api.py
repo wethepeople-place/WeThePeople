@@ -112,6 +112,10 @@ def test_only_creator_can_revise_and_history_is_append_only():
         history = session.query(SolutionRevision).filter_by(solution_id=solution_id).order_by(SolutionRevision.revision_number).all()
         assert [row.revision_number for row in history] == [1, 2]
         assert history[0].title != history[1].title
+    revisions = client.get(f"/solutions/{solution_id}/revisions").json()
+    assert [item["revision_number"] for item in revisions["items"]] == [2, 1]
+    assert revisions["items"][0]["change_note"] == "Clarified the evaluation rule"
+    assert revisions["items"][0]["editor_display_name"] == "Alice"
 
 
 def test_solution_vote_constraints_enforce_relational_contract():
@@ -134,3 +138,39 @@ def test_solution_vote_constraints_enforce_relational_contract():
             assert False, "duplicate current vote must fail"
         except IntegrityError:
             session.rollback()
+
+
+def test_solution_detail_rejects_issue_mismatch_and_exposes_normalized_discussion():
+    app, client, Session, users = _environment()
+    _as_user(app, Session, users["alice@example.test"])
+    solution_id = client.post("/solutions", json=_payload()).json()["id"]
+    from models.social_models import DiscussionAttachment, DiscussionPost
+    with Session() as session:
+        post = DiscussionPost(author_label="WeThePeople.place", body="Sourced Housing discussion")
+        session.add(post); session.flush()
+        session.add(DiscussionAttachment(post_id=post.id, attachment_type="solution", solution_id=solution_id, label="Housing solution"))
+        session.commit(); post_id = post.id
+    assert client.get(f"/solutions/{solution_id}?issue_slug=other").status_code == 404
+    detail = client.get(f"/solutions/{solution_id}?issue_slug=housing-rent").json()
+    assert detail["discussion_post_id"] == post_id and detail["creator_display_name"] == "Alice"
+    assert "moderation_reason" not in detail
+
+
+def test_duplicate_removed_closed_and_private_states_are_bounded():
+    app, client, Session, users = _environment()
+    _as_user(app, Session, users["alice@example.test"])
+    canonical_id = client.post("/solutions", json=_payload()).json()["id"]
+    with Session() as session:
+        duplicate = Proposal(author_id=users["alice@example.test"], issue_slug="housing-rent", title="Duplicate title", summary="Duplicate summary text", body="Private duplicate body text that must not leak.", status="duplicate", duplicate_of_id=canonical_id, moderation_reason="Private duplicate note")
+        removed = Proposal(author_id=users["alice@example.test"], issue_slug="housing-rent", title="Removed title", summary="Removed summary text", body="Private removed body text that must not leak.", status="removed", moderation_reason="Private removal note")
+        draft = Proposal(author_id=users["alice@example.test"], issue_slug="housing-rent", title="Draft title", summary="Draft summary text", body="Private draft body text that must not leak.", status="draft")
+        session.add_all([duplicate, removed, draft]); session.commit()
+        duplicate_id, removed_id, draft_id = duplicate.id, removed.id, draft.id
+        session.get(Proposal, canonical_id).status = "closed"; session.commit()
+    duplicate_payload = client.get(f"/solutions/{duplicate_id}").json()
+    assert duplicate_payload["duplicate_of_solution_id"] == canonical_id and "Private" not in str(duplicate_payload)
+    removed_payload = client.get(f"/solutions/{removed_id}").json()
+    assert removed_payload == {"id": removed_id, "issue_slug": "housing-rent", "status": "removed", "message": "This solution was removed."}
+    assert client.get(f"/solutions/{draft_id}").status_code == 404
+    assert client.put(f"/solutions/{canonical_id}/vote", json={"choice": "support"}).status_code == 409
+    assert client.put(f"/solutions/{duplicate_id}", json={"title": "Still duplicate", "summary": "Still duplicate summary", "body": "Still duplicate body with enough text", "change_note": "No change"}).status_code == 409

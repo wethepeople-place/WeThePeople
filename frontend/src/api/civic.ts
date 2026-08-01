@@ -111,6 +111,7 @@ export function castVote(targetType: string, targetId: number, value: 1 | -1) {
 export interface CitizenSolution {
   id: number;
   creator_user_id: number;
+  creator_display_name: string;
   issue_slug: string;
   title: string;
   summary: string;
@@ -122,6 +123,10 @@ export interface CitizenSolution {
   vote_rule: string;
   vote_choices: Array<'support' | 'oppose'>;
   created_at: string;
+  updated_at: string;
+  discussion_post_id: number | null;
+  duplicate_of_solution_id?: number | null;
+  message?: string;
 }
 
 export function fetchSolutions(issueSlug: string) {
@@ -134,6 +139,33 @@ export function createCitizenSolution(data: { issue_slug: string; title: string;
 
 export function setSolutionVote(solutionId: number, choice: 'support' | 'oppose' | null) {
   return apiFetch<{ current_user_choice: 'support' | 'oppose' | null; vote_totals: CitizenSolution['vote_totals']; vote_rule: string }>(`/solutions/${solutionId}/vote`, { method: 'PUT', body: { choice } });
+}
+
+export function fetchSolution(issueSlug: string, solutionId: number) {
+  return apiFetch<CitizenSolution>(`/solutions/${solutionId}`, { params: { issue_slug: issueSlug } });
+}
+
+export interface SolutionRevisionItem {
+  revision_number: number; title: string; summary: string; body: string;
+  change_note: string; created_at: string; editor_display_name: string;
+}
+
+export function fetchSolutionRevisions(solutionId: number) {
+  return apiFetch<{ solution_id: number; latest_revision_number: number; items: SolutionRevisionItem[] }>(`/solutions/${solutionId}/revisions`);
+}
+
+export function reviseSolution(solutionId: number, data: { title: string; summary: string; body: string; change_note: string }) {
+  return apiFetch<CitizenSolution>(`/solutions/${solutionId}`, { method: 'PUT', body: data });
+}
+
+export interface PublicDiscussionDetail {
+  id: number; body: string; author: { display_name: string }; created_at: string;
+  replies: Array<{ id: number; body: string; author: { display_name: string }; created_at: string }>;
+  attachments: Array<{ type: string; reference_id: string; label: string | null }>;
+}
+
+export function fetchPublicDiscussion(postId: number) {
+  return apiFetch<PublicDiscussionDetail>(`/discussions/${postId}`);
 }
 
 // ── Badges ──

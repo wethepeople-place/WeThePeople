@@ -12,6 +12,7 @@ from models.auth_models import User
 from models.civic_models import Proposal, SolutionRevision, SolutionVote
 from models.database import get_db
 from models.issue_models import Issue
+from models.social_models import DiscussionAttachment, DiscussionPost
 from services.jwt_auth import get_current_user, get_optional_user
 from services.rate_limit_store import check_rate_limit
 
@@ -67,24 +68,39 @@ def _serialize(row: Proposal, db: Session, user: Optional[User] = None, include_
     if user is not None:
         current = db.query(SolutionVote).filter_by(solution_id=row.id, voter_user_id=user.id).first()
         vote = current.choice if current else None
+    creator = db.get(User, row.author_id)
+    discussion = db.query(DiscussionAttachment).join(DiscussionPost).filter(
+        DiscussionAttachment.solution_id == row.id,
+        DiscussionAttachment.attachment_type == "solution",
+        DiscussionPost.moderation_status == "published",
+    ).order_by(DiscussionAttachment.post_id).first()
     payload = {
         "id": row.id, "creator_user_id": row.author_id, "issue_slug": row.issue_slug,
+        "creator_display_name": (creator.display_name or "Participant") if creator else "Participant",
         "title": row.title, "summary": row.summary, "status": row.status,
         "latest_revision_number": row.latest_revision_number, "created_at": row.created_at.isoformat(),
         "updated_at": row.updated_at.isoformat() if row.updated_at else row.created_at.isoformat(),
         "published_at": row.published_at.isoformat() if row.published_at else None,
         "vote_totals": _totals(row.id, db), "current_user_choice": vote,
         "vote_rule": VOTE_RULE, "vote_choices": ["support", "oppose"],
+        "discussion_post_id": discussion.post_id if discussion else None,
     }
     if include_body:
-        payload.update({"body": row.body, "moderation_reason": row.moderation_reason, "duplicate_of_solution_id": row.duplicate_of_id})
+        payload.update({"body": row.body, "duplicate_of_solution_id": row.duplicate_of_id})
     return payload
 
 
-def _public_solution(solution_id: int, db: Session) -> Proposal:
+def _visible_solution(solution_id: int, db: Session) -> Proposal:
     row = db.get(Proposal, solution_id)
-    if row is None or row.status != "published" or row.issue_slug is None:
+    if row is None or row.status not in {"published", "closed", "duplicate", "removed"} or row.issue_slug is None:
         raise HTTPException(status_code=404, detail="Solution not found")
+    return row
+
+
+def _mutable_solution(solution_id: int, db: Session) -> Proposal:
+    row = _visible_solution(solution_id, db)
+    if row.status != "published":
+        raise HTTPException(status_code=409, detail="This solution no longer accepts changes or votes")
     return row
 
 
@@ -100,8 +116,28 @@ def list_solutions(
 
 
 @router.get("/{solution_id}")
-def get_solution(solution_id: int, user: Optional[User] = Depends(get_optional_user), db: Session = Depends(get_db)):
-    return _serialize(_public_solution(solution_id, db), db, user, include_body=True)
+def get_solution(solution_id: int, issue_slug: Optional[str] = Query(None, max_length=100), user: Optional[User] = Depends(get_optional_user), db: Session = Depends(get_db)):
+    row = _visible_solution(solution_id, db)
+    if issue_slug is not None and row.issue_slug != issue_slug:
+        raise HTTPException(status_code=404, detail="Solution not found for this issue")
+    if row.status == "removed":
+        return {"id": row.id, "issue_slug": row.issue_slug, "status": "removed", "message": "This solution was removed."}
+    if row.status == "duplicate":
+        return {"id": row.id, "issue_slug": row.issue_slug, "status": "duplicate", "message": "This solution was marked as a duplicate.", "duplicate_of_solution_id": row.duplicate_of_id}
+    return _serialize(row, db, user, include_body=True)
+
+
+@router.get("/{solution_id}/revisions")
+def list_revisions(solution_id: int, db: Session = Depends(get_db)):
+    row = _visible_solution(solution_id, db)
+    if row.status in {"duplicate", "removed"}:
+        raise HTTPException(status_code=404, detail="Revision history is unavailable")
+    revisions = db.query(SolutionRevision).filter_by(solution_id=solution_id).order_by(SolutionRevision.revision_number.desc()).all()
+    return {"solution_id": solution_id, "latest_revision_number": row.latest_revision_number, "items": [{
+        "revision_number": item.revision_number, "title": item.title, "summary": item.summary, "body": item.body,
+        "change_note": item.change_note, "created_at": item.created_at.isoformat(),
+        "editor_display_name": ((db.get(User, item.editor_user_id).display_name or "Participant") if db.get(User, item.editor_user_id) else "Participant"),
+    } for item in revisions]}
 
 
 @router.post("", status_code=201)
@@ -122,7 +158,7 @@ def create_solution(body: SolutionCreate, request: Request, user: User = Depends
 @router.put("/{solution_id}")
 def edit_solution(solution_id: int, body: SolutionEdit, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     _rate_limit(request, user, "solution_edit", 10, db)
-    row = _public_solution(solution_id, db)
+    row = _mutable_solution(solution_id, db)
     if row.author_id != user.id:
         raise HTTPException(status_code=403, detail="Only the creator can revise this solution")
     row.latest_revision_number += 1
@@ -136,7 +172,7 @@ def edit_solution(solution_id: int, body: SolutionEdit, request: Request, user: 
 @router.put("/{solution_id}/vote")
 def set_vote(solution_id: int, body: VoteSet, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     _rate_limit(request, user, "solution_vote", 20, db)
-    _public_solution(solution_id, db)
+    _mutable_solution(solution_id, db)
     row = db.query(SolutionVote).filter_by(solution_id=solution_id, voter_user_id=user.id).first()
     if body.choice is None:
         if row is not None:

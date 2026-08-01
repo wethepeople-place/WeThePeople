@@ -49,9 +49,10 @@ export default function SolutionsPage() {
     </form>}
     {error && <div role="alert" className="mt-6 rounded border border-red-500/50 bg-red-950/30 p-4">{error} <button className="ml-2 underline" onClick={load}>Retry</button></div>}
     {loading ? <p className="mt-10 text-text-2">Loading solutions…</p> : items.length === 0 ? <div className="mt-10 rounded-card border border-border bg-surface p-8"><h2 className="text-xl font-semibold">No published solutions yet</h2><p className="mt-2 text-text-2">A reviewed Housing &amp; Rent solution will appear here when loaded.</p></div> : <div className="mt-10 space-y-5">{items.map((item) => <article key={item.id} className="rounded-card border border-border bg-surface p-6">
-      <h2 className="text-2xl font-semibold">{item.title}</h2><p className="mt-3 leading-7 text-text-2">{item.summary}</p>
+      <h2 className="text-2xl font-semibold"><Link className="hover:text-accent-text" to={`/issues/${slug}/solutions/${item.id}`}>{item.title}</Link></h2><p className="mt-3 leading-7 text-text-2">{item.summary}</p>
       <div className="mt-5 flex flex-wrap gap-3"><button disabled={!isAuthenticated} aria-pressed={item.current_user_choice === 'support'} onClick={() => vote(item, 'support')} className="rounded border border-emerald-500 px-4 py-2 disabled:opacity-50">Support · {item.vote_totals.support}</button><button disabled={!isAuthenticated} aria-pressed={item.current_user_choice === 'oppose'} onClick={() => vote(item, 'oppose')} className="rounded border border-rose-500 px-4 py-2 disabled:opacity-50">Oppose · {item.vote_totals.oppose}</button></div>
       <p className="mt-4 text-xs leading-5 text-text-3">{item.vote_rule} Current ballots: {item.vote_totals.total_ballots}.</p>
+      <Link className="mt-4 inline-block text-sm text-accent-text underline" to={`/issues/${slug}/solutions/${item.id}`}>Read full solution and revisions</Link>
     </article>)}</div>}
     <p className="mt-10"><Link className="text-accent-text underline" to={`/issues/${slug}`}>Return to official evidence</Link></p>
   </div></main>;
