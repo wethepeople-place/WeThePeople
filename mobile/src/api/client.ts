@@ -49,6 +49,8 @@ import type {
   InfluenceTopContractItem,
   RecentActivityItem,
   WatchVideosResponse,
+  DiscussionFeedResponse,
+  DiscussionDetailResponse,
 } from './types';
 
 // Last-resort fallback if expo Constants isn't readable for any reason.
@@ -195,6 +197,28 @@ class WTPClient {
 
   async getWatchVideos(opts?: FetchOptions): Promise<WatchVideosResponse> {
     return this.fetchJSON<WatchVideosResponse>(`${this.baseUrl}/videos`, opts);
+  }
+
+  async getDiscussions(limit = 20, offset = 0, opts?: FetchOptions): Promise<DiscussionFeedResponse> {
+    return this.fetchJSON<DiscussionFeedResponse>(`${this.baseUrl}/discussions?limit=${limit}&offset=${offset}`, opts);
+  }
+
+  async getDiscussion(postId: number, opts?: FetchOptions): Promise<DiscussionDetailResponse> {
+    return this.fetchJSON<DiscussionDetailResponse>(`${this.baseUrl}/discussions/${postId}`, opts);
+  }
+
+  async createDiscussionReply(postId: number, body: string): Promise<{ id: number; post_id: number; moderation_status: 'published' }> {
+    return this.fetchJSON(`${this.baseUrl}/discussions/${postId}/replies`, { method: 'POST', body: { body } });
+  }
+
+  async reportDiscussionPost(postId: number): Promise<{ status: string }> {
+    return this.fetchJSON(`${this.baseUrl}/discussions/reports`, {
+      method: 'POST', body: { target_type: 'post', target_id: postId, reason: 'other' },
+    });
+  }
+
+  async blockDiscussionUser(userId: number): Promise<{ status: string }> {
+    return this.fetchJSON(`${this.baseUrl}/discussions/blocks/${userId}`, { method: 'POST' });
   }
 
   async getPeople(params?: {

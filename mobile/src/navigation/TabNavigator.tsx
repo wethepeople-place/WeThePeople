@@ -55,6 +55,8 @@ import CompareScreen from '../screens/CompareScreen';
 import LegislationTrackerScreen from '../screens/LegislationTrackerScreen';
 import ActivityFeedScreen from '../screens/ActivityFeedScreen';
 import WatchScreen from '../screens/WatchScreen';
+import DiscussFeedScreen from '../screens/DiscussFeedScreen';
+import DiscussDetailScreen from '../screens/DiscussDetailScreen';
 
 // Wave A (civic + cross-sector trackers + detail views)
 import BadgesScreen from '../screens/BadgesScreen';
@@ -95,6 +97,7 @@ const PoliticsStack = createNativeStackNavigator();
 const FinanceStack = createNativeStackNavigator();
 const HealthStack = createNativeStackNavigator();
 const TechnologyStack = createNativeStackNavigator();
+const DiscussStack = createNativeStackNavigator();
 
 const stackScreenOptions = {
   headerStyle: {
@@ -438,6 +441,15 @@ function HomeStackScreen() {
   );
 }
 
+function DiscussStackScreen() {
+  return <DiscussStack.Navigator screenOptions={stackScreenOptions}>
+    <DiscussStack.Screen name="DiscussFeed" component={DiscussFeedScreen} options={{ title: 'Discuss' }} />
+    <DiscussStack.Screen name="DiscussDetail" component={DiscussDetailScreen} options={{ title: 'Discussion' }} />
+    <DiscussStack.Screen name="Login" component={LoginScreen} options={{ title: 'Sign in' }} />
+    <DiscussStack.Screen name="Signup" component={SignupScreen} options={{ title: 'Create account' }} />
+  </DiscussStack.Navigator>;
+}
+
 // Auth-flow screens (Login / Signup / Account) are registered in every
 // stack so a "Sign in" tap on a deep entity-detail screen has somewhere
 // to go. Without these the WatchlistButton on Person/Company/Institution
@@ -579,6 +591,7 @@ function TechnologyStackScreen() {
 
 const TAB_ICONS: Record<string, { focused: IoniconsName; default: IoniconsName }> = {
   WatchTab: { focused: 'play-circle', default: 'play-circle-outline' },
+  DiscussTab: { focused: 'chatbubbles', default: 'chatbubbles-outline' },
   HomeTab: { focused: 'home', default: 'home-outline' },
   PoliticsTab: { focused: 'business', default: 'business-outline' },
   FinanceTab: { focused: 'trending-up', default: 'trending-up-outline' },
@@ -619,6 +632,7 @@ export default function TabNavigator() {
         component={WatchScreen}
         options={{ title: 'Watch' }}
       />
+      <Tab.Screen name="DiscussTab" component={DiscussStackScreen} options={{ title: 'Discuss' }} />
       <Tab.Screen
         name="HomeTab"
         component={HomeStackScreen}

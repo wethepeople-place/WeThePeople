@@ -781,3 +781,50 @@ export interface WatchVideosResponse {
   total: number;
   videos: WatchVideo[];
 }
+
+export interface DiscussionAuthor {
+  id: number | null;
+  display_name: string;
+}
+
+export interface DiscussionAttachment {
+  type: string;
+  reference_id: string;
+  label: string | null;
+  source?: { url: string; publisher: string; retrieved_at: string } | null;
+}
+
+export interface DiscussionPost {
+  id: number;
+  author: DiscussionAuthor;
+  body: string;
+  moderation_status: 'published';
+  reply_count: number;
+  created_at: string;
+  updated_at: string;
+  attachments: DiscussionAttachment[];
+}
+
+export interface DiscussionReply {
+  id: number;
+  parent_reply_id: number | null;
+  author: DiscussionAuthor;
+  body: string;
+  moderation_status: 'published';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiscussionFeedResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: DiscussionPost[];
+}
+
+export interface DiscussionDetailResponse extends DiscussionPost {
+  replies: DiscussionReply[];
+  reply_limit: number;
+  reply_offset: number;
+  reply_total: number;
+}

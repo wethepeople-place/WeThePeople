@@ -40,3 +40,14 @@ the canonical user identity and a persistent per-user/IP rate-limit key.
 Reports and block relationships remain private; an authenticated feed filters
 authors the current user has blocked. Root-post creation, editing, reactions,
 follows, bookmarks, ranking, and all Expo UI remain deferred.
+
+## Expo Discuss shell checkpoint
+
+The Expo app now has a Discuss tab with public feed and thread-detail states,
+typed API calls, evidence linking, and a Watch-to-Discuss control. Signed-in
+users can reply, privately report a post, or block its author; signed-out users
+are routed through the existing login boundary. Loading, empty, error, retry,
+keyboard, and accessibility-label states are explicit.
+
+Root-post creation, reactions, follows, bookmarks, ranking, broad moderation
+tooling, and the HUD token remain deferred.

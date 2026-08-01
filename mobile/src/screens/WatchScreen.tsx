@@ -11,7 +11,7 @@ import {
   View,
   ViewToken,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 import { apiClient } from '../api/client';
@@ -19,6 +19,7 @@ import type { WatchVideo } from '../api/types';
 import { openExternalUrl } from '../utils/openExternal';
 
 function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: boolean; reducedMotion: boolean }) {
+  const navigation = useNavigation<any>();
   const [captionsVisible, setCaptionsVisible] = useState(true);
   const [mediaUnavailable, setMediaUnavailable] = useState(false);
   const player = useVideoPlayer(item.media_url, (instance) => {
@@ -64,6 +65,9 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
         ) : null}
         <Text style={styles.timestamp}>{new Date(item.published_at).toLocaleDateString()}</Text>
         <View style={styles.actions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => navigation.navigate('DiscussTab')}>
+            <Text style={styles.discussButtonText}>Discuss</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" style={styles.button} onPress={() => openExternalUrl(item.source.url, 'evidence source')}>
             <Text style={styles.buttonText}>Evidence</Text>
           </Pressable>
@@ -158,6 +162,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   button: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   buttonText: { color: '#111827', fontWeight: '700' },
+  discussButton: { backgroundColor: '#C5A044', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  discussButtonText: { color: '#0A0F1A', fontWeight: '800' },
   center: { flex: 1, backgroundColor: '#070B14', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   unavailable: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 24 },
   unavailableTitle: { color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center' },
