@@ -1,7 +1,10 @@
 import json
 
+import pytest
+
 from models.auth_models import User
 from models.social_models import DiscussionPost, DiscussionReport
+from routers.auth import pwd_context
 from services.jwt_auth import create_access_token, create_password_reset_token, verify_token
 from services.rbac import VALID_ROLES
 
@@ -9,6 +12,19 @@ from services.rbac import VALID_ROLES
 EMAIL = "testuser@example.com"
 ORIGINAL_PASSWORD = "securepassword123"
 RESET_PASSWORD = "new-secure-password-456"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def lifecycle_user(db_session):
+    user = db_session.query(User).filter_by(email=EMAIL).first()
+    if user is None:
+        db_session.add(User(
+            email=EMAIL,
+            hashed_password=pwd_context.hash(ORIGINAL_PASSWORD),
+            display_name="Test User",
+            role="free",
+        ))
+        db_session.commit()
 
 
 def _login(client, password=ORIGINAL_PASSWORD):
