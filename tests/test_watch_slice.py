@@ -95,3 +95,32 @@ def test_watch_loader_rejects_scope_before_writing(tmp_path):
         with pytest.raises(WatchFixtureValidationError, match="exactly the reviewed"):
             load_fixture(payload, session)
         assert session.query(Video).count() == 0
+
+
+def test_watch_share_preview_is_canonical_source_backed_and_missing_safe(tmp_path):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+
+    preview = client.get("/videos/housing-rent-why-rents-move/share")
+    assert preview.status_code == 200
+    assert preview.json() == {
+        "video_id": "housing-rent-why-rents-move",
+        "canonical_url": "https://wethepeople.place/watch/housing-rent-why-rents-move",
+        "title": "Start with official housing evidence. | WeThePeople.place",
+        "description": "WeThePeople.place · Housing & Rent · Source: Congress.gov",
+        "image_url": "https://wethepeople.place/og-image.png",
+        "source": {
+            "url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+            "publisher": "Congress.gov",
+            "retrieved_at": "2026-07-31T00:00:00",
+        },
+    }
+    assert client.get("/videos/missing/share").status_code == 404
+    html = client.get("/videos/housing-rent-why-rents-move/preview")
+    assert html.status_code == 200
+    assert '<link rel="canonical" href="https://wethepeople.place/watch/housing-rent-why-rents-move">' in html.text
+    assert '<meta property="og:title" content="Start with official housing evidence. | WeThePeople.place">' in html.text
+    assert "Congress.gov" in html.text
+    assert client.get("/videos/missing/preview").status_code == 404

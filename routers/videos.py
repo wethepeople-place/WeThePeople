@@ -1,14 +1,32 @@
 """Public, read-only Watch video endpoints."""
 
+import os
+from html import escape
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.database import get_db
 from models.issue_models import Video, VideoBill, VideoIssue
-from models.response_schemas import VideoItem, VideosResponse
+from models.response_schemas import VideoItem, VideoSharePreview, VideosResponse
 from routers.issues import _source
 
 router = APIRouter(prefix="/videos", tags=["videos"])
+PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://wethepeople.place").rstrip("/")
+
+
+def _share_preview(row: Video) -> dict:
+    item = _serialize(row)
+    return {
+        "video_id": row.video_id,
+        "canonical_url": f"{PUBLIC_WEB_ORIGIN}/watch/{quote(row.video_id, safe='')}",
+        "title": f"{row.caption} | WeThePeople.place",
+        "description": f"{row.creator_label} · {item['issue']['title']} · Source: {item['source']['publisher']}",
+        "image_url": f"{PUBLIC_WEB_ORIGIN}/og-image.png",
+        "source": item["source"],
+    }
 
 
 def _query(db: Session):
@@ -53,3 +71,30 @@ def get_video(video_id: str, db: Session = Depends(get_db)):
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")
     return _serialize(row)
+
+
+@router.get("/{video_id}/share", response_model=VideoSharePreview)
+def get_video_share_preview(video_id: str, db: Session = Depends(get_db)):
+    row = _query(db).filter(Video.video_id == video_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return _share_preview(row)
+
+
+@router.get("/{video_id}/preview", response_class=HTMLResponse, include_in_schema=False)
+def get_video_share_page(video_id: str, db: Session = Depends(get_db)):
+    row = _query(db).filter(Video.video_id == video_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    preview = _share_preview(row)
+    values = {key: escape(str(value), quote=True) for key, value in preview.items() if key != "source"}
+    source_url = escape(preview["source"]["url"], quote=True)
+    source_publisher = escape(preview["source"]["publisher"], quote=True)
+    return HTMLResponse(f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{values["title"]}</title>
+<link rel="canonical" href="{values["canonical_url"]}"><meta property="og:type" content="video.other">
+<meta property="og:title" content="{values["title"]}"><meta property="og:description" content="{values["description"]}">
+<meta property="og:url" content="{values["canonical_url"]}"><meta property="og:image" content="{values["image_url"]}">
+<meta name="twitter:card" content="summary_large_image"></head><body>
+<main><p>Watch · Housing &amp; Rent</p><h1>{escape(row.caption)}</h1><p>{values["description"]}</p>
+<p>Official source: <a href="{source_url}">{source_publisher}</a></p></main></body></html>''', headers={"Cache-Control": "public, max-age=300"})

@@ -5,6 +5,7 @@ import {
   AppState,
   FlatList,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import * as Clipboard from 'expo-clipboard';
 
 import { apiClient } from '../api/client';
 import type { WatchVideo } from '../api/types';
@@ -22,6 +24,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
   const navigation = useNavigation<any>();
   const [captionsVisible, setCaptionsVisible] = useState(true);
   const [mediaUnavailable, setMediaUnavailable] = useState(false);
+  const [shareStatus, setShareStatus] = useState('');
   const player = useVideoPlayer(item.media_url, (instance) => {
     instance.loop = true;
     instance.muted = false;
@@ -38,6 +41,28 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
     if (active && !reducedMotion && !mediaUnavailable) player.play();
     else player.pause();
   }, [active, reducedMotion, mediaUnavailable, player]);
+
+  const shareVideo = async () => {
+    setShareStatus('Opening share options…');
+    try {
+      const preview = await apiClient.getVideoSharePreview(item.video_id);
+      await Share.share({ title: preview.title, message: `${preview.description}\n${preview.canonical_url}`, url: preview.canonical_url });
+      setShareStatus('Share options opened.');
+    } catch {
+      setShareStatus('Could not open share options. Try again.');
+    }
+  };
+
+  const copyVideoLink = async () => {
+    setShareStatus('Copying link…');
+    try {
+      const preview = await apiClient.getVideoSharePreview(item.video_id);
+      await Clipboard.setStringAsync(preview.canonical_url);
+      setShareStatus('Link copied.');
+    } catch {
+      setShareStatus('Could not copy the link. Try again.');
+    }
+  };
 
   return (
     <View style={styles.card} accessible accessibilityLabel={`${item.creator_label}. ${item.caption}`}>
@@ -65,6 +90,12 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
         ) : null}
         <Text style={styles.timestamp}>{new Date(item.published_at).toLocaleDateString()}</Text>
         <View style={styles.actions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Share this civic video" style={styles.button} onPress={shareVideo}>
+            <Text style={styles.buttonText}>Share</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Copy link to this civic video" style={styles.button} onPress={copyVideoLink}>
+            <Text style={styles.buttonText}>Copy link</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => navigation.navigate('DiscussTab')}>
             <Text style={styles.discussButtonText}>Discuss</Text>
           </Pressable>
@@ -88,6 +119,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
             </Pressable>
           )}
         </View>
+        {shareStatus ? <Text accessibilityLiveRegion="polite" style={styles.shareStatus}>{shareStatus}</Text> : null}
       </View>
     </View>
   );
@@ -168,4 +200,5 @@ const styles = StyleSheet.create({
   unavailable: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 24 },
   unavailableTitle: { color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center' },
   body: { color: '#D1D5DB', textAlign: 'center' },
+  shareStatus: { color: '#fff', marginTop: 10, fontSize: 13 },
 });

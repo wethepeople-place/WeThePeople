@@ -30,6 +30,7 @@ import EcosystemNav from "./components/EcosystemNav";
 
 const HomePage = React.lazy(() => import("./pages/HomePage"));
 const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage"));
+const WatchVideoPage = React.lazy(() => import("./pages/WatchVideoPage"));
 const PoliticsDashboardPage = React.lazy(() => import("./pages/PoliticsDashboardPage"));
 const PeoplePage = React.lazy(() => import("./pages/PeoplePage"));
 const PersonProfilePage = React.lazy(() => import("./pages/PersonProfilePage"));
@@ -200,6 +201,7 @@ const App: React.FC = () => (
           {/* Sector selector */}
           <Route path="/" element={<HomePage />} />
           <Route path="/issues/:slug" element={<IssueDetailPage />} />
+          <Route path="/watch/:videoId" element={<WatchVideoPage />} />
 
           {/*
             Capture the natural /<sector>/companies/<id> guess that 404'd

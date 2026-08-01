@@ -49,6 +49,7 @@ import type {
   InfluenceTopContractItem,
   RecentActivityItem,
   WatchVideosResponse,
+  VideoSharePreview,
   DiscussionFeedResponse,
   DiscussionDetailResponse,
 } from './types';
@@ -197,6 +198,10 @@ class WTPClient {
 
   async getWatchVideos(opts?: FetchOptions): Promise<WatchVideosResponse> {
     return this.fetchJSON<WatchVideosResponse>(`${this.baseUrl}/videos`, opts);
+  }
+
+  async getVideoSharePreview(videoId: string, opts?: FetchOptions): Promise<VideoSharePreview> {
+    return this.fetchJSON<VideoSharePreview>(`${this.baseUrl}/videos/${encodeURIComponent(videoId)}/share`, opts);
   }
 
   async getDiscussions(limit = 20, offset = 0, opts?: FetchOptions): Promise<DiscussionFeedResponse> {

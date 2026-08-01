@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/watch/:videoId",
+      "destination": "https://api.wethepeopleforus.com/videos/:videoId/preview"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://api.wethepeopleforus.com/:path*"
     },

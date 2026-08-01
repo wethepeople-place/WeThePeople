@@ -5,6 +5,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 // production so an EAS update without WTP_API_URL exported doesn't ship a
 // localhost URL that the phone can't reach.
 const API_URL = process.env.WTP_API_URL || "https://api.wethepeopleforus.com";
+const PUBLIC_WEB_URL = process.env.WTP_PUBLIC_WEB_URL || "https://wethepeople.place";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -45,6 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: API_URL,
+    publicWebUrl: PUBLIC_WEB_URL,
     eas: {
       projectId: "ae474545-4ca6-48f8-be3d-64b03515ad55",
     },

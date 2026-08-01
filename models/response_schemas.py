@@ -509,3 +509,11 @@ class VideoItem(BaseModel):
 class VideosResponse(BaseModel):
     total: int
     videos: List[VideoItem]
+
+class VideoSharePreview(BaseModel):
+    video_id: str
+    canonical_url: str
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    source: IssueSource

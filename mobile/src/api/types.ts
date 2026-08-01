@@ -782,6 +782,15 @@ export interface WatchVideosResponse {
   videos: WatchVideo[];
 }
 
+export interface VideoSharePreview {
+  video_id: string;
+  canonical_url: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  source: { url: string; publisher: string; retrieved_at: string };
+}
+
 export interface DiscussionAuthor {
   id: number | null;
   display_name: string;
