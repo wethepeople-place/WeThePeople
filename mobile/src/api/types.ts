@@ -764,3 +764,20 @@ export interface RecentActivityItem {
   sector?: string | null;
   source_url?: string | null;
 }
+export interface WatchVideo {
+  video_id: string;
+  creator_label: string;
+  caption: string;
+  transcript: string | null;
+  captions_url: string | null;
+  media_url: string;
+  published_at: string;
+  source: { url: string; publisher: string; retrieved_at: string };
+  issue: { slug: string; title: string };
+  bills: Array<{ bill_id: string; title: string | null }>;
+}
+
+export interface WatchVideosResponse {
+  total: number;
+  videos: WatchVideo[];
+}

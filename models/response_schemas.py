@@ -480,3 +480,32 @@ class IssueBillsResponse(BaseModel):
     issue_slug: str
     total: int
     bills: List[IssueBillItem]
+
+
+# ---------------------------------------------------------------------------
+# Read-only Watch video contracts
+# ---------------------------------------------------------------------------
+
+class VideoIssueLink(BaseModel):
+    slug: str
+    title: str
+
+class VideoBillLink(BaseModel):
+    bill_id: str
+    title: Optional[str] = None
+
+class VideoItem(BaseModel):
+    video_id: str
+    creator_label: str
+    caption: str
+    transcript: Optional[str] = None
+    captions_url: Optional[str] = None
+    media_url: str
+    published_at: str
+    source: IssueSource
+    issue: VideoIssueLink
+    bills: List[VideoBillLink]
+
+class VideosResponse(BaseModel):
+    total: int
+    videos: List[VideoItem]

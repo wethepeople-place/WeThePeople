@@ -37,6 +37,7 @@ jobs:
           tests/test_housing_rent_loader.py
           tests/test_housing_rent_fetch_adapters.py
           tests/test_housing_rent_api.py
+          tests/test_watch_slice.py
           tests/test_civic_slice_contract.py
           tests/test_committee_initialization.py
           tests/test_congress_legislators_import.py

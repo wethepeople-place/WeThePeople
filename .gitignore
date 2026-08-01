@@ -87,6 +87,7 @@ backups/
 !DEVELOPMENT.md
 !ENVIRONMENT.md
 !PHASE3_HOUSING_RENT.md
+!PHASE4_WATCH.md
 !UPSTREAM.md
 # Specific READMEs that should ALSO stay local-only
 frontend/README.md
@@ -101,6 +102,9 @@ _archive/
 
 # Seed/reference data (local only, too large or too volatile for git)
 data/
+!data/
+data/*
+!data/watch_housing_rent.json
 !frontend/src/data/
 !mobile/src/data/
 audit/

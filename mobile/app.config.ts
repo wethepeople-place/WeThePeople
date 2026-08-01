@@ -35,6 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
+  plugins: ["expo-video"],
   owner: "obelus-labs-llc",
   runtimeVersion: {
     policy: "appVersion",
