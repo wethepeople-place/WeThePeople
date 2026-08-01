@@ -9,7 +9,7 @@ returned by each endpoint -- no behaviour changes.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -420,3 +420,63 @@ class WatchlistListResponse(BaseModel):
 class WatchlistCheckResponse(BaseModel):
     watching: bool
     item_id: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Read-only issue detail
+# ---------------------------------------------------------------------------
+
+class IssueSource(BaseModel):
+    url: str
+    publisher: str
+    retrieved_at: str
+
+class IssueSummaryResponse(BaseModel):
+    slug: str
+    title: str
+    summary: Optional[str] = None
+    evidence_series_count: int
+    bill_count: int
+
+class IssueGeography(BaseModel):
+    type: str
+    id: str
+
+class IssueEvidenceObservation(BaseModel):
+    date: str
+    value: float
+    source_record_id: Optional[str] = None
+    source: IssueSource
+
+class IssueEvidenceSeriesItem(BaseModel):
+    key: str
+    title: str
+    unit: str
+    geography: IssueGeography
+    source: IssueSource
+    observations: List[IssueEvidenceObservation]
+
+class IssueEvidenceResponse(BaseModel):
+    issue_slug: str
+    total: int
+    series: List[IssueEvidenceSeriesItem]
+
+class IssueBillItem(BaseModel):
+    bill_id: str
+    congress: int
+    bill_type: str
+    bill_number: int
+    title: Optional[str] = None
+    policy_area: Optional[str] = None
+    phase: Literal["past", "current", "upcoming"]
+    status_bucket: Optional[str] = None
+    status_reason: Optional[str] = None
+    latest_action_text: Optional[str] = None
+    latest_action_date: Optional[str] = None
+    relevance_note: Optional[str] = None
+    source: IssueSource
+
+class IssueBillsResponse(BaseModel):
+    issue_slug: str
+    total: int
+    bills: List[IssueBillItem]
