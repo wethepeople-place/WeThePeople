@@ -41,6 +41,7 @@ export default function IssueDetailPage() {
       <div className="mt-8 flex flex-wrap gap-3 text-sm text-text-2">
         <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.evidence.length} evidence series</span>
         <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.bills.length} reviewed bills</span>
+        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/issues/${slug}/solutions`}>Citizen solutions</Link>
       </div>
 
       <section className="mt-14">

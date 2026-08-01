@@ -108,6 +108,34 @@ export function castVote(targetType: string, targetId: number, value: 1 | -1) {
   return apiFetch<{ action: string; value?: number }>('/civic/vote', { method: 'POST', body: { target_type: targetType, target_id: targetId, value } });
 }
 
+export interface CitizenSolution {
+  id: number;
+  creator_user_id: number;
+  issue_slug: string;
+  title: string;
+  summary: string;
+  body?: string;
+  status: string;
+  latest_revision_number: number;
+  vote_totals: { support: number; oppose: number; total_ballots: number };
+  current_user_choice: 'support' | 'oppose' | null;
+  vote_rule: string;
+  vote_choices: Array<'support' | 'oppose'>;
+  created_at: string;
+}
+
+export function fetchSolutions(issueSlug: string) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: CitizenSolution[] }>('/solutions', { params: { issue_slug: issueSlug } });
+}
+
+export function createCitizenSolution(data: { issue_slug: string; title: string; summary: string; body: string }) {
+  return apiFetch<CitizenSolution>('/solutions', { method: 'POST', body: data });
+}
+
+export function setSolutionVote(solutionId: number, choice: 'support' | 'oppose' | null) {
+  return apiFetch<{ current_user_choice: 'support' | 'oppose' | null; vote_totals: CitizenSolution['vote_totals']; vote_rule: string }>(`/solutions/${solutionId}/vote`, { method: 'PUT', body: { choice } });
+}
+
 // ── Badges ──
 
 export interface BadgeItem {

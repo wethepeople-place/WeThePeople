@@ -8,7 +8,7 @@ Inspired by Decidim (accountability tracking) and Consul Democracy
 
 from sqlalchemy import (
     Column, String, Integer, Float, DateTime, Text, ForeignKey,
-    UniqueConstraint,
+    UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -114,7 +114,9 @@ class Proposal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    issue_slug = Column(String(100), ForeignKey("issues.slug", ondelete="RESTRICT"), nullable=True, index=True)
     title = Column(String(500), nullable=False)
+    summary = Column(String(1000), nullable=True)
     body = Column(Text, nullable=False)
 
     category = Column(String(100), nullable=True, index=True)
@@ -123,6 +125,9 @@ class Proposal(Base):
     # Lifecycle
     status = Column(String(50), nullable=False, server_default="draft", index=True)
     retire_reason = Column(String(50), nullable=True)  # duplicated, started, unfeasible, done
+    moderation_reason = Column(String(1000), nullable=True)
+    duplicate_of_id = Column(Integer, ForeignKey("proposals.id", ondelete="RESTRICT"), nullable=True)
+    latest_revision_number = Column(Integer, nullable=False, server_default="1")
 
     # Cached vote counts for performance
     upvotes = Column(Integer, nullable=False, server_default="0")
@@ -136,6 +141,36 @@ class Proposal(Base):
     closed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SolutionRevision(Base):
+    __tablename__ = "solution_revisions"
+    __table_args__ = (UniqueConstraint("solution_id", "revision_number", name="uq_solution_revision_number"),)
+
+    id = Column(Integer, primary_key=True)
+    solution_id = Column(Integer, ForeignKey("proposals.id", ondelete="CASCADE"), nullable=False, index=True)
+    editor_user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    revision_number = Column(Integer, nullable=False)
+    title = Column(String(500), nullable=False)
+    summary = Column(String(1000), nullable=False)
+    body = Column(Text, nullable=False)
+    change_note = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SolutionVote(Base):
+    __tablename__ = "solution_votes"
+    __table_args__ = (
+        UniqueConstraint("solution_id", "voter_user_id", name="uq_solution_vote_voter"),
+        CheckConstraint("choice IN ('support','oppose')", name="ck_solution_vote_choice"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    solution_id = Column(Integer, ForeignKey("proposals.id", ondelete="CASCADE"), nullable=False, index=True)
+    voter_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    choice = Column(String(10), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 # ── Bill Section Annotations ──────────────────────────────────────────
