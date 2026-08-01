@@ -407,6 +407,8 @@ def anonymize_user(db: Session, user_id: int) -> AnonymizationResult:
         user.verified_at = None
         user.verification_method = None
         user.email_verified_at = None
+        user.suspended_at = None
+        user.suspension_reason = None
         user.zip_code = None
         user.digest_opt_in = 0
         user.alert_opt_in = 0
