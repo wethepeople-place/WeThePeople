@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -295,6 +295,25 @@ class PrivacyPasswordRequest(BaseModel):
 
 class AccountAnonymizeRequest(PrivacyPasswordRequest):
     confirmation: str
+
+
+class AdminAccountActionRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=500)
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 3:
+            raise ValueError("Reason must contain at least 3 non-whitespace characters")
+        return value
+
+
+class AdminAccountStateResponse(BaseModel):
+    user_id: int
+    is_active: bool
+    session_version: int
+    suspended_at: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -733,6 +752,83 @@ def anonymize_my_account(
         raise HTTPException(status_code=500, detail="Account anonymization failed")
     _clear_session_cookie(response)
     return {"status": "anonymized", "completed_at": result.completed_at}
+
+
+@router.post("/admin/users/{user_id}/suspend", response_model=AdminAccountStateResponse)
+@limiter.limit("30/hour")
+def suspend_user_account(
+    user_id: int,
+    body: AdminAccountActionRequest,
+    request: Request,
+    admin: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Suspend another account and invalidate every session and API key."""
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="Administrators cannot suspend their own account")
+    target = db.query(User).filter(User.id == user_id).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not target.is_active:
+        raise HTTPException(status_code=409, detail="Account is already inactive")
+
+    now = datetime.now(timezone.utc)
+    target.is_active = 0
+    target.suspended_at = now
+    target.suspension_reason = body.reason.strip()
+    target.session_version = (target.session_version or 1) + 1
+    revoked_keys = db.query(APIKeyRecord).filter(
+        APIKeyRecord.user_id == target.id,
+        APIKeyRecord.is_active == 1,
+    ).update({APIKeyRecord.is_active: 0}, synchronize_session=False)
+    log_from_request(
+        db, request, action="account_suspended", user_id=admin.id,
+        resource="users", resource_id=str(target.id),
+        details={"reason": target.suspension_reason, "revoked_api_keys": revoked_keys},
+    )
+    db.refresh(target)
+    return AdminAccountStateResponse(
+        user_id=target.id, is_active=False,
+        session_version=target.session_version,
+        suspended_at=target.suspended_at.isoformat() if target.suspended_at else None,
+    )
+
+
+@router.post("/admin/users/{user_id}/reactivate", response_model=AdminAccountStateResponse)
+@limiter.limit("30/hour")
+def reactivate_user_account(
+    user_id: int,
+    body: AdminAccountActionRequest,
+    request: Request,
+    admin: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Reactivate only an explicitly suspended account with fresh sessions."""
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="Administrators cannot reactivate their own account")
+    target = db.query(User).filter(User.id == user_id).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.is_active:
+        raise HTTPException(status_code=409, detail="Account is already active")
+    if target.suspended_at is None or target.hashed_password == "ANONYMIZED":
+        raise HTTPException(status_code=409, detail="Account was not administratively suspended")
+
+    previous_reason = target.suspension_reason
+    target.is_active = 1
+    target.suspended_at = None
+    target.suspension_reason = None
+    target.session_version = (target.session_version or 1) + 1
+    log_from_request(
+        db, request, action="account_reactivated", user_id=admin.id,
+        resource="users", resource_id=str(target.id),
+        details={"reason": body.reason.strip(), "previous_suspension_reason": previous_reason},
+    )
+    db.refresh(target)
+    return AdminAccountStateResponse(
+        user_id=target.id, is_active=True,
+        session_version=target.session_version, suspended_at=None,
+    )
 
 
 @router.get("/me", response_model=UserInfoResponse)

@@ -37,6 +37,8 @@ class User(Base):
     is_active = Column(Integer, nullable=False, server_default="1", index=True)  # SQLite compat: 0/1
     session_version = Column(Integer, nullable=False, server_default="1")
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    suspended_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    suspension_reason = Column(String(500), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)
