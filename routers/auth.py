@@ -24,7 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models.database import get_db, SessionLocal
-from models.auth_models import User, APIKeyRecord
+from models.auth_models import User, APIKeyRecord, EmailVerificationToken
 from models.response_schemas import (
     WatchlistAddResponse, WatchlistListResponse, WatchlistCheckResponse,
 )
@@ -233,6 +233,7 @@ class RegisterResponse(BaseModel):
     role: str
     display_name: Optional[str] = None
     created_at: str
+    email_verified: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -261,6 +262,7 @@ class UserInfoResponse(BaseModel):
     created_at: str
     last_login: Optional[str] = None
     api_key_count: int = 0
+    email_verified: bool = False
 
 
 class CreateAPIKeyRequest(BaseModel):
@@ -342,6 +344,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         role=user.role,
         display_name=user.display_name,
         created_at=user.created_at.isoformat() if user.created_at else "",
+        email_verified=user.email_verified_at is not None,
     )
 
 
@@ -471,6 +474,123 @@ class ResetPasswordRequest(BaseModel):
 
 class ResetPasswordResponse(BaseModel):
     ok: bool = True
+
+
+class EmailVerificationConfirmRequest(BaseModel):
+    token: str = Field(..., min_length=32, max_length=512)
+
+
+class EmailVerificationResponse(BaseModel):
+    ok: bool = True
+    message: str = "If the account is eligible, a verification link will be sent."
+
+
+EMAIL_VERIFICATION_TTL_HOURS = int(os.getenv("WTP_EMAIL_VERIFICATION_TTL_HOURS", "24"))
+
+
+def _email_verification_delivery_enabled() -> bool:
+    return os.getenv("WTP_EMAIL_VERIFICATION_DELIVERY_ENABLED", "").lower() in {"1", "true", "yes"}
+
+
+def _issue_email_verification(db: Session, user: User) -> tuple[str, EmailVerificationToken]:
+    """Replace outstanding proofs and return the only raw copy of the token."""
+    now = datetime.now(timezone.utc)
+    db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.consumed_at.is_(None),
+    ).update({EmailVerificationToken.consumed_at: now}, synchronize_session=False)
+    raw_token = secrets.token_urlsafe(48)
+    record = EmailVerificationToken(
+        user_id=user.id,
+        token_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+        expires_at=now + timedelta(hours=EMAIL_VERIFICATION_TTL_HOURS),
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return raw_token, record
+
+
+@router.post("/email-verification/request", response_model=EmailVerificationResponse)
+@limiter.limit("5/hour")
+def request_email_verification(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a one-time proof for the authenticated account's email."""
+    if user.email_verified_at is not None:
+        return EmailVerificationResponse()
+
+    delivery_enabled = _email_verification_delivery_enabled()
+    if not delivery_enabled:
+        log_from_request(
+            db, request, action="email_verification_delivery_disabled",
+            user_id=user.id, resource="users", resource_id=str(user.id),
+        )
+        return EmailVerificationResponse()
+
+    raw_token, record = _issue_email_verification(db, user)
+    sent = False
+    try:
+        from services.email import send_email
+        app_url = os.getenv("WTP_PUBLIC_APP_URL", "https://wethepeopleforus.com").rstrip("/")
+        verify_url = f"{app_url}/verify-email?token={raw_token}"
+        sent = send_email(
+            to=[user.email], subject="Verify your WeThePeople email",
+            html=(
+                "<p>Confirm that this email belongs to your WeThePeople account.</p>"
+                f'<p><a href="{verify_url}">Verify email</a></p>'
+                f"<p>This link expires in {EMAIL_VERIFICATION_TTL_HOURS} hours.</p>"
+            ),
+        )
+    except Exception as exc:
+        logger.warning("email verification delivery raised: %s", exc)
+    log_from_request(
+        db, request,
+        action="email_verification_sent" if sent else "email_verification_delivery_failed",
+        user_id=user.id, resource="email_verification_tokens", resource_id=str(record.id),
+    )
+    return EmailVerificationResponse()
+
+
+@router.post("/email-verification/confirm")
+@limiter.limit("10/hour")
+def confirm_email_verification(
+    body: EmailVerificationConfirmRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Atomically consume an unexpired proof and mark the account verified."""
+    now = datetime.now(timezone.utc)
+    token_hash = hashlib.sha256(body.token.encode("utf-8")).hexdigest()
+    record = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.token_hash == token_hash,
+        EmailVerificationToken.consumed_at.is_(None),
+        EmailVerificationToken.expires_at > now,
+    ).first()
+    if record is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+
+    consumed = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.id == record.id,
+        EmailVerificationToken.consumed_at.is_(None),
+    ).update({EmailVerificationToken.consumed_at: now}, synchronize_session=False)
+    if consumed != 1:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    user = db.query(User).filter(User.id == record.user_id, User.is_active == 1).first()
+    if user is None:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    if user.email_verified_at is None:
+        user.email_verified_at = now
+    db.commit()
+    log_from_request(
+        db, request, action="email_verified", user_id=user.id,
+        resource="users", resource_id=str(user.id),
+    )
+    return {"ok": True, "email_verified": True}
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
@@ -667,6 +787,7 @@ def get_me(
         created_at=user.created_at.isoformat() if user.created_at else "",
         last_login=user.last_login.isoformat() if user.last_login else None,
         api_key_count=key_count,
+        email_verified=user.email_verified_at is not None,
     )
 
 
