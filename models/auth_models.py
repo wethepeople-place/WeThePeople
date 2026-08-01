@@ -26,7 +26,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
 
-    # Role hierarchy: free < pro < enterprise < admin
+    # Canonical roles are defined in services.rbac.VALID_ROLES.
     role = Column(String(50), nullable=False, server_default="free", index=True)
 
     # Optional legacy-compatible flat API key (for migration period)
@@ -34,6 +34,7 @@ class User(Base):
 
     display_name = Column(String(255), nullable=True)
     is_active = Column(Integer, nullable=False, server_default="1", index=True)  # SQLite compat: 0/1
+    session_version = Column(Integer, nullable=False, server_default="1")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)

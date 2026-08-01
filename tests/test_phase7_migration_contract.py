@@ -62,10 +62,11 @@ def test_canonical_graph_is_single_root_and_isolated_from_legacy():
     legacy_revisions = {item.revision for item in legacy.walk_revisions()}
     legacy_roots = {item.revision for item in legacy.walk_revisions() if item.down_revision is None}
 
-    assert canonical.get_heads() == ["canonical_20260731"]
+    assert canonical.get_heads() == ["canonical_identity_001"]
     assert canonical.get_bases() == ["canonical_20260731"]
     assert canonical_revisions.isdisjoint(legacy_revisions)
     assert legacy_roots == {"001_initial", "auth001", "ratelimit001"}
+    assert legacy.get_heads() == ["identity_lifecycle_001"]
 
 
 def test_identity_inventory_covers_every_canonical_user_foreign_key():

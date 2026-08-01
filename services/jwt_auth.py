@@ -106,7 +106,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
 PASSWORD_RESET_TTL_MINUTES = 30
 
 
-def create_password_reset_token(user_id: int, email: str) -> str:
+def create_password_reset_token(user_id: int, email: str, session_version: int = 1) -> str:
     """Mint a short-lived JWT used to verify a password-reset request.
 
     The token carries a `purpose="password_reset"` claim so the consumer
@@ -119,6 +119,7 @@ def create_password_reset_token(user_id: int, email: str) -> str:
         "sub": str(user_id),
         "email": email,
         "purpose": "password_reset",
+        "session_version": session_version,
         "exp": expire,
         "jti": uuid.uuid4().hex,
     }
@@ -199,6 +200,11 @@ def revoke_refresh_token(payload: dict, db: Session, reason: str = "logout") -> 
     db.commit()
 
 
+def token_matches_session(payload: dict, user: User) -> bool:
+    """Older versionless tokens are version 1 and fail after the first reset."""
+    return payload.get("session_version", 1) == (user.session_version or 1)
+
+
 # ---------------------------------------------------------------------------
 # FastAPI dependencies
 # ---------------------------------------------------------------------------
@@ -242,7 +248,7 @@ def get_current_user(
         )
 
     user = db.query(User).filter(User.email == email).first()
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or not token_matches_session(payload, user):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or deactivated",
@@ -280,7 +286,7 @@ def get_optional_user(
         return None
 
     user = db.query(User).filter(User.email == email).first()
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or not token_matches_session(payload, user):
         return None
 
     return user
