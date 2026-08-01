@@ -44,6 +44,8 @@ jobs:
           tests/test_solutions_api.py
           tests/test_solution_fixture.py
           tests/test_phase7_migration_contract.py
+          tests/test_auth.py
+          tests/test_identity_lifecycle.py
           tests/test_civic_slice_contract.py
           tests/test_committee_initialization.py
           tests/test_congress_legislators_import.py

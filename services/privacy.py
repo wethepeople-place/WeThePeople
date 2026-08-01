@@ -29,14 +29,32 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import text
+from sqlalchemy import delete, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
+INVENTORY_PATH = Path(__file__).resolve().parents[1] / "config" / "identity_data_inventory.json"
+SECRET_EXPORT_COLUMNS = {
+    "hashed_password", "api_key", "key_hash", "jti",
+    "verification_token", "unsubscribe_token",
+}
+
+
+def _classified_inventory() -> dict:
+    return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))["tables"]
+
+
+def _portable_value(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +192,18 @@ def export_user_data(db: Session, user_id: int) -> Dict[str, Any]:
             "created_at": _dt_str(user.created_at),
             "last_login": _dt_str(user.last_login),
             "updated_at": _dt_str(user.updated_at),
+            "verification_level": user.verification_level,
+            "verified_zip": user.verified_zip,
+            "verified_state": user.verified_state,
+            "verified_at": _dt_str(user.verified_at),
+            "verification_method": user.verification_method,
+            "zip_code": user.zip_code,
+            "digest_opt_in": bool(user.digest_opt_in),
+            "alert_opt_in": bool(user.alert_opt_in),
+            "home_state": user.home_state,
+            "congressional_district": user.congressional_district,
+            "lifestyle_categories": _safe_json_parse(user.lifestyle_categories),
+            "current_concern": user.current_concern,
         }
     else:
         export["user"] = None
@@ -264,6 +294,29 @@ def export_user_data(db: Session, user_id: int) -> Dict[str, Any]:
         export["rate_limit_records"] = []
     export["metadata"]["tables_searched"].append("rate_limit_records")
 
+    from models.database import Base
+    classified_records = {}
+    for table_name, contract in _classified_inventory().items():
+        if table_name in {"users", "api_key_records", "audit_logs", "digest_subscribers", "rate_limit_records"}:
+            continue
+        table = Base.metadata.tables.get(table_name)
+        identity_columns = [
+            name for name in contract["identity_columns"]
+            if table is not None and name in table.c
+            and any(key.target_fullname == "users.id" for key in table.c[name].foreign_keys)
+        ]
+        if table is None or not identity_columns:
+            continue
+        rows = db.execute(
+            select(table).where(or_(*(table.c[name] == user_id for name in identity_columns)))
+        ).mappings().all()
+        classified_records[table_name] = [
+            {key: _portable_value(value) for key, value in row.items() if key not in SECRET_EXPORT_COLUMNS}
+            for row in rows
+        ]
+        export["metadata"]["tables_searched"].append(table_name)
+    export["classified_records"] = classified_records
+
     logger.info(
         "Exported user data for user_id=%d: %d tables, %d total records",
         user_id,
@@ -335,11 +388,32 @@ def anonymize_user(db: Session, user_id: int) -> AnonymizationResult:
             return result
 
         original_email = user.email
+        original_ips = {
+            row[0]
+            for row in db.query(AuditLog.ip_address).filter(AuditLog.user_id == user_id).distinct().all()
+            if row[0]
+        }
         user.email = anon_email
         user.display_name = anon_name
         user.hashed_password = "ANONYMIZED"
         user.api_key = None
         user.is_active = 0
+        user.session_version = (user.session_version or 1) + 1
+        user.last_login = None
+        user.verification_level = 0
+        user.verified_zip = None
+        user.verified_state = None
+        user.verified_at = None
+        user.verification_method = None
+        user.zip_code = None
+        user.digest_opt_in = 0
+        user.alert_opt_in = 0
+        user.home_state = None
+        user.congressional_district = None
+        user.lifestyle_categories = None
+        user.current_concern = None
+        user.personalization_completed_at = None
+        user.last_alert_at = None
         result.tables_affected["users"] = 1
 
         # 2. Revoke and anonymize API keys
@@ -388,19 +462,39 @@ def anonymize_user(db: Session, user_id: int) -> AnonymizationResult:
 
         # 5. Delete rate limit records for IPs found in this user's audit logs
         #    (best-effort — IPs are shared so we only delete if audit trail links them)
-        ip_rows = (
-            db.query(AuditLog.ip_address)
-            .filter(
-                AuditLog.user_id == user_id,
-                AuditLog.ip_address != "0.0.0.0",  # Already anonymized above
-            )
-            .distinct()
-            .all()
-        )
-        # After step 3, all IPs are anonymized to 0.0.0.0, so we skip this.
-        # The rate limit records are ephemeral (30-day retention) and will be
-        # cleaned up by the data retention job. No explicit deletion needed.
-        result.tables_affected["rate_limit_records"] = 0
+        from models.database import Base
+        for table_name, contract in _classified_inventory().items():
+            if not contract["erasure"].startswith("delete") or table_name in {"users", "api_key_records"}:
+                continue
+            table = Base.metadata.tables.get(table_name)
+            identity_columns = [
+                name for name in contract["identity_columns"]
+                if table is not None and name in table.c
+                and any(key.target_fullname == "users.id" for key in table.c[name].foreign_keys)
+            ]
+            if table is None or not identity_columns:
+                continue
+            removed = db.execute(
+                delete(table).where(or_(*(table.c[name] == user_id for name in identity_columns)))
+            ).rowcount or 0
+            result.tables_affected[table_name] = removed
+
+        posts = Base.metadata.tables["discussion_posts"]
+        result.tables_affected["discussion_posts"] = db.execute(
+            update(posts).where(posts.c.author_id == user_id).values(author_label=anon_name)
+        ).rowcount or 0
+        reports = Base.metadata.tables["discussion_reports"]
+        result.tables_affected["discussion_reports"] = db.execute(
+            update(reports).where(reports.c.reporter_id == user_id).values(details=None)
+        ).rowcount or 0
+
+        from services.rate_limit_store import RateLimitRecord
+        rate_count = 0
+        if original_ips:
+            rate_count = db.query(RateLimitRecord).filter(
+                RateLimitRecord.ip_address.in_(original_ips)
+            ).delete(synchronize_session=False)
+        result.tables_affected["rate_limit_records"] = rate_count
 
         db.commit()
 

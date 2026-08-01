@@ -39,8 +39,10 @@ from services.jwt_auth import (
     ACCESS_TOKEN_EXPIRE_HOURS,
     SESSION_COOKIE_NAME,
     SESSION_COOKIE_DOMAIN,
+    token_matches_session,
 )
 from services.rbac import require_role, VALID_SCOPES
+from services.privacy import anonymize_user, export_user_data
 from services.audit import log_from_request
 
 logger = logging.getLogger(__name__)
@@ -285,6 +287,14 @@ class APIKeyListItem(BaseModel):
     is_active: bool
 
 
+class PrivacyPasswordRequest(BaseModel):
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class AccountAnonymizeRequest(PrivacyPasswordRequest):
+    confirmation: str
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -363,7 +373,10 @@ def login(
     user.last_login = datetime.now(timezone.utc)
     db.commit()
 
-    token_data = {"sub": user.email, "user_id": user.id, "role": user.role}
+    token_data = {
+        "sub": user.email, "user_id": user.id, "role": user.role,
+        "session_version": user.session_version or 1,
+    }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
@@ -409,12 +422,17 @@ def refresh(
     user = db.query(User).filter(User.email == email).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or deactivated")
+    if not token_matches_session(payload, user):
+        raise HTTPException(status_code=401, detail="Session has been invalidated")
 
     # Rotate: revoke the presented token before issuing a new pair so a
     # stolen refresh token can only be used once.
     revoke_refresh_token(payload, db, reason="rotated")
 
-    token_data = {"sub": user.email, "user_id": user.id, "role": user.role}
+    token_data = {
+        "sub": user.email, "user_id": user.id, "role": user.role,
+        "session_version": user.session_version or 1,
+    }
     access_token = create_access_token(token_data)
     new_refresh = create_refresh_token(token_data)
 
@@ -475,7 +493,7 @@ def forgot_password(
         # Mint a 30-min reset token. Sub is the user_id (str) so the
         # consumer can look the user up without re-querying by email.
         from services.jwt_auth import create_password_reset_token
-        token = create_password_reset_token(user.id, user.email)
+        token = create_password_reset_token(user.id, user.email, user.session_version or 1)
         reset_url = f"https://wethepeopleforus.com/reset-password?token={token}"
 
         # Compose the email. Plain HTML, no template engine needed.
@@ -529,8 +547,11 @@ def reset_password(
     user = db.query(User).filter(User.id == user_id, User.is_active == 1).first()
     if not user:
         raise HTTPException(status_code=401, detail="Account not found")
+    if not token_matches_session(payload, user):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     user.hashed_password = pwd_context.hash(body.new_password)
+    user.session_version = (user.session_version or 1) + 1
     db.add(user)
     db.commit()
 
@@ -546,6 +567,52 @@ def reset_password(
     _clear_session_cookie(response)
 
     return ResetPasswordResponse()
+
+
+def _confirm_current_password(user: User, password: str) -> None:
+    if not pwd_context.verify(password, user.hashed_password):
+        raise HTTPException(status_code=403, detail="Current password is incorrect")
+
+
+@router.post("/privacy/export")
+@limiter.limit("5/hour")
+def export_my_account(
+    body: PrivacyPasswordRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the authenticated caller's portable account record."""
+    _confirm_current_password(user, body.password)
+    log_from_request(
+        db, request, action="privacy_export", user_id=user.id,
+        resource="users", resource_id=str(user.id),
+    )
+    return export_user_data(db, user.id)
+
+
+@router.post("/privacy/anonymize")
+@limiter.limit("3/hour")
+def anonymize_my_account(
+    body: AccountAnonymizeRequest,
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Irreversibly anonymize only the authenticated caller's account."""
+    if body.confirmation != "ANONYMIZE MY ACCOUNT":
+        raise HTTPException(status_code=400, detail="Exact confirmation is required")
+    _confirm_current_password(user, body.password)
+    log_from_request(
+        db, request, action="account_anonymization_requested", user_id=user.id,
+        resource="users", resource_id=str(user.id),
+    )
+    result = anonymize_user(db, user.id)
+    if result.errors:
+        raise HTTPException(status_code=500, detail="Account anonymization failed")
+    _clear_session_cookie(response)
+    return {"status": "anonymized", "completed_at": result.completed_at}
 
 
 @router.get("/me", response_model=UserInfoResponse)

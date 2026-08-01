@@ -1,7 +1,7 @@
 """
 Role-Based Access Control (RBAC) for WeThePeople.
 
-Role hierarchy:  free < pro < enterprise < admin
+Role hierarchy:  free < student < pro < newsroom < enterprise < admin
 Scope system:    read, write, verify, chat, admin
 
 Usage:
@@ -43,6 +43,7 @@ ROLE_HIERARCHY = {
     "enterprise": 4, # unlimited + SLA
     "admin": 5,
 }
+VALID_ROLES = tuple(ROLE_HIERARCHY)
 
 VALID_SCOPES = {"read", "write", "verify", "chat", "admin"}
 
