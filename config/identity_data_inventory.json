@@ -1,0 +1,29 @@
+{
+  "version": "2026-07-31",
+  "canonical_identity": {"table": "users", "primary_key": "id"},
+  "roles": ["free", "student", "pro", "newsroom", "enterprise", "admin"],
+  "tables": {
+    "users": {"identity_columns": ["id"], "classification": "private_identity", "erasure": "anonymize"},
+    "api_key_records": {"identity_columns": ["user_id"], "classification": "secret_credential", "erasure": "revoke_and_anonymize"},
+    "audit_logs": {"identity_columns": ["user_id"], "classification": "private_security", "erasure": "strip_pii_retain_event"},
+    "bill_annotations": {"identity_columns": ["user_id"], "classification": "public_content", "erasure": "retain_with_anonymous_author"},
+    "civic_votes": {"identity_columns": ["user_id"], "classification": "private_ballot", "erasure": "delete"},
+    "discussion_blocks": {"identity_columns": ["blocker_id", "blocked_id"], "classification": "private_safety", "erasure": "delete"},
+    "discussion_bookmarks": {"identity_columns": ["user_id"], "classification": "private_preference", "erasure": "delete"},
+    "discussion_edits": {"identity_columns": ["editor_id"], "classification": "private_moderation", "erasure": "retain_with_anonymous_editor"},
+    "discussion_follows": {"identity_columns": ["follower_id", "followed_id"], "classification": "private_social_graph", "erasure": "delete"},
+    "discussion_posts": {"identity_columns": ["author_id", "author_label"], "classification": "public_content", "erasure": "retain_with_anonymous_author_and_label"},
+    "discussion_reactions": {"identity_columns": ["user_id"], "classification": "private_preference", "erasure": "delete"},
+    "discussion_replies": {"identity_columns": ["author_id"], "classification": "public_content", "erasure": "retain_with_anonymous_author"},
+    "discussion_reports": {"identity_columns": ["reporter_id"], "classification": "private_moderation", "erasure": "anonymize_reporter"},
+    "promises": {"identity_columns": ["created_by"], "classification": "public_content", "erasure": "retain_with_anonymous_author"},
+    "proposals": {"identity_columns": ["author_id"], "classification": "public_content", "erasure": "retain_with_anonymous_author"},
+    "revoked_tokens": {"identity_columns": ["user_id"], "classification": "secret_credential", "erasure": "delete_after_global_revocation"},
+    "solution_revisions": {"identity_columns": ["editor_user_id"], "classification": "public_content", "erasure": "retain_with_anonymous_editor"},
+    "solution_votes": {"identity_columns": ["voter_user_id"], "classification": "private_ballot", "erasure": "delete"},
+    "user_badges": {"identity_columns": ["user_id"], "classification": "public_profile", "erasure": "delete"},
+    "user_watchlist": {"identity_columns": ["user_id"], "classification": "private_preference", "erasure": "delete"},
+    "digest_subscribers": {"identity_columns": ["email"], "classification": "private_identity_standalone", "erasure": "delete_or_anonymize_by_email"},
+    "rate_limit_records": {"identity_columns": ["ip_address"], "classification": "private_security_ephemeral", "erasure": "expire"}
+  }
+}
