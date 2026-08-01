@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 INVENTORY_PATH = Path(__file__).resolve().parents[1] / "config" / "identity_data_inventory.json"
 SECRET_EXPORT_COLUMNS = {
     "hashed_password", "api_key", "key_hash", "jti",
-    "verification_token", "unsubscribe_token",
+    "verification_token", "unsubscribe_token", "token_hash",
 }
 
 
@@ -197,6 +197,7 @@ def export_user_data(db: Session, user_id: int) -> Dict[str, Any]:
             "verified_state": user.verified_state,
             "verified_at": _dt_str(user.verified_at),
             "verification_method": user.verification_method,
+            "email_verified_at": _dt_str(user.email_verified_at),
             "zip_code": user.zip_code,
             "digest_opt_in": bool(user.digest_opt_in),
             "alert_opt_in": bool(user.alert_opt_in),
@@ -405,6 +406,7 @@ def anonymize_user(db: Session, user_id: int) -> AnonymizationResult:
         user.verified_state = None
         user.verified_at = None
         user.verification_method = None
+        user.email_verified_at = None
         user.zip_code = None
         user.digest_opt_in = 0
         user.alert_opt_in = 0

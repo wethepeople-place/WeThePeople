@@ -3,6 +3,7 @@ Authentication & authorization models.
 
 Tables:
   - User: registered users with hashed passwords and roles
+  - EmailVerificationToken: one-time proof of email ownership
   - APIKeyRecord: per-user API keys with granular scopes
   - AuditLog: immutable trail of security-relevant events
 """
@@ -35,6 +36,7 @@ class User(Base):
     display_name = Column(String(255), nullable=True)
     is_active = Column(Integer, nullable=False, server_default="1", index=True)  # SQLite compat: 0/1
     session_version = Column(Integer, nullable=False, server_default="1")
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)
@@ -71,6 +73,19 @@ class User(Base):
 
     # Relationships
     api_keys = relationship("APIKeyRecord", back_populates="user", cascade="all, delete-orphan")
+
+
+class EmailVerificationToken(Base):
+    """Hashed, expiring, single-use proof of email ownership."""
+
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    consumed_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class APIKeyRecord(Base):
