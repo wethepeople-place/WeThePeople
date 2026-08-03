@@ -1,5 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
+import json
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -56,7 +58,7 @@ def _client(tmp_path):
 
 def test_watch_empty_missing_and_openapi(tmp_path):
     client, _ = _client(tmp_path)
-    assert client.get("/videos").json() == {"total": 0, "videos": []}
+    assert client.get("/videos").json() == {"total": 0, "videos": [], "next_cursor": None, "has_more": False}
     assert client.get("/videos/missing").status_code == 404
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     assert {"VideoItem", "VideosResponse"} <= set(schemas)
@@ -87,6 +89,27 @@ def test_watch_loader_and_api_are_bounded_idempotent_and_source_backed(tmp_path)
     assert client.get(f"/videos/{item['video_id']}").json() == item
 
 
+def test_watch_cursor_is_deterministic_and_rejects_tampering(tmp_path):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+        original = session.get(Video, "housing-rent-why-rents-move")
+        for index in range(1, 4):
+            copy = Video(video_id=f"development-video-{index}", creator_label="Development fixture", caption=f"Fixture {index}", transcript="Development-only transcript", media_url=original.media_url, source=original.source, published_at=original.published_at, sort_order=index)
+            session.add(copy)
+            session.flush()
+            session.add(VideoIssue(video=copy, issue=original.issue_links[0].issue))
+        session.commit()
+    first = client.get("/videos?limit=2").json()
+    assert [item["video_id"] for item in first["videos"]] == ["housing-rent-why-rents-move", "development-video-1"]
+    assert first["has_more"] is True and first["next_cursor"]
+    second = client.get("/videos", params={"limit": 2, "cursor": first["next_cursor"]}).json()
+    assert [item["video_id"] for item in second["videos"]] == ["development-video-2", "development-video-3"]
+    assert second["has_more"] is False and second["next_cursor"] is None
+    assert client.get("/videos", params={"cursor": first["next_cursor"] + "x"}).status_code == 400
+
+
 def test_watch_loader_rejects_scope_before_writing(tmp_path):
     _, Session = _client(tmp_path)
     payload = deepcopy(_watch_fixture())
@@ -95,6 +118,16 @@ def test_watch_loader_rejects_scope_before_writing(tmp_path):
         with pytest.raises(WatchFixtureValidationError, match="exactly the reviewed"):
             load_fixture(payload, session)
         assert session.query(Video).count() == 0
+
+
+def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path):
+    _, Session = _client(tmp_path)
+    payload = json.loads((Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json").read_text(encoding="utf-8"))
+    assert len(payload["videos"]) == 3
+    assert all("Development fixture" in item["creator_label"] for item in payload["videos"])
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        assert load_fixture(payload, session) == {"videos": 3, "video_issues": 3, "video_bills": 3}
 
 
 def test_watch_share_preview_is_canonical_source_backed_and_missing_safe(tmp_path):

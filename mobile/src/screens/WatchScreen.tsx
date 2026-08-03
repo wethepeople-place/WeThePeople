@@ -139,7 +139,7 @@ export default function WatchScreen() {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    apiClient.getWatchVideos({ signal: controller.signal })
+    apiClient.getWatchVideos({ limit: 10 }, { signal: controller.signal })
       .then((result) => {
         setVideos(result.videos);
         setActiveId(result.videos[0]?.video_id ?? null);

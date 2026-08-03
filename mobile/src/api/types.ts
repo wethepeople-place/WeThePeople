@@ -780,6 +780,8 @@ export interface WatchVideo {
 export interface WatchVideosResponse {
   total: number;
   videos: WatchVideo[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 export interface VideoSharePreview {

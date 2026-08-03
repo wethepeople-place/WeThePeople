@@ -509,6 +509,8 @@ class VideoItem(BaseModel):
 class VideosResponse(BaseModel):
     total: int
     videos: List[VideoItem]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 class VideoSharePreview(BaseModel):
     video_id: str

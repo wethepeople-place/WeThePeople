@@ -1,10 +1,16 @@
 """Public, read-only Watch video endpoints."""
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+from datetime import datetime
 from html import escape
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, or_
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -15,6 +21,27 @@ from routers.issues import _source
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://wethepeople.place").rstrip("/")
+CURSOR_SECRET = os.getenv("WTP_VIDEO_CURSOR_SECRET", "development-only-watch-cursor").encode()
+
+
+def _cursor(row: Video) -> str:
+    payload = json.dumps({"v": 1, "s": row.sort_order, "p": row.published_at.isoformat(), "i": row.video_id}, separators=(",", ":"), sort_keys=True).encode()
+    signature = hmac.new(CURSOR_SECRET, payload, hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(payload + signature).decode().rstrip("=")
+
+
+def _decode_cursor(value: str) -> tuple[int, datetime, str]:
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+        payload, signature = raw[:-32], raw[-32:]
+        if not hmac.compare_digest(signature, hmac.new(CURSOR_SECRET, payload, hashlib.sha256).digest()):
+            raise ValueError
+        data = json.loads(payload)
+        if data.get("v") != 1:
+            raise ValueError
+        return int(data["s"]), datetime.fromisoformat(data["p"]), str(data["i"])
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+        raise HTTPException(status_code=400, detail="Invalid video cursor") from None
 
 
 def _share_preview(row: Video) -> dict:
@@ -60,9 +87,20 @@ def _serialize(row: Video) -> dict:
 
 
 @router.get("", response_model=VideosResponse)
-def list_videos(db: Session = Depends(get_db)):
-    rows = _query(db).order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id).all()
-    return {"total": len(rows), "videos": [_serialize(row) for row in rows]}
+def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), db: Session = Depends(get_db)):
+    query = _query(db)
+    total = query.count()
+    if cursor:
+        sort_order, published_at, video_id = _decode_cursor(cursor)
+        query = query.filter(or_(
+            Video.sort_order > sort_order,
+            and_(Video.sort_order == sort_order, Video.published_at < published_at),
+            and_(Video.sort_order == sort_order, Video.published_at == published_at, Video.video_id > video_id),
+        ))
+    rows = query.order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).limit(limit + 1).all()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    return {"total": total, "videos": [_serialize(row) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
 
 
 @router.get("/{video_id}", response_model=VideoItem)

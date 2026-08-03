@@ -207,6 +207,7 @@ const App: React.FC = () => (
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
           <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />
           <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
+          <Route path="/watch" element={<WatchVideoPage />} />
           <Route path="/watch/:videoId" element={<WatchVideoPage />} />
 
           {/*
