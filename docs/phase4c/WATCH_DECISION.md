@@ -1,50 +1,43 @@
-# Phase 4C Real Civic Video Feed decision
+# Phase 4C hybrid civic-video delivery decision
 
 ## Outcome
 
-Phase 4C keeps the existing canonical Video identity, issue/bill/source relationships, read-only public endpoints, deterministic order, mobile vertical paging and visibility-based playback, transcript fallback, and exact-video canonical sharing. It repairs the parts that are still demonstration-only: a reviewed multi-item catalog, rights and provenance metadata, stable cursor pagination, a playable web feed, record-driven issue/evidence/bill/discussion navigation with return to the same video, provider-neutral media storage, and private editorial review.
+Phase 4C adopts a hybrid delivery model designed to scale beyond item-by-item clearance. Official embeds are the default. Locally hosted media is allowed only when reuse rights are machine-verifiable or covered by a publisher agreement. Approved publisher feeds can scale either embeds or licensed hosting. When rights or platform terms are unclear, the product fails closed to a link-out card at the official source.
 
-This decision is network-free and non-operational. It adds no route, UI, job, model, migration, media asset, credential, upload surface, or publishing behavior.
+This policy does not enable production media, network downloads, ingestion, credentials, or publishing. The existing development Watch fixture remains clearly labeled and cannot satisfy production acceptance.
 
-## Audit inventory
+## Delivery modes
 
-The current `videos` model has a stable `video_id`, creator label, caption, optional transcript and captions URL, required direct media URL, one source, publication timestamp, and sort order. Link tables connect videos to issues and bills. Discussion attachments can reference a video, but Watch currently navigates only to the generic Discuss tab rather than an exact associated record.
+Every catalog record declares one delivery mode:
 
-The fixture loader is deliberately bounded to one Housing & Rent record and one reviewed bill. The public API exposes list, detail, share metadata, and an HTML preview. The list loads the whole catalog and has no cursor. Mobile has a full-height Expo feed with visibility, app-focus and reduced-motion playback gates, transcript display, share/copy actions, and unavailable/loading/empty/error states. Web has only a share-preview page and no playable feed. Direct external URLs are treated as media delivery. The only known video is the generic MDN flower sample; it is a development fallback and is not acceptance media.
+1. `official_embed` — playback remains with the official publisher or its authorized channel. Embed terms must permit embedding; no video download or redistribution is inferred.
+2. `licensed_hosted` — WeThePeople.place may store and deliver the media only with owned, licensed, public-domain, or publisher-agreement evidence.
+3. `publisher_feed_embed` — an approved publisher supplies stable records and authorized embed references under source-level terms.
+4. `publisher_feed_hosted` — an approved publisher supplies media under a source-level license or agreement that permits storage and delivery.
+5. `link_out` — the catalog provides civic context and opens the canonical official page. It never claims media reuse rights.
 
-No local rights-cleared civic video, caption, poster, or rights packet was found. The first implementation slice therefore remains blocked until three to five media packages are supplied or separately authorized. Rights, license, provenance, review, transcript, or accessibility facts must never be invented.
+The scalable clearance unit is a source, channel, feed, collection, license, or publisher agreement—not a separate outreach request for every video. Item-level review is reserved for exceptions, disputed metadata, or content containing unclear third-party components.
 
-## Curated catalog contract
+## Fail-closed rules
 
-The first catalog contains three to five published videos. Every record keeps `video_id` as stable identity and has exactly one primary issue, one or more official evidence citations, zero or more related bills, and at most one associated discussion. Editorial narration and official evidence are visibly separate.
+Official embeds require an official publisher or channel, terms permitting embedding, a canonical source URL, no downloading or redistribution, and a privacy review. Platform thumbnails are not treated as reusable posters merely because they are visible. Use only owned, licensed, publisher-supplied, or embed-rendered poster assets; otherwise render a text card.
 
-Publication fails closed unless the record has a rights basis (`owned`, `licensed`, or `public_domain`), rights holder and evidence reference, allowed uses, reviewer identity and time, provenance URL and retrieval time, transcript or captions, descriptive poster and alt text, duration, pixel dimensions and aspect ratio, publication and availability state, editorial review, accessibility review, and official evidence links. Missing or withdrawn media must not hide transcript, poster, provenance, official evidence, issue, bills, or discussion.
+Local hosting requires a machine-verifiable rights basis of `owned`, `licensed`, `public_domain`, or `publisher_agreement`, plus its evidence reference and allowed uses. General government publication does not by itself prove that every component is redistributable.
 
-## Pagination and identity
+Publisher feeds require an approved publisher, rights warranty, stable source identity, license or embed terms, captions or transcript, a takedown contact, and an audit trail. Automated validation fails closed. Unclear rights always fall back to link-out.
 
-The feed order is `(sort_order ASC, published_at DESC, video_id ASC)`. The cursor is an opaque, URL-safe, signed or authenticated encoding of a version plus that complete tuple. Default limit is 10 and maximum limit is 25. A response contains `videos`, `next_cursor`, and `has_more`. Invalid or tampered cursors fail with HTTP 400. Offset pagination is not accepted because inserts could duplicate or skip records. A snapshot-consistency mechanism must be chosen in the API slice and tested over multiple pages.
+If an embed or linked source disappears, Watch preserves the transcript when permitted, official evidence, issue, bills, discussion, and provenance. Editorial narration and official evidence remain separately labeled.
 
-## Mobile and web parity
+## Catalog, identity, and accessibility
 
-Both platforms must guarantee one active video, pause when hidden or inactive, manual play/pause and mute state, transcript or captions, reduced-motion behavior, descriptive posters, all unavailable/loading/empty/error states, exact-video sharing, and record-driven links to the exact issue, every official evidence source, each related bill, and the associated discussion. Returning restores the same `video_id`. Web additionally needs keyboard-operable controls and page/tab visibility handling.
+The initial production catalog still requires three to five reviewed records before production acceptance, but those records may use any allowed delivery mode. Each keeps stable `video_id`, one primary issue, official evidence citations, exact bill/discussion links, provenance, and review state. Returning from a destination restores the same `video_id`.
 
-## Editorial and storage boundary
+Publication requires delivery mode and reference, rights basis appropriate to that mode, provenance, transcript or captions, a permitted poster or text-card fallback, descriptive alternative text, editorial review, accessibility review, and official evidence. Missing facts do not get invented.
 
-Ingestion is private and authenticated. Editor, reviewer, and publisher are explicit roles; the reviewer differs from the submitter, and publication requires authorized publisher action plus rights, provenance, editorial, and accessibility review with an immutable audit event. It is not a creator upload system.
+## Editorial and public boundary
 
-Catalog records use provider-neutral asset keys for video, poster, and captions. A resolver may produce delivery URLs. Development uses explicit local/test fixtures. Production owned or licensed object storage and CDN delivery is deferred, as are credentials and network ingestion. Arbitrary external hotlinks are not considered production-ready.
+Ingestion remains private and reviewed, with editor, reviewer, and publisher separation of duties and immutable audit events. Public uploads, recording, creator accounts, recommendations, profiling, advertising, monetization, production credentials, and open network ingestion remain deferred.
 
-## Migration compatibility
+## Next implementation slice
 
-Keep the existing tables and identities. A later migration may add normalized metadata, but it must retain `video_id`, current read routes, legacy caption meaning, and source references. Existing `media_url` needs a compatibility adapter to a provider-neutral asset reference. Backfill must not invent rights or review facts; the flower fixture remains development-only until genuinely reviewed.
-
-## Staged implementation
-
-1. After rights-cleared packages exist, add only the catalog fixture and provider-neutral asset-manifest contract with fail-closed validation.
-2. Add compatible persistence and deterministic cursor API behavior.
-3. Add exact-record navigation and return-state contracts.
-4. Build the playable web feed and close mobile parity gaps.
-5. Add the private reviewed editorial workflow.
-6. Complete browser/device accessibility, failure, navigation, sharing, pagination, and bounded performance acceptance.
-
-Public uploads, recording, creator accounts, messages, likes, follows, public counts, recommendations, profiling, notifications, ads, monetization, broad moderation, production credentials, network ingestion, and external publishing remain deferred.
+The next bounded slice is no longer blocked on acquiring three to five media files. It may add only the hybrid delivery policy contract, an approved-source registry schema, conditional fail-closed validation, focused policy tests, and documentation. Runtime routes, UI, downloads, external publishing, production credentials, and production media enablement remain forbidden until separately authorized and reviewed.

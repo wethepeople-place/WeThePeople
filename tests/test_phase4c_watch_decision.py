@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from services.watch_phase4c_decision import FORBIDDEN_SURFACES, REPAIRS, REQUIRED_CATALOG_FIELDS, validate_phase4c_decision
+from services.watch_phase4c_decision import DELIVERY_MODES, FORBIDDEN_SURFACES, LOCAL_HOSTING_RIGHTS, REPAIRS, REQUIRED_CATALOG_FIELDS, validate_phase4c_decision
 
 ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / "config" / "watch_phase4c_decision.json"
@@ -17,7 +17,7 @@ def _root(tmp_path, contract):
     return tmp_path
 
 
-def test_phase4c_decision_is_valid_network_free_and_non_operational():
+def test_phase4c_hybrid_delivery_decision_is_valid_and_non_operational():
     report = validate_phase4c_decision(root=ROOT)
     assert report.valid is True and report.error_codes == ()
     assert CONTRACT["runtime_changes_authorized"] is False
@@ -55,13 +55,26 @@ def test_editorial_and_storage_boundaries_are_private_reviewed_and_provider_neut
     assert storage["arbitrary_external_hotlink_production_ready"] is False and storage["production_credentials_authorized"] is False
 
 
+def test_hybrid_delivery_scales_by_source_and_fails_closed():
+    policy = CONTRACT["delivery_policy"]
+    assert policy["default_mode"] == "official_embed"
+    assert set(policy["allowed_modes"]) == DELIVERY_MODES
+    assert policy["scalable_clearance_unit"] == "source_channel_feed_or_collection"
+    assert policy["item_by_item_outreach_required_by_default"] is False
+    assert set(policy["local_hosting_requires_rights_basis"]) == LOCAL_HOSTING_RIGHTS
+    assert policy["unclear_rights_fallback"] == "link_out"
+    assert policy["download_from_embed_platform_allowed"] is False
+    assert policy["platform_thumbnail_reuse_inferred"] is False
+
+
 def test_keep_repair_defer_and_first_slice_stay_bounded():
     decisions = CONTRACT["decisions"]
     assert set(decisions["repair_before_acceptance"]) == REPAIRS
     assert FORBIDDEN_SURFACES <= set(decisions["defer"])
     first = CONTRACT["first_approved_implementation_slice"]
-    assert "three_to_five_rights_cleared_civic_media_assets" in first["blocked_until"]
-    assert {"runtime_routes", "public_upload", "production_credentials", "network_download", "external_publish"} == set(first["still_forbids"])
+    assert first["blocked_until"] == []
+    assert {"delivery_policy_contract", "approved_source_registry_schema", "conditional_fail_closed_validation"} <= set(first["allows_now"])
+    assert {"runtime_routes", "public_upload", "production_credentials", "network_download", "external_publish", "production_media_enablement"} == set(first["still_forbids"])
 
 
 def test_weakened_catalog_cursor_editorial_storage_or_guards_fail_closed(tmp_path):
@@ -73,6 +86,15 @@ def test_weakened_catalog_cursor_editorial_storage_or_guards_fail_closed(tmp_pat
     changed["drift_guards"]["public_upload_allowed"] = True
     report = validate_phase4c_decision(root=_root(tmp_path, changed))
     assert {"catalog_safety_drift", "cursor_drift", "editorial_boundary_drift", "storage_drift", "unsafe_guard_authorized"} <= set(report.error_codes)
+
+
+def test_weakened_hybrid_delivery_policy_fails_closed(tmp_path):
+    changed = json.loads(json.dumps(CONTRACT))
+    changed["delivery_policy"]["default_mode"] = "licensed_hosted"
+    changed["delivery_policy"]["download_from_embed_platform_allowed"] = True
+    changed["delivery_policy"]["unclear_rights_fallback"] = "official_embed"
+    report = validate_phase4c_decision(root=_root(tmp_path, changed))
+    assert {"delivery_policy_drift", "delivery_safety_drift"} <= set(report.error_codes)
 
 
 def test_no_public_upload_or_mutating_video_route_exists():

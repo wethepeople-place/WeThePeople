@@ -1,6 +1,6 @@
 # Draft — U.S. Census Bureau item-level media clearance request
 
-**Status:** For user review only. Not sent or submitted.
+**Status:** Superseded by the hybrid delivery policy. Not sent or submitted. Retained only as an audit record; item-by-item outreach is not the default scaling path.
 
 **Subject:** Request for reuse and accessibility details for four Census Bureau housing videos
 
