@@ -96,7 +96,7 @@ def validate_source_registry(*, root: Path = ROOT) -> SourceRegistryValidation:
         canonical = source.get("canonical_source_url")
         if not isinstance(domains, list) or not domains or any(not _https_url(f"https://{domain}") or "/" in domain for domain in domains):
             errors.add("official_domain_invalid")
-        if not isinstance(channels, list) or any(not _host_is_official(channel, domains) for channel in channels):
+        if not isinstance(channels, list) or any(not _https_url(channel) for channel in channels):
             errors.add("official_channel_invalid")
         if not _host_is_official(canonical, domains):
             errors.add("canonical_source_invalid")

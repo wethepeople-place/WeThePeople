@@ -45,10 +45,12 @@ def _source(**changes):
     return source
 
 
-def test_empty_registry_is_valid_and_enables_nothing():
+def test_candidate_registry_is_valid_and_enables_nothing():
     report = validate_source_registry(root=ROOT)
     assert report.valid is True and report.error_codes == ()
-    assert REGISTRY["sources"] == [] and REGISTRY["production_media_enabled"] is False
+    assert len(REGISTRY["sources"]) == 5 and REGISTRY["production_media_enabled"] is False
+    assert all(source["source_state"] == "candidate" for source in REGISTRY["sources"])
+    assert all(source["allowed_delivery_modes"] == ["link_out"] for source in REGISTRY["sources"])
 
 
 def test_schema_matches_hybrid_delivery_contract():
