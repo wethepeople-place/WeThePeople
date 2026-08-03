@@ -14,6 +14,7 @@ from jobs.load_housing_rent_slice import load_fixture as load_housing
 from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture
 from models.database import Base, get_db
 from models.issue_models import Video, VideoBill, VideoIssue
+from models.social_models import DiscussionAttachment, DiscussionPost
 from routers.videos import router
 from tests.test_housing_rent_loader import _fixture as housing_fixture
 
@@ -87,6 +88,21 @@ def test_watch_loader_and_api_are_bounded_idempotent_and_source_backed(tmp_path)
     assert item["source"]["url"].startswith("https://")
     assert datetime.fromisoformat(item["published_at"])
     assert client.get(f"/videos/{item['video_id']}").json() == item
+
+
+def test_watch_exposes_only_published_exact_or_issue_discussion(tmp_path):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+        published = DiscussionPost(author_label="Editor", body="Published discussion", moderation_status="published")
+        hidden = DiscussionPost(author_label="Editor", body="Hidden discussion", moderation_status="hidden")
+        session.add_all((published, hidden)); session.flush()
+        session.add(DiscussionAttachment(post_id=published.id, attachment_type="video", video_id="housing-rent-why-rents-move", label="Watch discussion"))
+        session.add(DiscussionAttachment(post_id=hidden.id, attachment_type="issue", issue_slug="housing-rent", label="Hidden"))
+        session.commit()
+        published_id = published.id
+    assert client.get("/videos/housing-rent-why-rents-move").json()["discussion_post_id"] == published_id
 
 
 def test_watch_cursor_is_deterministic_and_rejects_tampering(tmp_path):

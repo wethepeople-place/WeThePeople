@@ -96,7 +96,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
           <Pressable accessibilityRole="button" accessibilityLabel="Copy link to this civic video" style={styles.button} onPress={copyVideoLink}>
             <Text style={styles.buttonText}>Copy link</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => navigation.navigate('DiscussTab')}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => item.discussion_post_id ? navigation.navigate('DiscussTab', { screen: 'DiscussDetail', params: { postId: item.discussion_post_id, returnToVideoId: item.video_id } }) : navigation.navigate('DiscussTab')}>
             <Text style={styles.discussButtonText}>Discuss</Text>
           </Pressable>
           <Pressable accessibilityRole="button" style={styles.button} onPress={() => openExternalUrl(item.source.url, 'evidence source')}>
@@ -134,6 +134,9 @@ export default function WatchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(() => {
     const controller = new AbortController();
@@ -143,11 +146,29 @@ export default function WatchScreen() {
       .then((result) => {
         setVideos(result.videos);
         setActiveId(result.videos[0]?.video_id ?? null);
+        setNextCursor(result.next_cursor);
+        setHasMore(result.has_more);
       })
       .catch((reason) => { if (reason?.name !== 'AbortError') setError('Watch could not load.'); })
       .finally(() => setLoading(false));
     return () => controller.abort();
   }, []);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || !nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    apiClient.getWatchVideos({ cursor: nextCursor, limit: 10 })
+      .then((result) => {
+        setVideos((current) => {
+          const known = new Set(current.map((item) => item.video_id));
+          return [...current, ...result.videos.filter((item) => !known.has(item.video_id))];
+        });
+        setNextCursor(result.next_cursor);
+        setHasMore(result.has_more);
+      })
+      .catch(() => setError('More Watch videos could not load.'))
+      .finally(() => setLoadingMore(false));
+  }, [hasMore, nextCursor, loadingMore]);
 
   useEffect(load, [load]);
   useEffect(() => {
@@ -179,6 +200,9 @@ export default function WatchScreen() {
       windowSize={3}
       viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
       onViewableItemsChanged={onViewableItemsChanged}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loadingMore ? <ActivityIndicator accessibilityLabel="Loading more Watch videos" color="#fff" /> : null}
     />
   );
 }

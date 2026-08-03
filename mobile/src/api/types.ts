@@ -775,6 +775,7 @@ export interface WatchVideo {
   source: { url: string; publisher: string; retrieved_at: string };
   issue: { slug: string; title: string };
   bills: Array<{ bill_id: string; title: string | null }>;
+  discussion_post_id: number | null;
 }
 
 export interface WatchVideosResponse {

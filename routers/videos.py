@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from models.database import get_db
 from models.issue_models import Video, VideoBill, VideoIssue
 from models.response_schemas import VideoItem, VideoSharePreview, VideosResponse
+from models.social_models import DiscussionAttachment, DiscussionPost
 from routers.issues import _source
 
 router = APIRouter(prefix="/videos", tags=["videos"])
@@ -64,7 +65,24 @@ def _query(db: Session):
     )
 
 
-def _serialize(row: Video) -> dict:
+def _discussion_post_id(db: Session, row: Video) -> int | None:
+    issue_slug = row.issue_links[0].issue_slug if row.issue_links else None
+    direct = db.query(DiscussionAttachment.post_id).join(DiscussionPost).filter(
+        DiscussionAttachment.attachment_type == "video",
+        DiscussionAttachment.video_id == row.video_id,
+        DiscussionPost.moderation_status == "published",
+    ).order_by(DiscussionAttachment.post_id).first()
+    if direct:
+        return direct[0]
+    fallback = db.query(DiscussionAttachment.post_id).join(DiscussionPost).filter(
+        DiscussionAttachment.attachment_type == "issue",
+        DiscussionAttachment.issue_slug == issue_slug,
+        DiscussionPost.moderation_status == "published",
+    ).order_by(DiscussionAttachment.post_id).first()
+    return fallback[0] if fallback else None
+
+
+def _serialize(row: Video, discussion_post_id: int | None = None) -> dict:
     if len(row.issue_links) != 1 or row.issue_links[0].issue is None:
         raise HTTPException(status_code=503, detail="Video issue metadata is incomplete")
     issue = row.issue_links[0].issue
@@ -83,6 +101,7 @@ def _serialize(row: Video) -> dict:
         "source": _source(row.source),
         "issue": {"slug": issue.slug, "title": issue.title},
         "bills": [{"bill_id": bill.bill_id, "title": bill.title} for bill in bills],
+        "discussion_post_id": discussion_post_id,
     }
 
 
@@ -100,7 +119,7 @@ def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), 
     rows = query.order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).limit(limit + 1).all()
     has_more = len(rows) > limit
     page = rows[:limit]
-    return {"total": total, "videos": [_serialize(row) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
+    return {"total": total, "videos": [_serialize(row, _discussion_post_id(db, row)) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
 
 
 @router.get("/{video_id}", response_model=VideoItem)
@@ -108,7 +127,7 @@ def get_video(video_id: str, db: Session = Depends(get_db)):
     row = _query(db).filter(Video.video_id == video_id).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")
-    return _serialize(row)
+    return _serialize(row, _discussion_post_id(db, row))
 
 
 @router.get("/{video_id}/share", response_model=VideoSharePreview)

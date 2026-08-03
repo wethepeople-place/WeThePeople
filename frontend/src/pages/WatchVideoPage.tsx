@@ -10,6 +10,7 @@ type Video = {
   media_url: string; published_at: string;
   source: { url: string; publisher: string }; issue: { slug: string; title: string };
   bills: Array<{ bill_id: string; title: string | null }>;
+  discussion_post_id: number | null;
 };
 type Feed = { videos: Video[]; next_cursor: string | null; has_more: boolean };
 
@@ -39,6 +40,7 @@ function VideoCard({ item, active, reducedMotion, onActive }: { item: Video; act
         <Link className="rounded-full bg-amber-400 px-4 py-3 font-bold text-slate-950" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Evidence</Link>
         <a className="rounded-full bg-white/90 px-4 py-3 font-bold text-slate-950" href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>
         {item.bills.map((bill) => <Link key={bill.bill_id} className="rounded-full bg-white/90 px-4 py-3 font-bold text-slate-950" to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}
+        {item.discussion_post_id && <Link className="rounded-full bg-amber-400 px-4 py-3 font-bold text-slate-950" to={`/discuss/${item.discussion_post_id}`} state={{ returnToVideoId: item.video_id }}>Discuss</Link>}
       </div>
     </div>
   </article>;

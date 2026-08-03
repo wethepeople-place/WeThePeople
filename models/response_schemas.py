@@ -505,6 +505,7 @@ class VideoItem(BaseModel):
     source: IssueSource
     issue: VideoIssueLink
     bills: List[VideoBillLink]
+    discussion_post_id: Optional[int] = None
 
 class VideosResponse(BaseModel):
     total: int
