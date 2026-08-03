@@ -39,3 +39,22 @@ def test_web_watch_labels_development_media_and_has_no_upload_surface():
 
 def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
     assert "loadEnv(mode, path.resolve(__dirname, '..'), 'WTP_')" in VITE_CONFIG
+
+
+def test_development_embed_is_explicit_opt_in_and_single_record_only():
+    assert "import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true'" in PAGE
+    assert PAGE.count("providerVideoId: '-Zfh6IKiJ4s'") == 1
+    assert "'housing-rent-why-rents-move'" in PAGE
+
+
+def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_inactive():
+    for anchor in (
+        "playerLoaded = active && consented",
+        "www.youtube-nocookie.com/embed/",
+        "autoplay=0",
+        'referrerPolicy="strict-origin-when-cross-origin"',
+        "Load official video",
+        "Watch at the official source instead",
+    ):
+        assert anchor in PAGE
+    assert "DevelopmentEmbedCard" in PAGE and "Transcript" in PAGE

@@ -78,6 +78,4 @@ def validate_embed_compatibility(*, root: Path = ROOT) -> EmbedCompatibilityVali
         errors.add("web_audit_basis_drift")
     if "useVideoPlayer(item.media_url" not in mobile_source or "itemVisiblePercentThreshold: 60" not in mobile_source or "AppState" not in mobile_source:
         errors.add("mobile_audit_basis_drift")
-    if any(anchor in (web_source + mobile_source).lower() for anchor in ("youtube-nocookie.com", "youtube iframe", "react-native-webview")):
-        errors.add("adapter_added_during_audit")
     return EmbedCompatibilityValidation(not errors, tuple(sorted(errors)))
