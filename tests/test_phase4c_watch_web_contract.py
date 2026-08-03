@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "frontend" / "src" / "pages" / "WatchVideoPage.tsx").read_text(encoding="utf-8")
 APP = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+VITE_CONFIG = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
 
 
 def test_web_watch_has_feed_and_exact_video_routes():
@@ -34,3 +35,7 @@ def test_web_watch_links_exact_records_with_return_identity():
 def test_web_watch_labels_development_media_and_has_no_upload_surface():
     assert "Development Watch fixture" in PAGE
     assert not any(term in PAGE.lower() for term in ("/upload", "getusermedia", "mediarecorder", "creator account"))
+
+
+def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
+    assert "loadEnv(mode, path.resolve(__dirname, '..'), 'WTP_')" in VITE_CONFIG
