@@ -1,0 +1,83 @@
+{
+  "version": "2026-08-03",
+  "phase": "4c-youtube-embed-compatibility-audit",
+  "posture": "network_free_decision_only",
+  "runtime_changes_authorized": false,
+  "embed_adapter_authorized": false,
+  "production_playback_enabled": false,
+  "audited_surfaces": ["frontend/src/pages/WatchVideoPage.tsx", "mobile/src/screens/WatchScreen.tsx"],
+  "platform_evidence": {
+    "embed_help": "https://support.google.com/youtube/answer/171780",
+    "developer_policies": "https://developers.google.com/youtube/terms/developer-policies",
+    "minimum_functionality": "https://developers.google.com/youtube/terms/required-minimum-functionality",
+    "player_parameters": "https://developers.google.com/youtube/player_parameters",
+    "reviewed_at": "2026-08-03T00:00:00Z"
+  },
+  "keep": [
+    "stable_video_id_and_exact_url", "sixty_percent_visibility_activation", "one_active_item",
+    "pause_inactive_items", "web_document_visibility_pause", "mobile_focus_and_app_state_pause",
+    "reduced_motion_gate", "manual_playback_affordance", "transcript_and_evidence_fallback",
+    "exact_issue_bill_discussion_source_and_return_navigation", "loading_empty_error_states"
+  ],
+  "repair_before_embed_adapter": [
+    "discriminated_delivery_mode_and_provider_reference", "click_to_load_privacy_gate",
+    "privacy_enhanced_youtube_origin", "no_autoplay_before_user_consent", "muted_visible_autoplay_only_after_consent",
+    "youtube_referrer_identity_not_suppressed", "official_player_controls_and_branding_preserved",
+    "no_overlay_over_player_view_or_controls", "minimum_player_viewport_200_by_200",
+    "single_loaded_or_playing_embed_budget", "iframe_api_lifecycle_and_failure_detection",
+    "transcript_panel_outside_player_bounds", "transcript_not_mislabeled_as_captions",
+    "poster_or_text_card_rights_basis", "canonical_link_out_on_unavailable_or_unconsented",
+    "per_item_caption_or_transcript_gate", "embed_terms_and_source_approval_expiry_check",
+    "web_keyboard_and_focus_order", "privacy_notice_and_policy_link"
+  ],
+  "defer": [
+    "mobile_inline_youtube_webview", "youtube_data_api", "api_credentials", "channel_or_playlist_ingestion",
+    "automatic_thumbnail_fetch", "thumbnail_caching", "custom_player_chrome", "player_overlays",
+    "background_playback", "preloading_inactive_embeds", "production_source_approval", "production_playback"
+  ],
+  "web_decision": {
+    "current_native_video_adapter_compatible_with_youtube": false,
+    "future_architecture": "consent_gated_privacy_enhanced_official_iframe",
+    "load_before_consent": false,
+    "autoplay_before_consent": false,
+    "inactive_iframe_preload": false,
+    "maximum_simultaneously_playing": 1,
+    "player_controls_visible": true,
+    "branding_preserved": true,
+    "overlay_over_player_allowed": false,
+    "transcript_outside_player": true,
+    "minimum_width_px": 200,
+    "minimum_height_px": 200,
+    "required_referrer_policy": "strict-origin-when-cross-origin",
+    "privacy_enhanced_host": "www.youtube-nocookie.com",
+    "failure_fallback": "text_card_transcript_evidence_and_canonical_link_out"
+  },
+  "mobile_decision": {
+    "current_expo_video_adapter_compatible_with_youtube": false,
+    "current_webview_dependency_present": false,
+    "default_for_embed_sources": "canonical_link_out",
+    "inline_embed_deferred_until": [
+      "os_webview_architecture_review", "referer_identity_proof", "privacy_gate_proof",
+      "official_controls_and_branding_proof", "one_active_lifecycle_proof", "accessibility_device_proof"
+    ]
+  },
+  "no_credential_path": {
+    "static_official_iframe_requires_api_key": false,
+    "youtube_data_api_used": false,
+    "credentials_authorized": false,
+    "high_volume_or_api_use_requires_new_review": true
+  },
+  "first_implementation_slice": {
+    "authorized": false,
+    "requires_separate_user_authority": true,
+    "recommended_scope_after_authorization": [
+      "development_only_web_embed_adapter", "one_approved_test_source_record", "click_to_load_consent",
+      "privacy_enhanced_official_iframe", "no_autoplay_before_consent", "link_out_fallback",
+      "focused_web_contract_and_browser_tests"
+    ],
+    "still_forbids": [
+      "mobile_inline_embed", "production_source_approval", "production_playback", "network_ingestion",
+      "media_or_thumbnail_download", "api_credentials", "external_publish"
+    ]
+  }
+}
