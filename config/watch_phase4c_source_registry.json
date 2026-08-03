@@ -1,0 +1,39 @@
+{
+  "version": "2026-08-03",
+  "phase": "4c-approved-source-registry",
+  "posture": "contract_only_no_network_no_production_media",
+  "policy_reference": "config/watch_phase4c_decision.json",
+  "runtime_changes_authorized": false,
+  "production_media_enabled": false,
+  "default_fallback": "link_out",
+  "source_states": ["candidate", "approved", "suspended", "withdrawn"],
+  "delivery_modes": ["official_embed", "licensed_hosted", "publisher_feed_embed", "publisher_feed_hosted", "link_out"],
+  "required_source_fields": [
+    "source_id", "publisher_name", "source_state", "official_domains", "official_channels",
+    "allowed_delivery_modes", "canonical_source_url", "evidence", "privacy", "poster",
+    "accessibility", "review", "takedown"
+  ],
+  "conditional_requirements": {
+    "official_embed": ["official_channel_reference", "embed_terms_url", "embed_terms_reviewed_at", "privacy_reviewed_at"],
+    "licensed_hosted": ["rights_basis", "license_or_agreement_reference", "allowed_uses", "rights_reviewed_at"],
+    "publisher_feed_embed": ["publisher_warranty_reference", "feed_identity", "official_channel_reference", "embed_terms_url", "takedown_contact", "audit_retention"],
+    "publisher_feed_hosted": ["publisher_warranty_reference", "feed_identity", "rights_basis", "license_or_agreement_reference", "allowed_uses", "takedown_contact", "audit_retention"],
+    "link_out": ["canonical_source_url"]
+  },
+  "global_guards": {
+    "approved_required_for_non_link_out": true,
+    "official_domains_https_only": true,
+    "delivery_reference_must_match_official_domain_or_channel": true,
+    "local_hosting_rights_bases": ["owned", "licensed", "public_domain", "publisher_agreement"],
+    "captions_or_transcript_required_for_playback": true,
+    "poster_requires_owned_licensed_publisher_supplied_or_embed_rendered_basis": true,
+    "text_card_fallback_allowed": true,
+    "privacy_review_required_for_embed": true,
+    "unknown_or_expired_evidence_falls_back_to_link_out": true,
+    "network_fetch_allowed": false,
+    "credentials_allowed": false,
+    "download_allowed": false,
+    "external_publish_allowed": false
+  },
+  "sources": []
+}

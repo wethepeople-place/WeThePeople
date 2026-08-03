@@ -52,12 +52,12 @@ def validate_candidate_research(*, root: Path = ROOT) -> CandidateResearchValida
             errors.add("asset_overclaim")
     if set(contract.get("required_clearance_packet_per_candidate", ())) != REQUIRED_CLEARANCE:
         errors.add("clearance_packet_drift")
-    if contract.get("next_recommendation") != "request_item_level_clearance_and_asset_metadata_from_the_us_census_bureau":
+    if contract.get("next_recommendation") != "evaluate_under_hybrid_source_policy_and_link_out_until_source_approved":
         errors.add("recommendation_drift")
     try:
         doc = (root / "docs" / "phase4c" / "CANDIDATE_MEDIA_RESEARCH.md").read_text(encoding="utf-8").lower()
     except OSError:
         doc = ""
-    if not all(anchor in doc for anchor in ("none is acceptance-ready or rights-cleared", "no video, poster, caption file, or transcript was downloaded", "catalog remains blocked", "requires separate authority")):
+    if not all(anchor in doc for anchor in ("none is acceptance-ready or rights-cleared", "no video, poster, caption file, or transcript was downloaded", "hybrid source policy", "link-out")):
         errors.add("document_drift")
     return CandidateResearchValidation(not errors, tuple(sorted(errors)))

@@ -19,4 +19,4 @@ Each remains `catalog_eligible: false`. An official transcript supports accessib
 
 For each candidate, obtain written item-level confirmation of federal-employee authorship or an explicit license; confirmation that video, audio, music, imagery, and marks contain no restricted third-party components; an authorized media asset or delivery method; poster reuse authority; duration, dimensions, and aspect ratio; caption-track verification; allowed-use and attribution language; and named rights and accessibility reviews with timestamps.
 
-Until that packet exists, the Phase 4C catalog remains blocked. The next safe action is to request item-level clearance and asset metadata from the U.S. Census Bureau. That outreach is external communication and requires separate authority.
+Under the superseding hybrid source policy, these candidates may remain discoverable only as canonical link-out records until a source-level embed policy, license, or publisher agreement is approved in the source registry. Item-level outreach is not the default scaling path. No Census source or media is activated by this research record.

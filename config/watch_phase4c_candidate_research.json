@@ -104,5 +104,5 @@
     "page_thumbnail_implies_poster_reuse_permission",
     "public_access_implies trademark_or_endorsement_permission"
   ],
-  "next_recommendation": "request_item_level_clearance_and_asset_metadata_from_the_us_census_bureau"
+  "next_recommendation": "evaluate_under_hybrid_source_policy_and_link_out_until_source_approved"
 }

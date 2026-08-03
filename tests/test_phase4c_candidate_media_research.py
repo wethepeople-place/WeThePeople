@@ -40,9 +40,9 @@ def test_transcript_does_not_overclaim_captions_rights_assets_or_posters():
         assert item["catalog_eligible"] is False
 
 
-def test_clearance_packet_is_complete_and_outreach_is_only_next_recommendation():
+def test_clearance_packet_is_complete_and_hybrid_evaluation_is_next():
     assert set(RESEARCH["required_clearance_packet_per_candidate"]) == REQUIRED_CLEARANCE
-    assert RESEARCH["next_recommendation"] == "request_item_level_clearance_and_asset_metadata_from_the_us_census_bureau"
+    assert RESEARCH["next_recommendation"] == "evaluate_under_hybrid_source_policy_and_link_out_until_source_approved"
 
 
 def test_rights_accessibility_asset_or_catalog_overclaim_fails_closed(tmp_path):
