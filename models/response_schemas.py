@@ -502,6 +502,12 @@ class VideoDelivery(BaseModel):
     source_label: Optional[str] = None
     development_only: bool = False
 
+class VideoAccessibility(BaseModel):
+    text_kind: Literal["overview", "transcript"]
+    official_transcript_url: str
+    official_transcript_label: str
+    development_only: bool = False
+
 class VideoItem(BaseModel):
     video_id: str
     creator_label: str
@@ -510,6 +516,7 @@ class VideoItem(BaseModel):
     captions_url: Optional[str] = None
     media_url: str
     delivery: Optional[VideoDelivery] = None
+    accessibility: Optional[VideoAccessibility] = None
     published_at: str
     source: IssueSource
     issue: VideoIssueLink

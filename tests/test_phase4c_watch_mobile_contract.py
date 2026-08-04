@@ -14,6 +14,9 @@ def test_mobile_treats_official_embed_as_canonical_link_out():
     assert "official_embed" in TYPES and "canonical_url: string" in TYPES
 
 
-def test_mobile_labels_inline_transcript_accurately():
-    assert "Transcript {transcriptVisible ? 'shown' : 'hidden'}" in SCREEN
+def test_mobile_labels_overview_accurately_and_links_official_transcript():
+    assert "item.accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript'" in SCREEN
+    assert "{narrativeLabel} {narrativeVisible ? 'shown' : 'hidden'}" in SCREEN
+    assert "item.accessibility!.official_transcript_url" in SCREEN
+    assert "item.accessibility.official_transcript_label" in SCREEN
     assert "Captions {" not in SCREEN

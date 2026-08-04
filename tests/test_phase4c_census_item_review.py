@@ -12,7 +12,7 @@ REVIEW = json.loads(PATH.read_text(encoding="utf-8"))
 def test_census_item_review_is_valid_and_fail_closed():
     report = validate_census_item_review(root=ROOT)
     assert report.valid is True and report.error_codes == ()
-    assert REVIEW["recommendation"] == "not_eligible_for_registry_approval"
+    assert REVIEW["recommendation"] == "eligible_for_separate_registry_approval_review"
     assert REVIEW["required_fallback"] == "link_out"
 
 
@@ -26,18 +26,18 @@ def test_exact_item_identity_and_first_party_evidence_are_recorded():
     assert evidence["official_transcript_present"] is True
 
 
-def test_accessibility_privacy_and_registry_blockers_remain_explicit():
+def test_accessibility_and_privacy_pass_but_registry_remains_fail_closed():
     gates = REVIEW["gate_results"]
-    assert gates["per_item_captions_or_full_transcript"] == "fail"
-    assert gates["privacy_policy_link_in_consent_notice"] == "fail"
+    assert gates["per_item_captions_or_full_transcript"] == "pass_via_official_transcript_link"
+    assert gates["privacy_policy_link_in_consent_notice"] == "pass"
     assert gates["production_source_registry_state"] == "fail"
-    assert "youtube_player_reports_captions_unavailable" in REVIEW["blockers"]
+    assert REVIEW["blockers"] == ["source_registry_remains_candidate_link_out_only"]
     assert REVIEW["production_playback_authorized"] is False
 
 
 def test_weakened_review_cannot_claim_approval(tmp_path):
     changed = json.loads(json.dumps(REVIEW))
-    changed["recommendation"] = "approve"
+    changed["recommendation"] = "approved"
     changed["required_fallback"] = "official_embed"
     changed["production_playback_authorized"] = True
     (tmp_path / "config").mkdir()

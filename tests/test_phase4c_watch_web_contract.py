@@ -20,7 +20,7 @@ def test_web_watch_enforces_visibility_driven_one_active_video():
 
 
 def test_web_watch_has_accessible_controls_transcript_and_failure_context():
-    for anchor in ("Play", "Pause", "Unmute", "Mute", "Transcript", "Video unavailable", "official evidence remain available"):
+    for anchor in ("Play", "Pause", "Unmute", "Mute", "Overview", "Transcript", "Video unavailable", "official evidence remain available"):
         assert anchor in PAGE
     assert "prefers-reduced-motion: reduce" in PAGE
 
@@ -57,6 +57,14 @@ def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_i
         "Load official video",
         "Watch at the official source instead",
         "LinkOutCard",
+        "https://policies.google.com/privacy",
+        "Google's Privacy Policy",
     ):
         assert anchor in PAGE
     assert "DevelopmentEmbedCard" in PAGE and "Transcript" in PAGE
+
+
+def test_official_transcript_is_record_driven_and_editorial_text_is_labeled_overview():
+    assert "accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript'" in PAGE
+    assert "accessibility.official_transcript_url" in PAGE
+    assert "accessibility.official_transcript_label" in PAGE

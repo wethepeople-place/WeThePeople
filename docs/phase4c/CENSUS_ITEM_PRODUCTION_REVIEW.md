@@ -4,7 +4,7 @@ Date: 2026-08-04
 
 Scope: `housing-rent-why-rents-move` / YouTube `-Zfh6IKiJ4s`
 
-Decision: **not eligible for registry approval; retain canonical link-out**
+Decision: **eligible for a separate registry-approval review; retain canonical link-out until separately authorized**
 
 This review is decision-only. It does not approve the Census source, change the
 source registry, enable production playback, authorize downloads, or authorize
@@ -21,21 +21,25 @@ publication.
   already follows those technical boundaries.
 - The text-card fallback avoids unreviewed poster or thumbnail reuse.
 
-## Blocking findings
+## Remediation completed
 
-1. The live YouTube player reports subtitles/closed captions unavailable.
-2. The checked-in Watch `transcript` is an editorial summary, not the official
-   full Census transcript. It cannot satisfy the item-level transcript gate.
-3. The consent notice describes third-party data sharing but does not link
-   directly to the Google or YouTube privacy policy, which the Phase 4C
-   compatibility contract requires.
-4. The approved-source registry still correctly lists Census as `candidate`
-   with `link_out` as its only allowed delivery mode.
+1. The live YouTube player still reports subtitles/closed captions unavailable;
+   the record now exposes the official full Census transcript as its accessible
+   alternative without copying or downloading it.
+2. The checked-in editorial text is now labeled `Overview`, not `Transcript`.
+3. The consent notice now links directly to Google's privacy policy before the
+   player can load.
+
+## Remaining blocker
+
+The approved-source registry still correctly lists Census as `candidate` with
+`link_out` as its only allowed delivery mode. This remediation does not grant
+authority to change that state.
 
 ## Reconsideration boundary
 
-Reconsideration requires accurate integration or clearly labeled linking of the
-official full transcript, a direct privacy-policy link in the consent notice,
-a repeated item-level accessibility/privacy review, and separate user authority
-before any registry approval or production playback. Until all four occur, the
-only production-safe delivery is canonical link-out.
+The item is eligible for a separate registry-approval review because the
+item-level accessibility and privacy gates now pass. Actual registry approval
+and production playback still require separate user authority. Until that
+authority and registry mutation occur, the only production-safe delivery is
+canonical link-out.

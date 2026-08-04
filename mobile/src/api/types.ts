@@ -779,6 +779,12 @@ export interface WatchVideo {
     source_label: string | null;
     development_only: boolean;
   } | null;
+  accessibility: {
+    text_kind: 'overview' | 'transcript';
+    official_transcript_url: string;
+    official_transcript_label: string;
+    development_only: boolean;
+  } | null;
   published_at: string;
   source: { url: string; publisher: string; retrieved_at: string };
   issue: { slug: string; title: string };

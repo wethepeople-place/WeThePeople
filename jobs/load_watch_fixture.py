@@ -61,6 +61,15 @@ def validate_fixture(payload: dict[str, Any]) -> None:
                         raise WatchFixtureValidationError(f"delivery.{field} is required for official_embed")
                 if delivery.get("development_only") is not True:
                     raise WatchFixtureValidationError("Fixture official embeds must remain development_only")
+        accessibility = item.get("accessibility")
+        if accessibility is not None:
+            if accessibility.get("text_kind") not in {"overview", "transcript"}:
+                raise WatchFixtureValidationError("accessibility.text_kind is not supported")
+            _https(accessibility.get("official_transcript_url"), "accessibility.official_transcript_url")
+            if not accessibility.get("official_transcript_label"):
+                raise WatchFixtureValidationError("accessibility.official_transcript_label is required")
+            if accessibility.get("development_only") is not True:
+                raise WatchFixtureValidationError("Fixture accessibility metadata must remain development_only")
         source = item.get("source") or {}
         _https(source.get("url"), "source.url")
         if not source.get("publisher") or not source.get("retrieved_at"):

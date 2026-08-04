@@ -149,14 +149,23 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
         "source_label": "U.S. Census Bureau",
         "development_only": True,
     }
+    assert payload["videos"][0]["accessibility"] == {
+        "text_kind": "overview",
+        "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+        "official_transcript_label": "Official Census transcript",
+        "development_only": True,
+    }
     with Session() as session:
         load_housing(housing_fixture(), session)
         assert load_fixture(payload, session) == {"videos": 3, "video_issues": 3, "video_bills": 3}
 
-    assert client.get("/videos/housing-rent-why-rents-move").json()["delivery"] is None
+    disabled = client.get("/videos/housing-rent-why-rents-move").json()
+    assert disabled["delivery"] is None and disabled["accessibility"] is None
     monkeypatch.setenv("WTP_ENV", "development")
     monkeypatch.setenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED", "true")
-    assert client.get("/videos/housing-rent-why-rents-move").json()["delivery"] == payload["videos"][0]["delivery"]
+    enabled = client.get("/videos/housing-rent-why-rents-move").json()
+    assert enabled["delivery"] == payload["videos"][0]["delivery"]
+    assert enabled["accessibility"] == payload["videos"][0]["accessibility"]
     assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
 
 
@@ -171,6 +180,18 @@ def test_watch_loader_rejects_unsafe_official_embed_metadata():
         "development_only": False,
     }
     with pytest.raises(WatchFixtureValidationError, match="must remain development_only"):
+        validate_fixture(payload)
+
+
+def test_watch_loader_rejects_unsafe_accessibility_metadata():
+    payload = _watch_fixture()
+    payload["videos"][0]["accessibility"] = {
+        "text_kind": "overview",
+        "official_transcript_url": "http://example.test/transcript.pdf",
+        "official_transcript_label": "Official transcript",
+        "development_only": True,
+    }
+    with pytest.raises(WatchFixtureValidationError, match="must use HTTPS"):
         validate_fixture(payload)
 
 

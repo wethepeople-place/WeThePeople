@@ -15,6 +15,12 @@
         "source_label": "U.S. Census Bureau",
         "development_only": true
       },
+      "accessibility": {
+        "text_kind": "overview",
+        "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+        "official_transcript_label": "Official Census transcript",
+        "development_only": true
+      },
       "published_at": "2026-07-31T00:00:00Z",
       "issue_slug": "housing-rent",
       "bill_ids": ["hr1-119"],

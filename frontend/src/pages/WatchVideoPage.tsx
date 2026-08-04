@@ -9,6 +9,7 @@ type Video = {
   video_id: string; creator_label: string; caption: string; transcript: string | null;
   media_url: string; published_at: string;
   delivery: Delivery | null;
+  accessibility: Accessibility | null;
   source: { url: string; publisher: string }; issue: { slug: string; title: string };
   bills: Array<{ bill_id: string; title: string | null }>;
   discussion_post_id: number | null;
@@ -21,6 +22,11 @@ type Delivery = {
   development_only: boolean;
 };
 
+type Accessibility = {
+  text_kind: 'overview' | 'transcript'; official_transcript_url: string;
+  official_transcript_label: string; development_only: boolean;
+};
+
 const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
 
 function CivicActions({ item }: { item: Video }) {
@@ -31,6 +37,16 @@ function CivicActions({ item }: { item: Video }) {
     {item.bills.map((bill) => <Link key={bill.bill_id} className="rounded-full bg-white/90 px-4 py-3 font-bold text-slate-950" to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}
     {item.discussion_post_id && <Link className="rounded-full bg-amber-400 px-4 py-3 font-bold text-slate-950" to={`/discuss/${item.discussion_post_id}`} state={{ returnToVideoId: item.video_id }}>Discuss</Link>}
   </div>;
+}
+
+function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean }) {
+  if (!item.transcript && !item.accessibility?.official_transcript_url) return null;
+  const label = item.accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript';
+  return <details className={`mt-4 rounded-xl p-4 ${dark ? 'bg-black/70' : 'bg-white/10'}`} open>
+    <summary className="cursor-pointer font-semibold">{label}</summary>
+    {item.transcript && <p className="mt-2 leading-7 text-slate-100">{item.transcript}</p>}
+    {item.accessibility?.official_transcript_url && <a className="mt-3 inline-block font-semibold text-amber-300 underline" href={item.accessibility.official_transcript_url} target="_blank" rel="noreferrer">{item.accessibility.official_transcript_label} <ExternalLink className="inline h-4 w-4" /></a>}
+  </details>;
 }
 
 function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: Delivery }) {
@@ -49,7 +65,7 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
         /> : <div className="max-w-2xl p-8">
           <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development-only official embed test</p>
           <h2 className="mt-3 text-2xl font-bold">Load video from {embed.source_label}</h2>
-          <p className="mt-3 leading-7 text-slate-300">The official YouTube player is not loaded until you choose to continue. Loading it shares basic request and playback data with YouTube under its policies.</p>
+          <p className="mt-3 leading-7 text-slate-300">The official YouTube player is not loaded until you choose to continue. Loading it shares basic request and playback data with YouTube under its policies. Review <a className="font-semibold text-amber-300 underline" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's Privacy Policy</a> before continuing.</p>
           {active && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950" onClick={() => setConsented(true)}>Load official video</button>}
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
           <a className="mt-4 block font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
@@ -58,7 +74,7 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
       <div className="py-6">
         <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development Watch fixture · {item.issue.title}</p>
         <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
-        {item.transcript && <details className="mt-4 rounded-xl bg-white/10 p-4" open><summary className="cursor-pointer font-semibold">Transcript</summary><p className="mt-2 leading-7 text-slate-100">{item.transcript}</p></details>}
+        <NarrativePanel item={item} />
         <CivicActions item={item} />
       </div>
     </div>
@@ -70,9 +86,9 @@ function LinkOutCard({ item, delivery }: { item: Video; delivery: Delivery }) {
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 sm:px-8">
       <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development Watch fixture · {item.issue.title}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
-      <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The transcript, official source, and civic context remain available.</p>
+      <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
       <a className="mt-5 w-fit rounded-full bg-white px-5 py-3 font-bold text-slate-950" href={delivery.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
-      {item.transcript && <details className="mt-4 rounded-xl bg-white/10 p-4" open><summary className="cursor-pointer font-semibold">Transcript</summary><p className="mt-2 leading-7 text-slate-100">{item.transcript}</p></details>}
+      <NarrativePanel item={item} />
       <CivicActions item={item} />
     </div>
   </article>;
@@ -96,7 +112,7 @@ function NativeVideoCard({ item, active, reducedMotion, onActive }: { item: Vide
     <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl p-6 pb-12 sm:p-10">
       <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development Watch fixture · {item.issue.title}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
-      {item.transcript && <details className="mt-4 rounded-xl bg-black/70 p-4" open><summary className="cursor-pointer font-semibold">Transcript</summary><p className="mt-2 leading-7 text-slate-100">{item.transcript}</p></details>}
+      <NarrativePanel item={item} dark />
       <div className="mt-5 flex flex-wrap gap-3">
         <button className="rounded-full bg-white px-4 py-3 font-bold text-slate-950" onClick={() => { onActive(); setManualPause((v) => !v); }}>{active && !manualPause ? <Pause className="inline h-4 w-4" /> : <Play className="inline h-4 w-4" />} <span className="ml-1">{active && !manualPause ? 'Pause' : 'Play'}</span></button>
         <button className="rounded-full bg-white px-4 py-3 font-bold text-slate-950" onClick={() => setMuted((v) => !v)}>{muted ? <VolumeX className="inline h-4 w-4" /> : <Volume2 className="inline h-4 w-4" />} <span className="ml-1">{muted ? 'Unmute' : 'Mute'}</span></button>

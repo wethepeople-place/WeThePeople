@@ -24,7 +24,8 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
   const navigation = useNavigation<any>();
   const officialEmbed = item.delivery?.mode === 'official_embed' ? item.delivery : null;
   const linkOut = item.delivery?.mode === 'link_out' ? item.delivery : officialEmbed;
-  const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const narrativeLabel = item.accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript';
+  const [narrativeVisible, setNarrativeVisible] = useState(true);
   const [mediaUnavailable, setMediaUnavailable] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
   const player = useVideoPlayer(linkOut ? null : item.media_url, (instance) => {
@@ -71,7 +72,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
       {linkOut ? (
         <View style={styles.unavailable}>
           <Text style={styles.unavailableTitle}>Watch at the official source</Text>
-          <Text style={styles.body}>This provider opens in your browser. The transcript and civic context remain available here.</Text>
+          <Text style={styles.body}>This provider opens in your browser. The overview, official transcript, and civic context remain available here.</Text>
           <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl(linkOut.canonical_url, linkOut.source_label ?? 'official video source')}>
             <Text style={styles.buttonText}>Open official video</Text>
           </Pressable>
@@ -95,7 +96,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
       <View style={styles.overlay}>
         <Text style={styles.creator}>{item.creator_label}</Text>
         <Text style={styles.caption}>{item.caption}</Text>
-        {transcriptVisible && item.transcript ? (
+        {narrativeVisible && item.transcript ? (
           <Text style={styles.transcript} accessibilityLiveRegion="polite">{item.transcript}</Text>
         ) : null}
         <Text style={styles.timestamp}>{new Date(item.published_at).toLocaleDateString()}</Text>
@@ -120,8 +121,13 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
               <Text style={styles.buttonText}>{item.bills[0].bill_id.toUpperCase()}</Text>
             </Pressable>
           ) : null}
-          <Pressable accessibilityRole="button" accessibilityState={{ checked: transcriptVisible }} style={styles.button} onPress={() => setTranscriptVisible((value) => !value)}>
-            <Text style={styles.buttonText}>Transcript {transcriptVisible ? 'shown' : 'hidden'}</Text>
+          {item.accessibility?.official_transcript_url ? (
+            <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl(item.accessibility!.official_transcript_url, item.accessibility!.official_transcript_label)}>
+              <Text style={styles.buttonText}>{item.accessibility.official_transcript_label}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityState={{ checked: narrativeVisible }} style={styles.button} onPress={() => setNarrativeVisible((value) => !value)}>
+            <Text style={styles.buttonText}>{narrativeLabel} {narrativeVisible ? 'shown' : 'hidden'}</Text>
           </Pressable>
           {!linkOut && (reducedMotion || mediaUnavailable) && (
             <Pressable accessibilityRole="button" style={styles.button} onPress={() => { setMediaUnavailable(false); player.play(); }}>

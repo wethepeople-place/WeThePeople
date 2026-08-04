@@ -48,6 +48,24 @@ def _fixture_delivery(video_id: str) -> dict | None:
         return None
 
 
+def _fixture_accessibility(video_id: str) -> dict | None:
+    """Return development-authorized accessibility metadata from the fixture."""
+    if os.getenv("WTP_ENV") != "development" or os.getenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED") != "true":
+        return None
+    try:
+        payload = json.loads(WATCH_FIXTURE_PATH.read_text(encoding="utf-8"))
+        record = next(item for item in payload.get("videos", ()) if item.get("video_id") == video_id)
+        accessibility = record.get("accessibility")
+        if not isinstance(accessibility, dict):
+            return None
+        transcript_url = accessibility.get("official_transcript_url")
+        if accessibility.get("text_kind") not in {"overview", "transcript"} or not isinstance(transcript_url, str) or not transcript_url.startswith("https://") or not accessibility.get("official_transcript_label"):
+            return None
+        return accessibility
+    except (OSError, ValueError, StopIteration, TypeError):
+        return None
+
+
 def _cursor(row: Video) -> str:
     payload = json.dumps({"v": 1, "s": row.sort_order, "p": row.published_at.isoformat(), "i": row.video_id}, separators=(",", ":"), sort_keys=True).encode()
     signature = hmac.new(CURSOR_SECRET, payload, hashlib.sha256).digest()
@@ -121,6 +139,7 @@ def _serialize(row: Video, discussion_post_id: int | None = None) -> dict:
         "captions_url": row.captions_url,
         "media_url": row.media_url,
         "delivery": _fixture_delivery(row.video_id),
+        "accessibility": _fixture_accessibility(row.video_id),
         "published_at": row.published_at.isoformat(),
         "source": _source(row.source),
         "issue": {"slug": issue.slug, "title": issue.title},
