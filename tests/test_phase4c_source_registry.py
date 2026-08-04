@@ -45,12 +45,16 @@ def _source(**changes):
     return source
 
 
-def test_candidate_registry_is_valid_and_enables_nothing():
+def test_registry_approves_only_census_and_enables_nothing():
     report = validate_source_registry(root=ROOT)
     assert report.valid is True and report.error_codes == ()
     assert len(REGISTRY["sources"]) == 5 and REGISTRY["production_media_enabled"] is False
-    assert all(source["source_state"] == "candidate" for source in REGISTRY["sources"])
-    assert all(source["allowed_delivery_modes"] == ["link_out"] for source in REGISTRY["sources"])
+    census = next(source for source in REGISTRY["sources"] if source["source_id"] == "us-census-bureau")
+    assert census["source_state"] == "approved"
+    assert census["allowed_delivery_modes"] == ["official_embed", "link_out"]
+    assert all(source["source_state"] == "candidate" for source in REGISTRY["sources"] if source is not census)
+    assert all(source["allowed_delivery_modes"] == ["link_out"] for source in REGISTRY["sources"] if source is not census)
+    assert REGISTRY["runtime_changes_authorized"] is False
 
 
 def test_schema_matches_hybrid_delivery_contract():
@@ -71,6 +75,16 @@ def test_unapproved_source_can_only_link_out(tmp_path):
     changed["sources"] = [_source(source_state="candidate")]
     report = validate_source_registry(root=_root(tmp_path, changed))
     assert "unapproved_playback_mode" in report.error_codes
+
+
+def test_census_approval_fails_closed_without_terms_privacy_or_accessibility(tmp_path):
+    changed = json.loads(json.dumps(REGISTRY))
+    census = next(source for source in changed["sources"] if source["source_id"] == "us-census-bureau")
+    census["evidence"].pop("embed_terms_reviewed_at")
+    census["privacy"]["reviewed_at"] = None
+    census["accessibility"]["captions_or_transcript_required"] = False
+    report = validate_source_registry(root=_root(tmp_path, changed))
+    assert {"conditional_evidence_missing", "privacy_review_missing", "accessibility_requirement_missing"} <= set(report.error_codes)
 
 
 def test_embed_missing_terms_privacy_or_accessibility_fails_closed(tmp_path):

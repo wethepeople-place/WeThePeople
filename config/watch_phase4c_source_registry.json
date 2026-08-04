@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-03",
+  "version": "2026-08-04",
   "phase": "4c-approved-source-registry",
   "posture": "contract_only_no_network_no_production_media",
   "policy_reference": "config/watch_phase4c_decision.json",
@@ -39,22 +39,26 @@
     {
       "source_id": "us-census-bureau",
       "publisher_name": "U.S. Census Bureau",
-      "source_state": "candidate",
+      "source_state": "approved",
       "official_domains": ["census.gov"],
-      "official_channels": ["https://www.youtube.com/user/uscensusbureau"],
-      "allowed_delivery_modes": ["link_out"],
+      "official_channels": ["https://www.youtube.com/@uscensusbureau"],
+      "allowed_delivery_modes": ["official_embed", "link_out"],
       "canonical_source_url": "https://www.census.gov/library/video.html",
       "evidence": {
         "official_identity_url": "https://www.census.gov/programs-surveys/international-programs/library/video.html",
         "usage_policy_url": "https://www.census.gov/library/multimedia-usage-policy.html",
         "privacy_url": "https://www.census.gov/about/policies/privacy/privacy-policy.html",
-        "accessibility_url": "https://www.census.gov/about/policies/privacy/privacy-policy.html",
-        "finding": "Official channel and a source-level multimedia policy were found, but privacy, per-item accessibility, embed behavior, and third-party components still require implementation review before playback."
+        "accessibility_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+        "official_channel_reference": "https://www.youtube.com/@uscensusbureau",
+        "embed_terms_url": "https://support.google.com/youtube/answer/171780",
+        "embed_terms_reviewed_at": "2026-08-04T00:00:00Z",
+        "privacy_reviewed_at": "2026-08-04T00:00:00Z",
+        "finding": "The official Census channel, exact Census-hosted item page, YouTube embed terms, click-to-load privacy notice, and per-item official transcript support registry approval for official embedding. Approval is non-operational while production media remains disabled."
       },
-      "privacy": {"reviewed_at": null, "finding": "Census warns that embedded third-party services may collect visitor information."},
+      "privacy": {"reviewed_at": "2026-08-04T00:00:00Z", "finding": "Census warns that embedded third-party services may collect visitor information; Watch requires click-to-load consent and a direct Google Privacy Policy link."},
       "poster": {"unknown_rights_fallback": "text_card", "finding": "No blanket platform-thumbnail reuse basis recorded."},
-      "accessibility": {"captions_or_transcript_required": false, "finding": "Official pages often expose transcripts, but catalog-wide caption conformance is not established."},
-      "review": {"reviewed_by": "phase4c-source-policy-research", "reviewed_at": "2026-08-03T00:00:00Z", "evidence_expires_at": "2026-11-03T00:00:00Z"},
+      "accessibility": {"captions_or_transcript_required": true, "finding": "Each embedded item must expose a verified official transcript or captions; the approved pilot item exposes the official Census transcript."},
+      "review": {"reviewed_by": "phase4c-census-registry-approval", "reviewed_at": "2026-08-04T00:00:00Z", "evidence_expires_at": "2026-11-04T00:00:00Z"},
       "takedown": {"contact": "https://www.census.gov/about/contact-us.html"}
     },
     {

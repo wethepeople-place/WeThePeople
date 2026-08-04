@@ -1,8 +1,8 @@
 # Phase 4C approved-source registry contract
 
-The approved-source registry is a non-operational allowlist contract for the hybrid Watch delivery policy. The checked-in registry contains five researched candidates—Census Bureau, Government Accountability Office, National Archives, Library of Congress, and Congressional Budget Office—but every candidate is restricted to `link_out`. No source is approved for playback and no production media is activated.
+The approved-source registry is a non-operational allowlist contract for the hybrid Watch delivery policy. The checked-in registry approves the Census Bureau for `official_embed` and `link_out` based on the exact verified channel, current platform terms, privacy review, and a per-item transcript requirement. Government Accountability Office, National Archives, Library of Congress, and Congressional Budget Office remain candidates restricted to `link_out`. Registry approval does not activate production media or runtime playback.
 
-Each future source record identifies the publisher, official HTTPS domains and channels, canonical source page, allowed delivery modes, supporting evidence, privacy posture, poster policy, accessibility requirements, review and expiry dates, and takedown path. A source that is not `approved` may use only `link_out`. Suspension or expired evidence also falls back to link-out.
+Each source record identifies the publisher, official HTTPS domains and channels, canonical source page, allowed delivery modes, supporting evidence, privacy posture, poster policy, accessibility requirements, review and expiry dates, and takedown path. A source that is not `approved` may use only `link_out`. Suspension or expired evidence also falls back to link-out.
 
 Conditional evidence is required by delivery mode:
 
@@ -19,4 +19,4 @@ All five publishers have an official agency page identifying a video collection 
 
 Census has the strongest source-level reuse evidence: its multimedia policy permits Census media assets in news media and public-information products, with attribution and noncommercial, no-endorsement, and no-resale restrictions. Its privacy policy also warns that embedded third-party services may collect visitor information. GAO states that its video files have closed captions and transcripts. NARA states that only some transcripts are currently available. The Library of Congress warns that third-party platforms collect information outside its control and that collection rights vary. CBO identifies its official channel but the bounded review did not locate equivalent source-level embed, poster, privacy, or catalog-wide caption terms.
 
-Those gaps are why all five remain candidate link-outs. Moving any source to embedded playback requires a separate implementation review against the registry's complete evidence, privacy, accessibility, poster, and expiry conditions.
+The exact Census pilot passed the separate item-level accessibility/privacy review and the user authorized a registry-only approval. Its approval expires on 2026-11-04 unless the evidence is reviewed again. The other four sources remain candidate link-outs because their gaps have not been resolved. Production embedding remains disabled for every source until separately authorized; unknown, suspended, or expired evidence continues to fall back to canonical link-out.

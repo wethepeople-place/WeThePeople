@@ -1,7 +1,7 @@
 {
   "version": "2026-08-04",
   "phase": "4c-census-item-production-review",
-  "posture": "decision_only_no_registry_mutation_no_production_playback",
+  "posture": "registry_approval_only_no_production_playback",
   "reviewed_at": "2026-08-04T00:00:00Z",
   "record": {
     "video_id": "housing-rent-why-rents-move",
@@ -39,19 +39,17 @@
     "text_card_poster_fallback": "pass",
     "privacy_policy_link_in_consent_notice": "pass",
     "per_item_captions_or_full_transcript": "pass_via_official_transcript_link",
-    "production_source_registry_state": "fail"
+    "production_source_registry_state": "pass_approved_non_operational"
   },
-  "blockers": [
-    "source_registry_remains_candidate_link_out_only"
-  ],
-  "recommendation": "eligible_for_separate_registry_approval_review",
+  "blockers": [],
+  "recommendation": "registry_approved_production_disabled",
   "required_fallback": "link_out",
-  "registry_mutation_authorized": false,
+  "registry_mutation_authorized": true,
   "production_playback_authorized": false,
   "credentials_authorized": false,
   "downloads_authorized": false,
   "publication_authorized": false,
   "next_reconsideration_requires": [
-    "separate_user_authority_for_any_registry_approval_or_production_playback"
+    "separate_user_authority_for_production_playback"
   ]
 }

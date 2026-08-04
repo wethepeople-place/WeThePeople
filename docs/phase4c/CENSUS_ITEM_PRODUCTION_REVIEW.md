@@ -4,11 +4,12 @@ Date: 2026-08-04
 
 Scope: `housing-rent-why-rents-move` / YouTube `-Zfh6IKiJ4s`
 
-Decision: **eligible for a separate registry-approval review; retain canonical link-out until separately authorized**
+Decision: **approved in the source registry for official embedding; production remains disabled and canonical link-out remains the runtime fallback**
 
-This review is decision-only. It does not approve the Census source, change the
-source registry, enable production playback, authorize downloads, or authorize
-publication.
+The user separately authorized the registry-approval-only decision. This review
+approves the Census source contract for `official_embed` and `link_out`, but it
+does not enable production playback, change runtime behavior, authorize
+downloads, add credentials or ingestion, or authorize publication.
 
 ## Evidence that passed
 
@@ -30,16 +31,18 @@ publication.
 3. The consent notice now links directly to Google's privacy policy before the
    player can load.
 
-## Remaining blocker
+## Registry approval
 
-The approved-source registry still correctly lists Census as `candidate` with
-`link_out` as its only allowed delivery mode. This remediation does not grant
-authority to change that state.
+The source registry now lists Census as `approved` for `official_embed` and
+`link_out`. It records the exact verified channel, YouTube embed terms and
+review date, privacy review, per-item transcript requirement, text-card poster
+fallback, evidence expiry, and takedown path. The other four researched sources
+remain candidate link-outs.
 
 ## Reconsideration boundary
 
-The item is eligible for a separate registry-approval review because the
-item-level accessibility and privacy gates now pass. Actual registry approval
-and production playback still require separate user authority. Until that
-authority and registry mutation occur, the only production-safe delivery is
-canonical link-out.
+Registry approval is complete. Production playback remains a separate authority
+boundary. `production_media_enabled` and runtime authorization remain `false`,
+all operational authorization flags remain false, and canonical link-out remains
+the only production-safe runtime behavior until the user separately authorizes
+and reviews production enablement.
