@@ -41,7 +41,7 @@ def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
     assert "loadEnv(mode, path.resolve(__dirname, '..'), 'WTP_')" in VITE_CONFIG
 
 
-def test_development_embed_is_explicit_opt_in_and_record_driven():
+def test_embed_is_server_authorized_and_development_remains_explicit_opt_in():
     assert "import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true'" in PAGE
     assert "item.delivery" in PAGE and "delivery?.mode === 'official_embed'" in PAGE
     assert "delivery.provider === 'youtube'" in PAGE
@@ -61,7 +61,12 @@ def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_i
         "Google's Privacy Policy",
     ):
         assert anchor in PAGE
-    assert "DevelopmentEmbedCard" in PAGE and "Transcript" in PAGE
+    assert "OfficialEmbedCard" in PAGE and "Transcript" in PAGE
+
+
+def test_production_embed_copy_is_not_mislabeled_as_development():
+    assert "Official source video" in PAGE
+    assert "Development-only official embed test" not in PAGE
 
 
 def test_official_transcript_is_record_driven_and_editorial_text_is_labeled_overview():

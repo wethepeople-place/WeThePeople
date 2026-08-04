@@ -49,7 +49,7 @@ function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean })
   </details>;
 }
 
-function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: Delivery }) {
+function OfficialEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: Delivery }) {
   const [consented, setConsented] = useState(false);
   const playerLoaded = active && consented;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
@@ -63,7 +63,7 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         /> : <div className="max-w-2xl p-8">
-          <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development-only official embed test</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Official source video</p>
           <h2 className="mt-3 text-2xl font-bold">Load video from {embed.source_label}</h2>
           <p className="mt-3 leading-7 text-slate-300">The official YouTube player is not loaded until you choose to continue. Loading it shares basic request and playback data with YouTube under its policies. Review <a className="font-semibold text-amber-300 underline" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's Privacy Policy</a> before continuing.</p>
           {active && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950" onClick={() => setConsented(true)}>Load official video</button>}
@@ -72,7 +72,7 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
         </div>}
       </div>
       <div className="py-6">
-        <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development Watch fixture · {item.issue.title}</p>
+        <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Watch · {item.issue.title}</p>
         <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
         <NarrativePanel item={item} />
         <CivicActions item={item} />
@@ -128,7 +128,7 @@ function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean
     const authorized = (!delivery.development_only || DEVELOPMENT_EMBED_AUTHORIZED)
       && delivery.provider === 'youtube' && Boolean(delivery.provider_video_id);
     return authorized
-      ? <DevelopmentEmbedCard item={props.item} active={props.active} embed={delivery} />
+      ? <OfficialEmbedCard item={props.item} active={props.active} embed={delivery} />
       : <LinkOutCard item={props.item} delivery={delivery} />;
   }
   if (delivery?.mode === 'link_out') return <LinkOutCard item={props.item} delivery={delivery} />;

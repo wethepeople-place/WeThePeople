@@ -20,6 +20,7 @@ from models.issue_models import Video, VideoBill, VideoIssue
 from models.response_schemas import VideoItem, VideoSharePreview, VideosResponse
 from models.social_models import DiscussionAttachment, DiscussionPost
 from routers.issues import _source
+from services.watch_phase4c_production_media import production_metadata
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://wethepeople.place").rstrip("/")
@@ -27,14 +28,24 @@ CURSOR_SECRET = os.getenv("WTP_VIDEO_CURSOR_SECRET", "development-only-watch-cur
 WATCH_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json"
 
 
-def _fixture_delivery(video_id: str) -> dict | None:
-    """Return optional delivery metadata without adding it to the database schema."""
+def _fixture_metadata(video_id: str) -> tuple[dict | None, dict | None]:
+    """Return metadata only through the explicit development or production gate."""
+    if os.getenv("WTP_ENV") == "production" and os.getenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED") == "true":
+        return production_metadata(video_id)
     if os.getenv("WTP_ENV") != "development" or os.getenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED") != "true":
-        return None
+        return None, None
     try:
         payload = json.loads(WATCH_FIXTURE_PATH.read_text(encoding="utf-8"))
         record = next(item for item in payload.get("videos", ()) if item.get("video_id") == video_id)
-        delivery = record.get("delivery")
+        return record.get("delivery"), record.get("accessibility")
+    except (OSError, ValueError, StopIteration, TypeError):
+        return None, None
+
+
+def _fixture_delivery(video_id: str) -> dict | None:
+    """Return optional delivery metadata without adding it to the database schema."""
+    delivery, _ = _fixture_metadata(video_id)
+    try:
         if not isinstance(delivery, dict):
             return None
         canonical_url = delivery.get("canonical_url")
@@ -49,13 +60,9 @@ def _fixture_delivery(video_id: str) -> dict | None:
 
 
 def _fixture_accessibility(video_id: str) -> dict | None:
-    """Return development-authorized accessibility metadata from the fixture."""
-    if os.getenv("WTP_ENV") != "development" or os.getenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED") != "true":
-        return None
+    """Return environment-authorized accessibility metadata from the fixture."""
+    _, accessibility = _fixture_metadata(video_id)
     try:
-        payload = json.loads(WATCH_FIXTURE_PATH.read_text(encoding="utf-8"))
-        record = next(item for item in payload.get("videos", ()) if item.get("video_id") == video_id)
-        accessibility = record.get("accessibility")
         if not isinstance(accessibility, dict):
             return None
         transcript_url = accessibility.get("official_transcript_url")

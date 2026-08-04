@@ -4,12 +4,12 @@ Date: 2026-08-04
 
 Scope: `housing-rent-why-rents-move` / YouTube `-Zfh6IKiJ4s`
 
-Decision: **approved in the source registry for official embedding; production remains disabled and canonical link-out remains the runtime fallback**
+Decision: **exact pilot item authorized for production playback behind an explicit server kill switch and item allowlist**
 
-The user separately authorized the registry-approval-only decision. This review
-approves the Census source contract for `official_embed` and `link_out`, but it
-does not enable production playback, change runtime behavior, authorize
-downloads, add credentials or ingestion, or authorize publication.
+After separately authorizing the registry decision, the user authorized
+production playback for this exact item only. The implementation does not
+authorize downloads, add credentials or ingestion, authorize mobile inline
+embedding, deploy the kill switch, or authorize publication.
 
 ## Evidence that passed
 
@@ -41,8 +41,8 @@ remain candidate link-outs.
 
 ## Reconsideration boundary
 
-Registry approval is complete. Production playback remains a separate authority
-boundary. `production_media_enabled` and runtime authorization remain `false`,
-all operational authorization flags remain false, and canonical link-out remains
-the only production-safe runtime behavior until the user separately authorizes
-and reviews production enablement.
+Registry approval and exact-item production implementation are complete.
+Production delivery still requires the server-side kill switch, exact allowlist,
+matching source and fixture identity, and unexpired evidence. Canonical link-out
+remains the failure fallback. Deployment and publication remain separate
+authority boundaries.

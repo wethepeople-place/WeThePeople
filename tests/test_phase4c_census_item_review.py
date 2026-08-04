@@ -9,10 +9,10 @@ PATH = ROOT / "config" / "watch_phase4c_census_item_review.json"
 REVIEW = json.loads(PATH.read_text(encoding="utf-8"))
 
 
-def test_census_item_review_is_valid_and_registry_only():
+def test_census_item_review_is_valid_for_exact_production_item():
     report = validate_census_item_review(root=ROOT)
     assert report.valid is True and report.error_codes == ()
-    assert REVIEW["recommendation"] == "registry_approved_production_disabled"
+    assert REVIEW["recommendation"] == "exact_item_production_playback_authorized"
     assert REVIEW["required_fallback"] == "link_out"
 
 
@@ -26,21 +26,22 @@ def test_exact_item_identity_and_first_party_evidence_are_recorded():
     assert evidence["official_transcript_present"] is True
 
 
-def test_accessibility_privacy_and_registry_pass_but_production_remains_off():
+def test_accessibility_privacy_registry_and_exact_allowlist_pass():
     gates = REVIEW["gate_results"]
     assert gates["per_item_captions_or_full_transcript"] == "pass_via_official_transcript_link"
     assert gates["privacy_policy_link_in_consent_notice"] == "pass"
-    assert gates["production_source_registry_state"] == "pass_approved_non_operational"
+    assert gates["production_source_registry_state"] == "pass_approved"
+    assert gates["production_item_allowlist"] == "pass_exact_record"
     assert REVIEW["blockers"] == []
     assert REVIEW["registry_mutation_authorized"] is True
-    assert REVIEW["production_playback_authorized"] is False
+    assert REVIEW["production_playback_authorized"] is True
 
 
 def test_weakened_review_cannot_claim_approval(tmp_path):
     changed = json.loads(json.dumps(REVIEW))
     changed["recommendation"] = "production_approved"
     changed["required_fallback"] = "official_embed"
-    changed["production_playback_authorized"] = True
+    changed["publication_authorized"] = True
     (tmp_path / "config").mkdir()
     (tmp_path / "data").mkdir()
     (tmp_path / "frontend" / "src" / "pages").mkdir(parents=True)

@@ -168,6 +168,16 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     assert enabled["accessibility"] == payload["videos"][0]["accessibility"]
     assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
 
+    monkeypatch.setenv("WTP_ENV", "production")
+    monkeypatch.delenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED")
+    production_disabled = client.get("/videos/housing-rent-why-rents-move").json()
+    assert production_disabled["delivery"] is None and production_disabled["accessibility"] is None
+    monkeypatch.setenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED", "true")
+    production_enabled = client.get("/videos/housing-rent-why-rents-move").json()
+    assert production_enabled["delivery"] == payload["videos"][0]["delivery"] | {"development_only": False}
+    assert production_enabled["accessibility"] == payload["videos"][0]["accessibility"] | {"development_only": False}
+    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
+
 
 def test_watch_loader_rejects_unsafe_official_embed_metadata():
     payload = _watch_fixture()

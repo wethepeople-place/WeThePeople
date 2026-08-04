@@ -7,10 +7,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
+from services.watch_phase4c_production_media import validate_production_media
+
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_BLOCKERS = frozenset()
 REQUIRED_RECONSIDERATION = frozenset({
-    "separate_user_authority_for_production_playback",
+    "separate_user_authority_for_deployment_or_publication",
 })
 
 
@@ -38,7 +40,7 @@ def validate_census_item_review(*, root: Path = ROOT) -> CensusItemReviewValidat
     except (OSError, json.JSONDecodeError):
         return CensusItemReviewValidation(False, ("review_inputs_unreadable",))
 
-    if review.get("posture") != "registry_approval_only_no_production_playback":
+    if review.get("posture") != "exact_item_production_playback_authorized_no_publication":
         errors.add("review_posture_drift")
     record = review.get("record", {})
     if record.get("video_id") != "housing-rent-why-rents-move" or record.get("provider_video_id") != "-Zfh6IKiJ4s":
@@ -56,15 +58,17 @@ def validate_census_item_review(*, root: Path = ROOT) -> CensusItemReviewValidat
         errors.add("evidence_incomplete")
 
     gates = review.get("gate_results", {})
-    if gates.get("privacy_policy_link_in_consent_notice") != "pass" or gates.get("per_item_captions_or_full_transcript") != "pass_via_official_transcript_link" or gates.get("production_source_registry_state") != "pass_approved_non_operational":
+    if gates.get("privacy_policy_link_in_consent_notice") != "pass" or gates.get("per_item_captions_or_full_transcript") != "pass_via_official_transcript_link" or gates.get("production_source_registry_state") != "pass_approved" or gates.get("production_item_allowlist") != "pass_exact_record":
         errors.add("failed_gate_weakened")
     if set(review.get("blockers", ())) != REQUIRED_BLOCKERS or set(review.get("next_reconsideration_requires", ())) != REQUIRED_RECONSIDERATION:
         errors.add("blocker_contract_drift")
-    if review.get("recommendation") != "registry_approved_production_disabled" or review.get("required_fallback") != "link_out":
+    if review.get("recommendation") != "exact_item_production_playback_authorized" or review.get("required_fallback") != "link_out":
         errors.add("recommendation_not_fail_closed")
     if review.get("registry_mutation_authorized") is not True:
         errors.add("registry_authority_missing")
-    forbidden_true = ("production_playback_authorized", "credentials_authorized", "downloads_authorized", "publication_authorized")
+    if review.get("production_playback_authorized") is not True:
+        errors.add("production_authority_missing")
+    forbidden_true = ("credentials_authorized", "downloads_authorized", "publication_authorized")
     if any(review.get(key) is not False for key in forbidden_true):
         errors.add("operational_boundary_drift")
 
@@ -76,6 +80,9 @@ def validate_census_item_review(*, root: Path = ROOT) -> CensusItemReviewValidat
         errors.add("registry_approval_evidence_missing")
     if source.get("accessibility", {}).get("captions_or_transcript_required") is not True or source.get("privacy", {}).get("reviewed_at") is None:
         errors.add("registry_approval_guards_missing")
+    production_report = validate_production_media(root=root)
+    if not production_report.valid:
+        errors.add("production_allowlist_invalid")
     video = next((item for item in fixture.get("videos", ()) if item.get("video_id") == record.get("video_id")), {})
     accessibility = video.get("accessibility", {})
     if video.get("transcript") == record.get("official_transcript_url") or len(video.get("transcript", "")) > 1000 or accessibility.get("text_kind") != "overview" or accessibility.get("official_transcript_url") != record.get("official_transcript_url"):
