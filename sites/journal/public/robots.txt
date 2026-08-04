@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://journal.wethepeopleforus.com/sitemap.xml
+Sitemap: https://journal.wethepeople.place/sitemap.xml

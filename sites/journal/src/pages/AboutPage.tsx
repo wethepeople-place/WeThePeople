@@ -68,7 +68,7 @@ export default function AboutPage() {
     title: 'About — The Influence Journal',
     description:
       'How The Influence Journal works, what data we use, and the editorial standards behind every story.',
-    canonical: 'https://journal.wethepeopleforus.com/about',
+    canonical: 'https://journal.wethepeople.place/about',
   });
   return (
     <main id="main-content" className="flex-1 px-4 py-10 sm:py-16" style={{ color: 'var(--color-text-1)' }}>
@@ -352,8 +352,8 @@ export default function AboutPage() {
             </Link>
           ))}
           {[
-            { label: 'View Full Methodology', href: 'https://wethepeopleforus.com/methodology' },
-            { label: 'Explore WeThePeople', href: 'https://wethepeopleforus.com' },
+            { label: 'View Full Methodology', href: 'https://app.wethepeople.place/methodology' },
+            { label: 'Explore WeThePeople', href: 'https://app.wethepeople.place' },
           ].map((l) => (
             <a
               key={l.label}

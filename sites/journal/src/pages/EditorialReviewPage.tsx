@@ -16,8 +16,8 @@ export default function EditorialReviewPage() {
   usePageMeta({
     title: 'In Editorial Review — The Influence Journal',
     description:
-      'The Influence Journal is offline for an editorial review. The core data tools at wethepeopleforus.com remain available.',
-    canonical: 'https://journal.wethepeopleforus.com/',
+      'The Influence Journal is offline for an editorial review. The core data tools at wethepeople.place remain available.',
+    canonical: 'https://journal.wethepeople.place/',
   });
 
   return (
@@ -85,18 +85,18 @@ export default function EditorialReviewPage() {
           rest of the platform is unaffected: the politician, company, and
           sector pages on{' '}
           <a
-            href="https://wethepeopleforus.com"
+            href="https://app.wethepeople.place"
             style={{ color: 'var(--color-accent-text)', textDecoration: 'underline' }}
           >
-            wethepeopleforus.com
+            wethepeople.place
           </a>{' '}
           run on the same federal source data and remain available, as do
           the research tools at{' '}
           <a
-            href="https://research.wethepeopleforus.com"
+            href="https://research.wethepeople.place"
             style={{ color: 'var(--color-accent-text)', textDecoration: 'underline' }}
           >
-            research.wethepeopleforus.com
+            research.wethepeople.place
           </a>
           .
         </p>
@@ -118,7 +118,7 @@ export default function EditorialReviewPage() {
 
         <div className="flex items-center gap-5 flex-wrap">
           <a
-            href="https://wethepeopleforus.com"
+            href="https://app.wethepeople.place"
             className="inline-flex items-center gap-2 no-underline"
             style={{
               fontFamily: 'var(--font-mono)',
@@ -133,7 +133,7 @@ export default function EditorialReviewPage() {
             <ArrowRight size={14} />
           </a>
           <a
-            href="mailto:editor@wethepeopleforus.com?subject=Influence%20Journal"
+            href="mailto:editor@wethepeople.place?subject=Influence%20Journal"
             className="no-underline"
             style={{
               fontFamily: 'var(--font-mono)',

@@ -16,7 +16,7 @@
  *   <EcosystemNav active="verify" />
  *   <EcosystemNav active="research" />
  *   <EcosystemNav active="journal" />
- *   <EcosystemNav active="core" />   // main wethepeopleforus.com site
+ *   <EcosystemNav active="core" />   // main wethepeople.place site
  *
  * IMPLEMENTATION NOTE: This file is inlined per-site (rather than imported
  * from `sites/shared/EcosystemNav.tsx`) because TypeScript's Bundler
@@ -40,7 +40,7 @@ interface SessionUser {
 /**
  * Probe the cross-subdomain wtp_session cookie via /auth/me with
  * credentials:'include'. The core site sets that cookie at login
- * time with Domain=.wethepeopleforus.com so journal/research/
+ * time with Domain=.wethepeople.place so journal/research/
  * verify all see the same session. The previous EcosystemNav
  * always rendered Log in / Sign up which made the user feel
  * logged out on every sibling site.
@@ -96,7 +96,7 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
     key: 'core',
     name: 'WeThePeople',
     display: 'WeThePeople',
-    href: 'https://wethepeopleforus.com',
+    href: 'https://app.wethepeople.place',
     accent: '#C5A028',
     dim: 'rgba(197,160,40,0.12)',
     text: '#D8B84A',
@@ -106,7 +106,7 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
     key: 'civic',
     name: 'Civic Hub',
     display: 'Civic Hub',
-    href: 'https://wethepeopleforus.com/civic',
+    href: 'https://app.wethepeople.place/civic',
     accent: '#C5A028',
     dim: 'rgba(197,160,40,0.12)',
     text: '#D8B84A',
@@ -116,7 +116,7 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
     key: 'verify',
     name: 'Verify',
     display: 'Verify',
-    href: 'https://verify.wethepeopleforus.com',
+    href: 'https://verify.wethepeople.place',
     accent: '#10B981',
     dim: 'rgba(16,185,129,0.12)',
     text: '#3DD5C7',
@@ -126,7 +126,7 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
     key: 'research',
     name: 'Research',
     display: 'Research',
-    href: 'https://research.wethepeopleforus.com',
+    href: 'https://research.wethepeople.place',
     accent: '#8B5CF6',
     dim: 'rgba(139,92,246,0.12)',
     text: '#A78BFA',
@@ -136,7 +136,7 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
     key: 'journal',
     name: 'Journal',
     display: 'The Influence Journal',
-    href: 'https://journal.wethepeopleforus.com',
+    href: 'https://journal.wethepeople.place',
     accent: '#E63946',
     dim: 'rgba(230,57,70,0.12)',
     text: '#EF5765',

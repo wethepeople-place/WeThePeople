@@ -145,7 +145,7 @@ def _fmt(n):
 
 
 def _profile_url(sector, eid):
-    base = "https://wethepeopleforus.com"
+    base = "https://app.wethepeople.place"
     if sector == "politician":
         return "%s/politics/people/%s" % (base, eid)
     route = {"tech": "technology"}.get(sector, sector)

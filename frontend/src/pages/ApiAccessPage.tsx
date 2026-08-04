@@ -18,7 +18,7 @@ import LongformDoc, {
  * `routers/auth.py`).
  */
 
-const API_BASE = 'https://api.wethepeopleforus.com';
+const API_BASE = 'https://api.wethepeople.place';
 
 const SECTIONS: LongformSection[] = [
   {
@@ -110,7 +110,7 @@ const SECTIONS: LongformSection[] = [
     title: 'License & attribution',
     body: [
       'The schema, code, and platform are AGPL-3.0. Underlying data is public-domain US government records (Senate LDA filings, FEC, USAspending.gov, congressional disclosures, FDA, etc.) and is redistributed under the originating agency\'s terms.',
-      'Attribution is appreciated but not required: "Data: WeThePeople (wethepeopleforus.com), aggregated from public US government records."',
+      'Attribution is appreciated but not required: "Data: WeThePeople (wethepeople.place), aggregated from public US government records."',
     ],
   },
   {

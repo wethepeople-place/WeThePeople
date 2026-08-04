@@ -113,7 +113,7 @@ export default function FundingPage() {
     title: 'Funding Disclosure — The Influence Journal',
     description:
       'How WeThePeople is funded, our independence commitments, and a public log of every funding source.',
-    canonical: 'https://journal.wethepeopleforus.com/about/funding',
+    canonical: 'https://journal.wethepeople.place/about/funding',
   });
 
   return (
@@ -287,14 +287,14 @@ export default function FundingPage() {
           partnerships. To inquire about supporting WeThePeople, contact
           us at{' '}
           <a
-            href="mailto:editor@wethepeopleforus.com"
+            href="mailto:editor@wethepeople.place"
             style={{
               color: 'var(--color-accent-text)',
               textDecoration: 'underline',
               textUnderlineOffset: '3px',
             }}
           >
-            editor@wethepeopleforus.com
+            editor@wethepeople.place
           </a>
           .
         </p>

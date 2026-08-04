@@ -13,7 +13,7 @@ import http from "k6/http";
 import { check, sleep, group } from "k6";
 import { Rate, Trend, Counter } from "k6/metrics";
 
-const BASE_URL = __ENV.BASE_URL || "https://api.wethepeopleforus.com";
+const BASE_URL = __ENV.BASE_URL || "https://api.wethepeople.place";
 
 // Custom metrics per endpoint
 const errorRate = new Rate("errors");

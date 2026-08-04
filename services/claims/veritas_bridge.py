@@ -217,7 +217,7 @@ def _search_wtp_evidence(db: Session, claim_text: str) -> Dict[str, Any]:
         return "$%s" % "{:,.0f}".format(n)
 
     def _url(sector, eid):
-        base = "https://wethepeopleforus.com"
+        base = "https://app.wethepeople.place"
         if sector == "politician":
             return "%s/politics/people/%s" % (base, eid)
         route = {"tech": "technology"}.get(sector, sector)
@@ -489,7 +489,7 @@ def _search_wtp_evidence(db: Session, claim_text: str) -> Dict[str, Any]:
                 principals_summary = ", ".join(agg["principals"]) if agg["principals"] else "—"
                 evidence.append({
                     "source": "WTP FARA Database (DOJ)",
-                    "source_url": "https://wethepeopleforus.com/fara/principals?country=%s" % country.lower(),
+                    "source_url": "https://app.wethepeople.place/fara/principals?country=%s" % country.lower(),
                     "title": "%s — Foreign Principals on FARA" % country,
                     "snippet": (
                         "%s has %d FARA-registered foreign principals "
@@ -520,7 +520,7 @@ def _search_wtp_evidence(db: Session, claim_text: str) -> Dict[str, Any]:
                     names = ", ".join(r[0] for r in rows2[:5])
                     evidence.append({
                         "source": "WTP FARA Registrants",
-                        "source_url": "https://wethepeopleforus.com/fara/registrants?q=%s" % term,
+                        "source_url": "https://app.wethepeople.place/fara/registrants?q=%s" % term,
                         "title": "FARA-registered representatives matching %s" % term,
                         "snippet": (
                             "Found %d registrant(s) on the FARA database matching "

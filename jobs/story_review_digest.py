@@ -45,7 +45,7 @@ log = logging.getLogger("story_review_digest")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("WTP_DIGEST_FROM", "wethepeopleforus@gmail.com")
 TO_EMAIL = os.getenv("WTP_REVIEW_TO", "wethepeopleforus@gmail.com")
-API_BASE = os.getenv("WTP_API_BASE", "https://api.wethepeopleforus.com")
+API_BASE = os.getenv("WTP_API_BASE", "https://api.wethepeople.place")
 # Aligned with services/auth.py — same env var as the rest of /ops/*
 PRESS_KEY = os.getenv("WTP_PRESS_API_KEY", os.getenv("WTP_PRESS_KEY", ""))
 

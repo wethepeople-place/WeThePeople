@@ -441,7 +441,7 @@ export default function StoryPage() {
       ? {
           title: story.title,
           description: pageDescription,
-          canonical: `https://journal.wethepeopleforus.com/story/${story.slug}`,
+          canonical: `https://journal.wethepeople.place/story/${story.slug}`,
           ogType: 'article',
           ogImage: story.hero_image_url,
           publishedAt: story.published_at,
@@ -455,18 +455,18 @@ export default function StoryPage() {
             datePublished: story.published_at,
             dateModified: story.updated_at ?? story.published_at,
             articleSection: story.category,
-            url: `https://journal.wethepeopleforus.com/story/${story.slug}`,
+            url: `https://journal.wethepeople.place/story/${story.slug}`,
             author: {
               '@type': 'Organization',
               name: 'WeThePeople Research',
-              url: 'https://wethepeopleforus.com',
+              url: 'https://app.wethepeople.place',
             },
             publisher: {
               '@type': 'Organization',
               name: 'The Influence Journal',
               logo: {
                 '@type': 'ImageObject',
-                url: 'https://journal.wethepeopleforus.com/og-image.png',
+                url: 'https://journal.wethepeople.place/og-image.png',
               },
             },
             ...(story.hero_image_url ? { image: [story.hero_image_url] } : {}),
@@ -1400,7 +1400,7 @@ export default function StoryPage() {
                         )}
                         {info.wtpPath && (
                           <a
-                            href={`https://wethepeopleforus.com${info.wtpPath}`}
+                            href={`https://app.wethepeople.place${info.wtpPath}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
@@ -1467,8 +1467,8 @@ export default function StoryPage() {
                     };
                     const sectorRoute = sectorRouteMap[story.sector || ''] || 'influence';
                     const href = isPerson
-                      ? `https://wethepeopleforus.com/politics/people/${eid}`
-                      : `https://wethepeopleforus.com/${sectorRoute}/${eid}`;
+                      ? `https://app.wethepeople.place/politics/people/${eid}`
+                      : `https://app.wethepeople.place/${sectorRoute}/${eid}`;
                     const displayName = eid
                       .replace(/-/g, ' ')
                       .replace(/_/g, ' ')
@@ -1598,7 +1598,7 @@ export default function StoryPage() {
         >
           For data sources and verification methodology, see{' '}
           <a
-            href="https://wethepeopleforus.com/methodology"
+            href="https://app.wethepeople.place/methodology"
             style={inlineLinkStyle}
           >
             our methodology page

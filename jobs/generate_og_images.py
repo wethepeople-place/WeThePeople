@@ -53,7 +53,7 @@ SITES = [
         "title": "WeThePeople",
         "tagline": "Follow the Money from Industry to Politics",
         "metaline": "Lobbying  ·  Contracts  ·  Trades  ·  Donations  ·  Enforcement",
-        "footer": "wethepeopleforus.com",
+        "footer": "wethepeople.place",
         "accent": (197, 160, 40),  # gold
     },
     {
@@ -61,7 +61,7 @@ SITES = [
         "title": "The Influence Journal",
         "tagline": "Data-Driven Civic Investigations",
         "metaline": "Lobbying  ·  Contracts  ·  Trades  ·  Donations  ·  Enforcement",
-        "footer": "journal.wethepeopleforus.com",
+        "footer": "journal.wethepeople.place",
         "accent": (230, 57, 70),  # crimson
     },
     {
@@ -69,7 +69,7 @@ SITES = [
         "title": "Veritas",
         "tagline": "Zero-LLM Claim Verification Engine",
         "metaline": "Paste a claim, article, or URL  ·  Scored evidence from 29+ government sources",
-        "footer": "verify.wethepeopleforus.com",
+        "footer": "verify.wethepeople.place",
         "accent": (16, 185, 129),  # emerald
     },
     {
@@ -77,7 +77,7 @@ SITES = [
         "title": "WTP Research",
         "tagline": "Deep-Dive Civic Data Tools",
         "metaline": "Patents  ·  Drug Pipelines  ·  Clinical Trials  ·  Insider Trades  ·  Macro Indicators",
-        "footer": "research.wethepeopleforus.com",
+        "footer": "research.wethepeople.place",
         "accent": (139, 92, 246),  # violet
     },
 ]

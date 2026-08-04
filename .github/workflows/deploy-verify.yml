@@ -1,5 +1,5 @@
-# Deploy verify.wethepeopleforus.com to Hetzner whenever its source
-# changes on main.
+# Legacy Verify deployment reference. Automatic deployment is intentionally
+# disabled until the wethepeople.place infrastructure is established.
 #
 # Why this exists: verify is the only WTP frontend NOT on Vercel — it's
 # served by nginx on the Hetzner production box from /var/www/verify.
@@ -28,12 +28,7 @@
 name: Deploy verify (Hetzner)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'sites/verify/**'
-      - '.github/workflows/deploy-verify.yml'
-  workflow_dispatch:    # manual trigger for emergency re-deploys
+  workflow_dispatch:
 
 concurrency:
   # Cancel an in-flight deploy if a new push lands; we only ever want
@@ -126,7 +121,7 @@ jobs:
           EXPECTED=$(sha256sum dist/index.html | awk '{print $1}')
           for i in $(seq 1 12); do
             LIVE=$(curl -fsSL -H 'Cache-Control: no-cache' \
-              "https://verify.wethepeopleforus.com/?cb=$(date +%s)" \
+              "https://verify.wethepeople.place/?cb=$(date +%s)" \
               | sha256sum | awk '{print $1}')
             if [ "$LIVE" = "$EXPECTED" ]; then
               echo "Smoke check passed on attempt $i"

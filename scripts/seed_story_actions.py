@@ -69,7 +69,7 @@ log = logging.getLogger(__name__)
 # subtle "primary" treatment via the sub-1 display_order.
 #
 # The previous "Read the underlying data" generic verify_data row
-# pointed at the wethepeopleforus.com homepage and duplicated the
+# pointed at the wethepeople.place homepage and duplicated the
 # story's own "Verify This Yourself" sources section at the bottom of
 # the page. Removed.
 UNIVERSAL_DEFAULTS = [

@@ -33,7 +33,7 @@ const SECTIONS: LongformSection[] = [
     list: [
       'Inline: "...according to FEC records aggregated by WeThePeople."',
       'Parenthetical: "(WeThePeople, retrieved 2026-05-02, using FEC committee filings)"',
-      'Footnote / endnote: "WeThePeople, https://wethepeopleforus.com/politics/people/{id}, retrieved 2026-05-02. Underlying data: U.S. Federal Election Commission, Committee Reports, https://www.fec.gov/data/committees/."',
+      'Footnote / endnote: "WeThePeople, https://app.wethepeople.place/politics/people/{id}, retrieved 2026-05-02. Underlying data: U.S. Federal Election Commission, Committee Reports, https://www.fec.gov/data/committees/."',
     ],
   },
   {

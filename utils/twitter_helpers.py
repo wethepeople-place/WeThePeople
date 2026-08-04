@@ -36,10 +36,10 @@ DAILY_POST_TARGET = 12  # Conservative target (well under 100/day max)
 MAX_POSTS_PER_DAY = 15  # Hard cap per day across all systems
 
 # Sites — always with protocol
-SITE = "https://wethepeopleforus.com"
-JOURNAL_SITE = "https://journal.wethepeopleforus.com"
-RESEARCH_SITE = "https://research.wethepeopleforus.com"
-VERIFY_SITE = "https://verify.wethepeopleforus.com"
+SITE = "https://app.wethepeople.place"
+JOURNAL_SITE = "https://journal.wethepeople.place"
+RESEARCH_SITE = "https://research.wethepeople.place"
+VERIFY_SITE = "https://verify.wethepeople.place"
 
 # Bot identity
 OUR_USERNAME = "WTPForUs"

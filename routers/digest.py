@@ -280,7 +280,7 @@ def subscribe_to_digest(req: SubscribeRequest, request: Request, db: Session = D
 
     # Send verification email via Resend
     from services.email import send_email
-    api_base = os.getenv("WTP_API_BASE_URL", "https://api.wethepeopleforus.com")
+    api_base = os.getenv("WTP_API_BASE_URL", "https://api.wethepeople.place")
     verify_url = f"{api_base}/digest/verify/{verification_token}"
     sent = send_email(
         to=[email_norm],

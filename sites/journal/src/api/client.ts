@@ -1,7 +1,7 @@
 /**
  * WTP Journal API Client
  *
- * In production: api.wethepeopleforus.com
+ * In production: api.wethepeople.place
  * In dev: proxied through Vite at /api
  */
 
@@ -120,12 +120,12 @@ export async function apiFetch<T>(path: string, opts?: FetchOptions): Promise<T>
  * Build a link to the main WTP site for a given path.
  */
 export function mainSiteUrl(path: string): string {
-  return `https://wethepeopleforus.com${path}`;
+  return `https://app.wethepeople.place${path}`;
 }
 
 /**
  * Build a link to the research site for a given path.
  */
 export function researchSiteUrl(path: string): string {
-  return `https://research.wethepeopleforus.com${path}`;
+  return `https://research.wethepeople.place${path}`;
 }

@@ -351,7 +351,7 @@ def generate_preview(zip_code: str) -> Dict[str, Any]:
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("WTP_DIGEST_FROM", "wethepeopleforus@gmail.com")
-SITE_URL = "https://wethepeopleforus.com"
+SITE_URL = "https://app.wethepeople.place"
 
 
 def _html_escape(s: str) -> str:
@@ -421,7 +421,7 @@ def _render_digest_html(digest: Dict[str, Any]) -> str:
       {"<div style='padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-top:0;'><h2 style='font-size:18px;margin:0 0 12px;'>This Week in Influence</h2><ul style='padding-left:20px;margin:0;'>" + story_items + "</ul></div>" if story_items else ""}
 
       <div style="padding:16px 24px;background:#0f172a;color:#94a3b8;font-size:12px;text-align:center;border-radius:0 0 12px 12px;">
-        <a href="{SITE_URL}" style="color:#3b82f6;text-decoration:none;">wethepeopleforus.com</a>
+        <a href="{SITE_URL}" style="color:#3b82f6;text-decoration:none;">wethepeople.place</a>
         &nbsp;|&nbsp;
         <a href="https://x.com/WTPForUs" style="color:#3b82f6;text-decoration:none;">@WTPForUs</a>
         <br><br>

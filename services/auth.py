@@ -376,8 +376,8 @@ def require_enterprise_or_rate_limit(
             pass
 
     # --- 5. wtp_session cookie (cross-subdomain) ---
-    # Users who logged in on wethepeopleforus.com get a Domain=
-    # .wethepeopleforus.com cookie that travels to verify/research/
+    # Users who logged in on wethepeople.place get a Domain=
+    # .wethepeople.place cookie that travels to verify/research/
     # journal subdomains. The frontend sends `credentials: "include"`,
     # so the cookie is in `request.cookies` here. Decode it the same
     # way the Bearer branch decodes its JWT.
@@ -411,8 +411,8 @@ def require_enterprise_or_rate_limit(
         detail={
             "error": "auth_required",
             "message": "Verification requires a free account. Sign up to get 5 verifications per day.",
-            "signup_url": "https://wethepeopleforus.com/signup",
-            "login_url": "https://wethepeopleforus.com/login",
-            "pricing_url": "https://wethepeopleforus.com/pricing",
+            "signup_url": "https://app.wethepeople.place/signup",
+            "login_url": "https://app.wethepeople.place/login",
+            "pricing_url": "https://app.wethepeople.place/pricing",
         },
     )

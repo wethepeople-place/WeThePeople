@@ -74,8 +74,8 @@ COLD_START_DAYS = 7
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("WTP_DIGEST_FROM", "wethepeopleforus@gmail.com")
-SITE_URL = "https://wethepeopleforus.com"
-JOURNAL_URL = "https://journal.wethepeopleforus.com"
+SITE_URL = "https://app.wethepeople.place"
+JOURNAL_URL = "https://journal.wethepeople.place"
 
 
 def _user_lifestyle(user: User) -> List[str]:

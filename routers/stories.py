@@ -185,7 +185,7 @@ def latest_stories(
     Optionally filter by category or sector.
 
     Per the published editorial standards
-    (https://journal.wethepeopleforus.com/standards), verification is
+    (https://journal.wethepeople.place/standards), verification is
     binary: either "verified" or "unverified". The legacy
     "partially_verified" tier is retired by policy. Strict callers
     (Twitter bot, digest, sitemap, third-party readers) should pass

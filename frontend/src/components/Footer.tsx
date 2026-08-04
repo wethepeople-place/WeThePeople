@@ -39,7 +39,7 @@ export default function Footer() {
               // Stories moved to the journal sub-site. Linking to /stories
               // hits MovedToJournalPage which immediately bounces — confusing
               // to land on. Send users straight to the journal.
-              { to: 'https://journal.wethepeopleforus.com', label: 'Journal ↗', external: true },
+              { to: 'https://journal.wethepeople.place', label: 'Journal ↗', external: true },
             ].map((link) =>
               link.external ? (
                 <a

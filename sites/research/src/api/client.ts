@@ -2,7 +2,7 @@
  * WTP Research API Client
  *
  * Simple fetch wrapper pointing at the shared WTP backend.
- * In production: api.wethepeopleforus.com:8006
+ * In production: api.wethepeople.place:8006
  * In dev: proxied through Vite at /api
  */
 
@@ -49,5 +49,5 @@ export async function apiFetch<T>(path: string, opts?: FetchOptions): Promise<T>
  * Build a link to the main WTP site for a given path.
  */
 export function mainSiteUrl(path: string): string {
-  return `https://wethepeopleforus.com${path}`;
+  return `https://app.wethepeople.place${path}`;
 }

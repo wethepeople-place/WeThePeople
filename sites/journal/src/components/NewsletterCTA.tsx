@@ -78,7 +78,7 @@ export function NewsletterCTA() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href="https://wethepeopleforus.com/digest"
+            href="https://app.wethepeople.place/digest"
             className="inline-flex items-center gap-2 no-underline transition-all"
             style={{
               fontFamily: 'var(--font-mono)',

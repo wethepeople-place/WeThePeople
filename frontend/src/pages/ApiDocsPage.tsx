@@ -118,12 +118,12 @@ export default function ApiDocsPage() {
             Send the key in the <code style={{ fontFamily: FONT_MONO, color: 'var(--color-accent-text)' }}>X-WTP-API-Key</code>{' '}
             header. The base URL is{' '}
             <code style={{ fontFamily: FONT_MONO, color: 'var(--color-accent-text)' }}>
-              https://api.wethepeopleforus.com
+              https://api.wethepeople.place
             </code>
             .
           </p>
           <CodeBlock>{`curl -H "X-WTP-API-Key: wtp_YOUR_KEY_HERE" \\
-  https://api.wethepeopleforus.com/health`}</CodeBlock>
+  https://api.wethepeople.place/health`}</CodeBlock>
           <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: 'var(--color-text-3)', lineHeight: 1.55 }}>
             Read-only public endpoints (politicians, stories, sector lists)
             don't strictly require a key — but sending one bumps your rate
@@ -135,27 +135,27 @@ export default function ApiDocsPage() {
           <h3 style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 16 }}>
             Search across everything
           </h3>
-          <CodeBlock>{`curl "https://api.wethepeopleforus.com/search/fast?q=lockheed&limit=10"`}</CodeBlock>
+          <CodeBlock>{`curl "https://api.wethepeople.place/search/fast?q=lockheed&limit=10"`}</CodeBlock>
 
           <h3 style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 16 }}>
             Get a politician's full profile
           </h3>
-          <CodeBlock>{`curl "https://api.wethepeopleforus.com/people/mitch_mcconnell/full"`}</CodeBlock>
+          <CodeBlock>{`curl "https://api.wethepeople.place/people/mitch_mcconnell/full"`}</CodeBlock>
 
           <h3 style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 16 }}>
             List recent stories
           </h3>
-          <CodeBlock>{`curl "https://api.wethepeopleforus.com/stories/?limit=10&offset=0"`}</CodeBlock>
+          <CodeBlock>{`curl "https://api.wethepeople.place/stories/?limit=10&offset=0"`}</CodeBlock>
 
           <h3 style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 16 }}>
             Filter lobbying by sector
           </h3>
-          <CodeBlock>{`curl "https://api.wethepeopleforus.com/finance/companies?limit=20"`}</CodeBlock>
+          <CodeBlock>{`curl "https://api.wethepeople.place/finance/companies?limit=20"`}</CodeBlock>
 
           <h3 style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 16 }}>
             Look up a bill
           </h3>
-          <CodeBlock>{`curl "https://api.wethepeopleforus.com/politics/bill/hr1234-118"`}</CodeBlock>
+          <CodeBlock>{`curl "https://api.wethepeople.place/politics/bill/hr1234-118"`}</CodeBlock>
         </Section>
 
         <Section title="4. Rate limits">
@@ -179,7 +179,7 @@ export default function ApiDocsPage() {
 
         <Section title="5. JavaScript example">
           <CodeBlock>{`const apiKey = 'wtp_YOUR_KEY_HERE';
-const base = 'https://api.wethepeopleforus.com';
+const base = 'https://api.wethepeople.place';
 
 async function search(q) {
   const r = await fetch(\`\${base}/search/fast?q=\${encodeURIComponent(q)}\`, {
@@ -222,7 +222,7 @@ console.log(hits.results);`}</CodeBlock>
           <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: 'var(--color-text-3)', marginTop: 12 }}>
             Full OpenAPI spec at{' '}
             <a
-              href="https://api.wethepeopleforus.com/docs"
+              href="https://api.wethepeople.place/docs"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -232,7 +232,7 @@ console.log(hits.results);`}</CodeBlock>
                 gap: 4,
               }}
             >
-              api.wethepeopleforus.com/docs <ExternalLink size={12} />
+              api.wethepeople.place/docs <ExternalLink size={12} />
             </a>{' '}
             (Swagger UI).
           </p>

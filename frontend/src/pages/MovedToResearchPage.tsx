@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const RESEARCH_BASE = 'https://research.wethepeopleforus.com';
+const RESEARCH_BASE = 'https://research.wethepeople.place';
 const REDIRECT_DELAY_SECONDS = 5;
 
 // Research is a sibling subdomain with its own visual identity; the spec uses
@@ -197,7 +197,7 @@ export default function MovedToResearchPage() {
                 textTransform: 'uppercase',
               }}
             >
-              research.wethepeopleforus.com
+              research.wethepeople.place
             </div>
             <div
               style={{

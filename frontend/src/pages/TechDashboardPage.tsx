@@ -164,7 +164,7 @@ export default function TechDashboardPage() {
 
   const subNavLinks: SubNavLink[] = [
     { to: '/technology/companies', label: 'Companies', desc: 'Full company directory', color: 'var(--color-ind)' },
-    { to: 'https://research.wethepeopleforus.com/patents', label: 'Patents', desc: 'Search patent filings (WTP Research)', color: 'var(--color-research)', external: true },
+    { to: 'https://research.wethepeople.place/patents', label: 'Patents', desc: 'Search patent filings (WTP Research)', color: 'var(--color-research)', external: true },
     { to: '/technology/lobbying', label: 'Lobbying', desc: 'Lobbying expenditure breakdown', color: 'var(--color-dem)' },
     { to: '/technology/compare', label: 'Compare', desc: 'Side-by-side company analysis', color: 'var(--color-green)' },
   ];
@@ -193,7 +193,7 @@ export default function TechDashboardPage() {
         sub="Lobbying, government contracts, patents, and enforcement across the largest technology companies in the United States."
         ctas={[
           { label: 'Browse companies', to: '/technology/companies', primary: true },
-          { label: 'Patent search', to: 'https://research.wethepeopleforus.com/patents', external: true, badge: 'Research' },
+          { label: 'Patent search', to: 'https://research.wethepeople.place/patents', external: true, badge: 'Research' },
         ]}
         rightSlot={statCards.map((stat) => (
           <StatCard key={stat.label} {...stat} />

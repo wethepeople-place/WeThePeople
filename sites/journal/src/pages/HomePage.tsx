@@ -132,17 +132,17 @@ export default function HomePage() {
     title: 'The Influence Journal — Data-Driven Civic Investigations',
     description:
       'Data-driven investigations into corporate influence on American democracy. Every claim cited, every dollar traced.',
-    canonical: 'https://journal.wethepeopleforus.com/',
+    canonical: 'https://journal.wethepeople.place/',
     ogType: 'website',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'The Influence Journal',
-      url: 'https://journal.wethepeopleforus.com/',
+      url: 'https://journal.wethepeople.place/',
       publisher: {
         '@type': 'Organization',
         name: 'WeThePeople Research',
-        url: 'https://wethepeopleforus.com',
+        url: 'https://app.wethepeople.place',
       },
     },
   });
@@ -217,7 +217,7 @@ export default function HomePage() {
               marginBottom: 10,
             }}
           >
-            wethepeopleforus.com
+            wethepeople.place
           </div>
           <h1
             style={{

@@ -34,7 +34,7 @@ export default function CategoryPage() {
     description: meta
       ? `Investigations tracking ${meta.label.toLowerCase()} activity across all sectors.`
       : `No category called "${category}" exists.`,
-    canonical: `https://journal.wethepeopleforus.com/category/${cat}`,
+    canonical: `https://journal.wethepeople.place/category/${cat}`,
   });
 
   if (!isValid) {

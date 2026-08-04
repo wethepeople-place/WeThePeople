@@ -23,7 +23,7 @@ from routers.issues import _source
 from services.watch_phase4c_production_media import production_metadata
 
 router = APIRouter(prefix="/videos", tags=["videos"])
-PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://wethepeople.place").rstrip("/")
+PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://app.wethepeople.place").rstrip("/")
 CURSOR_SECRET = os.getenv("WTP_VIDEO_CURSOR_SECRET", "development-only-watch-cursor").encode()
 WATCH_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json"
 

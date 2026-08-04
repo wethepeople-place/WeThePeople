@@ -113,7 +113,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
           <Pressable accessibilityRole="button" style={styles.button} onPress={() => openExternalUrl(item.source.url, 'evidence source')}>
             <Text style={styles.buttonText}>Evidence</Text>
           </Pressable>
-          <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl('https://wethepeople.place/issues/housing-rent', 'Housing and Rent issue')}>
+          <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl('https://app.wethepeople.place/issues/housing-rent', 'Housing and Rent issue')}>
             <Text style={styles.buttonText}>{item.issue.title}</Text>
           </Pressable>
           {item.bills[0] ? (

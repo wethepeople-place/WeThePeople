@@ -47,5 +47,5 @@ gcloud compute ssh "$VM_NAME" --zone "$VM_ZONE" --command "curl -sf http://local
 
 echo ""
 echo "=== Deploy complete ==="
-echo "  API: http://api.wethepeopleforus.com:8006"
+echo "  API: http://api.wethepeople.place:8006"
 echo "  Logs: gcloud compute ssh $VM_NAME --zone $VM_ZONE --command 'journalctl -u wethepeople -f'"

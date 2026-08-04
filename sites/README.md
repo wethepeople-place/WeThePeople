@@ -6,13 +6,13 @@ Three connected websites, one monorepo, one backend API.
 
 | Directory | Site | Domain (planned) | Purpose |
 |---|---|---|---|
-| `frontend/` | **WeThePeople** (core) | wethepeopleforus.com | Lobbying tracker. Follow the money from industry to politics. 7 sectors, influence network, congressional trades, claim verification. |
-| `sites/research/` | **WTP Research** | research.wethepeopleforus.com | Deep-dive research tools. Patent explorer, drug lookup, clinical trials, insider trades, company financials, macro indicators. |
-| `sites/journal/` | **The Influence Journal** | journal.wethepeopleforus.com | Stories, blog posts, data investigations, and weekly newsletter. Every claim cited. |
+| `frontend/` | **WeThePeople** (core) | wethepeople.place | Lobbying tracker. Follow the money from industry to politics. 7 sectors, influence network, congressional trades, claim verification. |
+| `sites/research/` | **WTP Research** | research.wethepeople.place | Deep-dive research tools. Patent explorer, drug lookup, clinical trials, insider trades, company financials, macro indicators. |
+| `sites/journal/` | **The Influence Journal** | journal.wethepeople.place | Stories, blog posts, data investigations, and weekly newsletter. Every claim cited. |
 
 ## Architecture
 
-- All three sites share the same backend API at `api.wethepeopleforus.com`
+- All three sites share the same backend API at `api.wethepeople.place`
 - All three are in this monorepo for shared types, components, and coordinated deployment
 - Shared components live in `sites/shared/` (e.g., `EcosystemNav.tsx` for cross-site navigation)
 - Each site is an independent Vite app with its own `package.json`, build, and deploy

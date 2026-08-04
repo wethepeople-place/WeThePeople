@@ -105,7 +105,7 @@ export default function QuotaBadge({ refreshKey = 0 }: QuotaBadgeProps) {
       {label}
       {isExhausted && (
         <a
-          href="https://wethepeopleforus.com/pricing"
+          href="https://app.wethepeople.place/pricing"
           style={{ color, textDecoration: 'underline', marginLeft: 4 }}
         >
           Upgrade

@@ -140,7 +140,7 @@ def _notify_editors_of_new_tip(tip: Tip) -> None:
     recipients = [a.strip() for a in inbox_csv.split(",") if a.strip()]
     if not recipients:
         return
-    api_base = os.getenv("WTP_API_BASE", "https://api.wethepeopleforus.com")
+    api_base = os.getenv("WTP_API_BASE", "https://api.wethepeople.place")
     ops_url = f"{api_base}/ops/tips/{tip.id}"
     subject = f"[WTP tip] {(tip.subject or 'Untitled')[:80]}"
     html_body = _build_tip_notification_html(tip, ops_url)

@@ -21,7 +21,7 @@ html = """
     <p>We are building this platform to make corporate influence on government transparent and accessible to everyone. Your support early on helps us know we are on the right track.</p>
     <p>If there is anything you want to see built, any data you wish was easier to find, or any feedback at all, just reply to this email. I read everything.</p>
     <p style="margin-top: 24px;">Thanks for believing in what we are building.</p>
-    <p>D'Shon Smith<br>Founder, WeThePeople<br><a href="https://wethepeopleforus.com" style="color: #C5A044;">wethepeopleforus.com</a></p>
+    <p>D'Shon Smith<br>Founder, WeThePeople<br><a href="https://app.wethepeople.place" style="color: #C5A044;">wethepeople.place</a></p>
 </div>
 """
 

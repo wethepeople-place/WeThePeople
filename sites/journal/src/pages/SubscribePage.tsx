@@ -18,7 +18,7 @@ export default function SubscribePage() {
     title: 'Subscribe — The Influence Journal',
     description:
       'Get the weekly Influence Journal newsletter — data-driven civic investigations, free, in your inbox.',
-    canonical: 'https://journal.wethepeopleforus.com/subscribe',
+    canonical: 'https://journal.wethepeople.place/subscribe',
   });
   return (
     <main
@@ -203,7 +203,7 @@ export default function SubscribePage() {
               preview tailored to your representatives.
             </p>
             <a
-              href="https://wethepeopleforus.com/digest"
+              href="https://app.wethepeople.place/digest"
               className="inline-flex items-center gap-2 no-underline transition-all"
               style={{
                 fontFamily: 'var(--font-mono)',

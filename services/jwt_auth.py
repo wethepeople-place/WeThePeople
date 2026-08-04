@@ -46,12 +46,12 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("WTP_REFRESH_EXPIRY_DAYS", "30"))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 # Cross-subdomain session cookie name. The login endpoint sets this with
-# Domain=.wethepeopleforus.com so journal/research/verify subdomains
+# Domain=.wethepeople.place so journal/research/verify subdomains
 # share auth state with the core site without each rebuilding their own
 # AuthContext.
 SESSION_COOKIE_NAME = os.getenv("WTP_SESSION_COOKIE", "wtp_session")
 # Cross-subdomain cookie domain. Empty in dev so the cookie scopes to
-# the actual host (localhost). Set WTP_COOKIE_DOMAIN=.wethepeopleforus.com
+# the actual host (localhost). Set WTP_COOKIE_DOMAIN=.wethepeople.place
 # in prod.
 SESSION_COOKIE_DOMAIN = os.getenv("WTP_COOKIE_DOMAIN", "")
 

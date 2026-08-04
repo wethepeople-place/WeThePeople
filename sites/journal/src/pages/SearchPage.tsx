@@ -38,7 +38,7 @@ export default function SearchPage() {
   usePageMeta({
     title: q ? `“${q}” — Journal search` : 'Search the Journal',
     description: 'Search every published Journal story.',
-    canonical: 'https://journal.wethepeopleforus.com/search',
+    canonical: 'https://journal.wethepeople.place/search',
   });
 
   // Debounce: refresh the URL + fetch 200ms after the last keystroke.

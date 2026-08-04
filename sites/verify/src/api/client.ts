@@ -1,12 +1,12 @@
 /**
  * WTP Verify API Client
  *
- * In production: api.wethepeopleforus.com (via Vercel rewrite)
+ * In production: api.wethepeople.place (via Vercel rewrite)
  * In dev: proxied through Vite at /api
  */
 
 // Default to '/api' so that production requests are routed through the
-// Vercel rewrite to api.wethepeopleforus.com. With an empty default the
+// Vercel rewrite to api.wethepeople.place. With an empty default the
 // browser hits the SPA host directly and the catch-all rewrite returns
 // index.html — JSON.parse then fails. Aligned with journal/research.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -70,7 +70,7 @@ export function getAccessToken(): string | null {
  * exists in this origin's localStorage. Returns false if it doesn't,
  * BUT note that the user may still have a valid cross-subdomain
  * session cookie (set by the main site at login with
- * Domain=.wethepeopleforus.com). The cookie is sent automatically on
+ * Domain=.wethepeople.place). The cookie is sent automatically on
  * every API call now that apiFetch / apiPost include credentials, so
  * a `false` here doesn't mean the API call will fail.
  *
@@ -110,9 +110,9 @@ export async function probeSession(signal?: AbortSignal): Promise<{ id: number; 
  * on the verify HomePage.
  */
 export function loginRedirectUrl(): string {
-  if (typeof window === 'undefined') return 'https://wethepeopleforus.com/login';
+  if (typeof window === 'undefined') return 'https://app.wethepeople.place/login';
   const next = encodeURIComponent(window.location.href);
-  return `https://wethepeopleforus.com/login?next=${next}`;
+  return `https://app.wethepeople.place/login?next=${next}`;
 }
 
 function _quotaFromHeaders(res: Response): ApiError['quota'] | undefined {
@@ -169,8 +169,8 @@ export async function apiFetch<T>(path: string, opts?: FetchOptions): Promise<T>
     signal: opts?.signal,
     headers,
     // credentials:'include' so the cross-subdomain wtp_session cookie
-    // (Domain=.wethepeopleforus.com, set by the main site at login)
-    // travels on requests from verify.wethepeopleforus.com to the API.
+    // (Domain=.wethepeople.place, set by the main site at login)
+    // travels on requests from verify.wethepeople.place to the API.
     // Without this, a user who logs in on the main site is treated as
     // anonymous on verify even though their session is valid.
     credentials: 'include',
@@ -250,7 +250,7 @@ export async function apiPost<T>(path: string, body: unknown, opts?: FetchOption
  * Build a link to the main WTP site for a given path.
  */
 export function mainSiteUrl(path: string): string {
-  return `https://wethepeopleforus.com${path}`;
+  return `https://app.wethepeople.place${path}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ const NAV_PATTERNS: Array<{ pattern: RegExp; path: string; label: string }> = [
   { pattern: /\b(influence timeline)\b/i, path: "/influence/timeline", label: "Influence Timeline" },
   { pattern: /\b(closed loop|closed-loop)\b/i, path: "/influence/closed-loops", label: "Closed Loop Detection" },
   // verify.* lives on its own subdomain now; same for the research tools.
-  { pattern: /\b(verify|verification|claim)\b/i, path: "https://verify.wethepeopleforus.com", label: "Verify Claims" },
+  { pattern: /\b(verify|verification|claim)\b/i, path: "https://verify.wethepeople.place", label: "Verify Claims" },
   { pattern: /\b(methodology|data sources?|how.*collect)\b/i, path: "/methodology", label: "Methodology" },
   { pattern: /\b(find.*(rep|representative)|my.*(rep|representative)|who represents)\b/i, path: "/politics/find-rep", label: "Find Your Representative" },
   { pattern: /\b(committees?)\b/i, path: "/politics/committees", label: "Committees" },
@@ -52,12 +52,12 @@ const NAV_PATTERNS: Array<{ pattern: RegExp; path: string; label: string }> = [
   // The /finance, /health, /technology research tools migrated to the
   // research subdomain. Linking to the in-app paths now redirects via
   // MovedToResearchPage; point chat directly at the canonical URL.
-  { pattern: /\b(insider trad(es?|ing))\b/i, path: "https://research.wethepeopleforus.com/insider-trades", label: "Insider Trades" },
-  { pattern: /\b(complaints?|cfpb)\b/i, path: "https://research.wethepeopleforus.com/complaints", label: "CFPB Complaints" },
+  { pattern: /\b(insider trad(es?|ing))\b/i, path: "https://research.wethepeople.place/insider-trades", label: "Insider Trades" },
+  { pattern: /\b(complaints?|cfpb)\b/i, path: "https://research.wethepeople.place/complaints", label: "CFPB Complaints" },
   { pattern: /\b(drug lookup|drugs?)\b/i, path: "/health", label: "Health Dashboard" },
-  { pattern: /\b(clinical trial|pipeline)\b/i, path: "https://research.wethepeopleforus.com/pipeline", label: "Clinical Trial Pipeline" },
-  { pattern: /\b(fda approval)\b/i, path: "https://research.wethepeopleforus.com/fda-approvals", label: "FDA Approvals" },
-  { pattern: /\b(patent)\b/i, path: "https://research.wethepeopleforus.com/patents", label: "Patent Search" },
+  { pattern: /\b(clinical trial|pipeline)\b/i, path: "https://research.wethepeople.place/pipeline", label: "Clinical Trial Pipeline" },
+  { pattern: /\b(fda approval)\b/i, path: "https://research.wethepeople.place/fda-approvals", label: "FDA Approvals" },
+  { pattern: /\b(patent)\b/i, path: "https://research.wethepeople.place/patents", label: "Patent Search" },
   { pattern: /\b(about)\b/i, path: "/about", label: "About" },
   // Sector dashboards
   { pattern: /\bpolitics\s*(dashboard|home|page)?\b/i, path: "/politics", label: "Politics Dashboard" },

@@ -40,7 +40,7 @@ export interface PageMeta {
 }
 
 const SITE_NAME = 'The Influence Journal';
-const DEFAULT_OG_IMAGE = 'https://journal.wethepeopleforus.com/og-image.png';
+const DEFAULT_OG_IMAGE = 'https://journal.wethepeople.place/og-image.png';
 
 function upsertMeta(
   selector: string,

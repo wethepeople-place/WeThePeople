@@ -8,46 +8,46 @@
     discoverable story corpus. Crawlers find per-entity pages by
     following nav links from these landing pages.
   -->
-  <url><loc>https://wethepeopleforus.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://wethepeopleforus.com/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://wethepeopleforus.com/methodology</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://wethepeopleforus.com/disclaimer</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://wethepeopleforus.com/privacy</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://wethepeopleforus.com/terms</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://wethepeopleforus.com/cite</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://wethepeopleforus.com/api-docs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://wethepeopleforus.com/pricing</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://app.wethepeople.place/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://app.wethepeople.place/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.wethepeople.place/methodology</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.wethepeople.place/disclaimer</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://app.wethepeople.place/privacy</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://app.wethepeople.place/terms</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://app.wethepeople.place/cite</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://app.wethepeople.place/api-docs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.wethepeople.place/pricing</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 
   <!-- Politics hub -->
-  <url><loc>https://wethepeopleforus.com/politics</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/people</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/legislation</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/committees</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/states</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/find-rep</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/politics/trades</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/politics</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/people</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/legislation</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/committees</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/states</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/find-rep</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/politics/trades</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 
   <!-- Influence hub -->
-  <url><loc>https://wethepeopleforus.com/influence</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://wethepeopleforus.com/influence/closed-loops</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/influence/network</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/influence/money-flow</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/influence/timeline</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/influence/anomalies</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/influence</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://app.wethepeople.place/influence/closed-loops</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/influence/network</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/influence/money-flow</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/influence/timeline</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/influence/anomalies</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 
   <!-- Sector dashboards -->
-  <url><loc>https://wethepeopleforus.com/finance</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/health</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/technology</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/energy</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/defense</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/transportation</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/agriculture</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/chemicals</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/telecom</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wethepeopleforus.com/education</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/finance</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/health</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/technology</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/energy</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/defense</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/transportation</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/agriculture</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/chemicals</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/telecom</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://app.wethepeople.place/education</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
 
   <!-- Civic hub -->
-  <url><loc>https://wethepeopleforus.com/civic</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>https://wethepeopleforus.com/civic/verify</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.wethepeople.place/civic</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://app.wethepeople.place/civic/verify</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>

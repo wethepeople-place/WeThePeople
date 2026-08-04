@@ -168,7 +168,7 @@ export default function VerifyDataPage() {
     title: 'Verify Our Data — The Influence Journal',
     description:
       'Every story cites primary government sources. Here is how to inspect, replicate, and audit the data behind every claim.',
-    canonical: 'https://journal.wethepeopleforus.com/verify-our-data',
+    canonical: 'https://journal.wethepeople.place/verify-our-data',
   });
   return (
     <main

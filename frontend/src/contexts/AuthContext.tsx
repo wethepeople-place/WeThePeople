@@ -100,8 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // wtp_session cookie on every /me hit so journal / verify /
     // research subdomains inherit auth state without needing a
     // separate login. Without `include`, the browser silently drops
-    // the cookie on this cross-origin call (api.wethepeopleforus.com
-    // ≠ wethepeopleforus.com) and verify keeps showing the auth wall
+    // the cookie on this cross-origin call (api.wethepeople.place
+    // ≠ wethepeople.place) and verify keeps showing the auth wall
     // until the user logs out and back in.
     const callMe = async (bearer: string): Promise<Response> =>
       fetch(`${API}/auth/me`, {

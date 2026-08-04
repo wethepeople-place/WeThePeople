@@ -22,7 +22,7 @@ export default function LoginPage() {
   // research) that deep-link a logged-in user back through /login can
   // bounce them to the requested destination. Falls back to /account
   // when no next is supplied. Reject absolute URLs that aren't on the
-  // wethepeopleforus.com domain — preventing open-redirect abuse where
+  // wethepeople.place domain — preventing open-redirect abuse where
   // a phishing link sends users through /login → attacker.example.
   if (!authLoading && isAuthenticated) {
     const params = new URLSearchParams(window.location.search);

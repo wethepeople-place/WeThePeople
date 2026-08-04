@@ -124,8 +124,8 @@ export default function HealthDashboardPage() {
 
   const subNavLinks: SubNavLink[] = [
     { to: '/health/companies', label: 'Companies', desc: 'Full company directory', color: 'var(--color-red)' },
-    { to: 'https://research.wethepeopleforus.com/pipeline', label: 'Clinical pipeline', desc: 'Active trials & phases (WTP Research)', color: 'var(--color-research)', external: true },
-    { to: 'https://research.wethepeopleforus.com/fda-approvals', label: 'FDA approvals', desc: 'Recent FDA actions (WTP Research)', color: 'var(--color-research)', external: true },
+    { to: 'https://research.wethepeople.place/pipeline', label: 'Clinical pipeline', desc: 'Active trials & phases (WTP Research)', color: 'var(--color-research)', external: true },
+    { to: 'https://research.wethepeople.place/fda-approvals', label: 'FDA approvals', desc: 'Recent FDA actions (WTP Research)', color: 'var(--color-research)', external: true },
     { to: '/health/compare', label: 'Compare', desc: 'Side-by-side company analysis', color: 'var(--color-green)' },
   ];
 
@@ -172,7 +172,7 @@ export default function HealthDashboardPage() {
         sub="Lobbying, contracts, enforcement actions, and clinical trials across the nation's largest healthcare and pharma companies."
         ctas={[
           { label: 'Browse companies', to: '/health/companies', primary: true },
-          { label: 'Clinical pipeline', to: 'https://research.wethepeopleforus.com/pipeline', external: true, badge: 'Research' },
+          { label: 'Clinical pipeline', to: 'https://research.wethepeople.place/pipeline', external: true, badge: 'Research' },
         ]}
         rightSlot={statCards.map((stat) => (
           <StatCard key={stat.label} {...stat} />

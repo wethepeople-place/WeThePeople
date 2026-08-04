@@ -216,10 +216,10 @@ def test_watch_share_preview_is_canonical_source_backed_and_missing_safe(tmp_pat
     assert preview.status_code == 200
     assert preview.json() == {
         "video_id": "housing-rent-why-rents-move",
-        "canonical_url": "https://wethepeople.place/watch/housing-rent-why-rents-move",
+        "canonical_url": "https://app.wethepeople.place/watch/housing-rent-why-rents-move",
         "title": "Start with official housing evidence. | WeThePeople.place",
         "description": "WeThePeople.place · Housing & Rent · Source: Congress.gov",
-        "image_url": "https://wethepeople.place/og-image.png",
+        "image_url": "https://app.wethepeople.place/og-image.png",
         "source": {
             "url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
             "publisher": "Congress.gov",
@@ -229,7 +229,7 @@ def test_watch_share_preview_is_canonical_source_backed_and_missing_safe(tmp_pat
     assert client.get("/videos/missing/share").status_code == 404
     html = client.get("/videos/housing-rent-why-rents-move/preview")
     assert html.status_code == 200
-    assert '<link rel="canonical" href="https://wethepeople.place/watch/housing-rent-why-rents-move">' in html.text
+    assert '<link rel="canonical" href="https://app.wethepeople.place/watch/housing-rent-why-rents-move">' in html.text
     assert '<meta property="og:title" content="Start with official housing evidence. | WeThePeople.place">' in html.text
     assert "Congress.gov" in html.text
     assert client.get("/videos/missing/preview").status_code == 404
