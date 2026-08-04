@@ -771,15 +771,32 @@ export interface WatchVideo {
   transcript: string | null;
   captions_url: string | null;
   media_url: string;
+  delivery: {
+    mode: 'official_embed' | 'hosted_video' | 'link_out';
+    provider: string | null;
+    provider_video_id: string | null;
+    canonical_url: string;
+    source_label: string | null;
+    development_only: boolean;
+  } | null;
+  accessibility: {
+    text_kind: 'overview' | 'transcript';
+    official_transcript_url: string;
+    official_transcript_label: string;
+    development_only: boolean;
+  } | null;
   published_at: string;
   source: { url: string; publisher: string; retrieved_at: string };
   issue: { slug: string; title: string };
   bills: Array<{ bill_id: string; title: string | null }>;
+  discussion_post_id: number | null;
 }
 
 export interface WatchVideosResponse {
   total: number;
   videos: WatchVideo[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 export interface VideoSharePreview {

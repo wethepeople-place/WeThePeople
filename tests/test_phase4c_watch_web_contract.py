@@ -1,0 +1,75 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PAGE = (ROOT / "frontend" / "src" / "pages" / "WatchVideoPage.tsx").read_text(encoding="utf-8")
+APP = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+VITE_CONFIG = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
+
+
+def test_web_watch_has_feed_and_exact_video_routes():
+    assert '<Route path="/watch" element={<WatchVideoPage />} />' in APP
+    assert '<Route path="/watch/:videoId" element={<WatchVideoPage />} />' in APP
+    assert "navigate(`/watch/${id}`, { replace: true })" in PAGE
+
+
+def test_web_watch_enforces_visibility_driven_one_active_video():
+    assert "new IntersectionObserver" in PAGE and "threshold: [0.6]" in PAGE
+    assert "activeId === item.video_id" in PAGE
+    assert "if (active && !reducedMotion && !manualPause && !document.hidden)" in PAGE
+    assert "else node.pause()" in PAGE
+
+
+def test_web_watch_has_accessible_controls_transcript_and_failure_context():
+    for anchor in ("Play", "Pause", "Unmute", "Mute", "Overview", "Transcript", "Video unavailable", "official evidence remain available"):
+        assert anchor in PAGE
+    assert "prefers-reduced-motion: reduce" in PAGE
+
+
+def test_web_watch_links_exact_records_with_return_identity():
+    assert "returnToVideoId: item.video_id" in PAGE
+    assert "`/issues/${item.issue.slug}`" in PAGE
+    assert "`/politics/bill/${bill.bill_id}`" in PAGE
+    assert "`/discuss/${item.discussion_post_id}`" in PAGE
+
+
+def test_web_watch_labels_development_media_and_has_no_upload_surface():
+    assert "Development Watch fixture" in PAGE
+    assert not any(term in PAGE.lower() for term in ("/upload", "getusermedia", "mediarecorder", "creator account"))
+
+
+def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
+    assert "loadEnv(mode, path.resolve(__dirname, '..'), 'WTP_')" in VITE_CONFIG
+
+
+def test_embed_is_server_authorized_and_development_remains_explicit_opt_in():
+    assert "import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true'" in PAGE
+    assert "item.delivery" in PAGE and "delivery?.mode === 'official_embed'" in PAGE
+    assert "delivery.provider === 'youtube'" in PAGE
+    assert "-Zfh6IKiJ4s" not in PAGE and "housing-rent-why-rents-move" not in PAGE
+
+
+def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_inactive():
+    for anchor in (
+        "playerLoaded = active && consented",
+        "www.youtube-nocookie.com/embed/",
+        "autoplay=0",
+        'referrerPolicy="strict-origin-when-cross-origin"',
+        "Load official video",
+        "Watch at the official source instead",
+        "LinkOutCard",
+        "https://policies.google.com/privacy",
+        "Google's Privacy Policy",
+    ):
+        assert anchor in PAGE
+    assert "OfficialEmbedCard" in PAGE and "Transcript" in PAGE
+
+
+def test_production_embed_copy_is_not_mislabeled_as_development():
+    assert "Official source video" in PAGE
+    assert "Development-only official embed test" not in PAGE
+
+
+def test_official_transcript_is_record_driven_and_editorial_text_is_labeled_overview():
+    assert "accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript'" in PAGE
+    assert "accessibility.official_transcript_url" in PAGE
+    assert "accessibility.official_transcript_label" in PAGE

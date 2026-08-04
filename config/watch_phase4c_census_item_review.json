@@ -1,0 +1,56 @@
+{
+  "version": "2026-08-04",
+  "phase": "4c-census-item-production-review",
+  "posture": "exact_item_production_playback_authorized_no_publication",
+  "reviewed_at": "2026-08-04T00:00:00Z",
+  "record": {
+    "video_id": "housing-rent-why-rents-move",
+    "candidate_id": "census-tracking-housing-unit-change-2025",
+    "provider": "youtube",
+    "provider_video_id": "-Zfh6IKiJ4s",
+    "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+    "official_page_url": "https://www.census.gov/library/video/2025/tracking-housing-trends-with-housing-unit-change-viewer.html",
+    "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf"
+  },
+  "evidence": {
+    "census_page_embeds_exact_provider_video": true,
+    "youtube_verified_publisher": "U.S. Census Bureau",
+    "youtube_verified_channel": "https://www.youtube.com/@uscensusbureau",
+    "youtube_duration_seconds": 466,
+    "youtube_captions_status": "unavailable",
+    "official_transcript_present": true,
+    "checked_in_transcript_status": "editorial_summary_labeled_overview",
+    "official_transcript_link_exposed": true,
+    "google_privacy_policy_link_in_consent_notice": true,
+    "census_multimedia_usage_policy_url": "https://www.census.gov/library/multimedia-usage-policy.html",
+    "census_privacy_policy_url": "https://www.census.gov/about/policies/privacy/privacy-policy.html",
+    "youtube_embed_help_url": "https://support.google.com/youtube/answer/171780",
+    "youtube_developer_policy_url": "https://developers.google.com/youtube/terms/developer-policies",
+    "youtube_minimum_functionality_url": "https://developers.google.com/youtube/terms/required-minimum-functionality",
+    "google_privacy_policy_url": "https://policies.google.com/privacy",
+    "google_partner_sites_url": "https://policies.google.com/technologies/partner-sites"
+  },
+  "gate_results": {
+    "official_identity": "pass",
+    "exact_item_identity": "pass",
+    "platform_embed_terms": "pass",
+    "privacy_enhanced_host": "pass",
+    "referrer_and_player_integrity": "pass",
+    "text_card_poster_fallback": "pass",
+    "privacy_policy_link_in_consent_notice": "pass",
+    "per_item_captions_or_full_transcript": "pass_via_official_transcript_link",
+    "production_source_registry_state": "pass_approved",
+    "production_item_allowlist": "pass_exact_record"
+  },
+  "blockers": [],
+  "recommendation": "exact_item_production_playback_authorized",
+  "required_fallback": "link_out",
+  "registry_mutation_authorized": true,
+  "production_playback_authorized": true,
+  "credentials_authorized": false,
+  "downloads_authorized": false,
+  "publication_authorized": false,
+  "next_reconsideration_requires": [
+    "separate_user_authority_for_deployment_or_publication"
+  ]
+}

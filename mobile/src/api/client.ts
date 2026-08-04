@@ -196,8 +196,11 @@ class WTPClient {
     }
   }
 
-  async getWatchVideos(opts?: FetchOptions): Promise<WatchVideosResponse> {
-    return this.fetchJSON<WatchVideosResponse>(`${this.baseUrl}/videos`, opts);
+  async getWatchVideos(params?: { cursor?: string; limit?: number }, opts?: FetchOptions): Promise<WatchVideosResponse> {
+    const sp = new URLSearchParams();
+    if (params?.cursor) sp.set('cursor', params.cursor);
+    if (params?.limit) sp.set('limit', String(params.limit));
+    return this.fetchJSON<WatchVideosResponse>(`${this.baseUrl}/videos?${sp}`, opts);
   }
 
   async getVideoSharePreview(videoId: string, opts?: FetchOptions): Promise<VideoSharePreview> {

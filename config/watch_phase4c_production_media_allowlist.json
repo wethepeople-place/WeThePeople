@@ -1,0 +1,27 @@
+{
+  "version": "2026-08-04",
+  "phase": "4c-exact-item-production-media-allowlist",
+  "production_media_enabled": true,
+  "runtime_changes_authorized": true,
+  "default_fallback": "link_out",
+  "production_fixture": "data/watch_census_production_pilot.json",
+  "credentials_allowed": false,
+  "downloads_allowed": false,
+  "ingestion_allowed": false,
+  "mobile_inline_embed_allowed": false,
+  "items": [
+    {
+      "video_id": "housing-rent-why-rents-move",
+      "source_id": "us-census-bureau",
+      "delivery_mode": "official_embed",
+      "provider": "youtube",
+      "provider_video_id": "-Zfh6IKiJ4s",
+      "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+      "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+      "evidence_expires_at": "2026-11-04T00:00:00Z",
+      "web_consent_required": true,
+      "web_privacy_enhanced_host_required": true,
+      "mobile_delivery_mode": "link_out"
+    }
+  ]
+}

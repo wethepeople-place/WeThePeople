@@ -22,10 +22,13 @@ import { openExternalUrl } from '../utils/openExternal';
 
 function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: boolean; reducedMotion: boolean }) {
   const navigation = useNavigation<any>();
-  const [captionsVisible, setCaptionsVisible] = useState(true);
+  const officialEmbed = item.delivery?.mode === 'official_embed' ? item.delivery : null;
+  const linkOut = item.delivery?.mode === 'link_out' ? item.delivery : officialEmbed;
+  const narrativeLabel = item.accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript';
+  const [narrativeVisible, setNarrativeVisible] = useState(true);
   const [mediaUnavailable, setMediaUnavailable] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
-  const player = useVideoPlayer(item.media_url, (instance) => {
+  const player = useVideoPlayer(linkOut ? null : item.media_url, (instance) => {
     instance.loop = true;
     instance.muted = false;
   });
@@ -38,9 +41,9 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
   }, [player]);
 
   useEffect(() => {
-    if (active && !reducedMotion && !mediaUnavailable) player.play();
+    if (active && !reducedMotion && !mediaUnavailable && !linkOut) player.play();
     else player.pause();
-  }, [active, reducedMotion, mediaUnavailable, player]);
+  }, [active, reducedMotion, mediaUnavailable, linkOut, player]);
 
   const shareVideo = async () => {
     setShareStatus('Opening share options…');
@@ -66,7 +69,15 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
 
   return (
     <View style={styles.card} accessible accessibilityLabel={`${item.creator_label}. ${item.caption}`}>
-      {!mediaUnavailable ? (
+      {linkOut ? (
+        <View style={styles.unavailable}>
+          <Text style={styles.unavailableTitle}>Watch at the official source</Text>
+          <Text style={styles.body}>This provider opens in your browser. The overview, official transcript, and civic context remain available here.</Text>
+          <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl(linkOut.canonical_url, linkOut.source_label ?? 'official video source')}>
+            <Text style={styles.buttonText}>Open official video</Text>
+          </Pressable>
+        </View>
+      ) : !mediaUnavailable ? (
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}
@@ -85,7 +96,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
       <View style={styles.overlay}>
         <Text style={styles.creator}>{item.creator_label}</Text>
         <Text style={styles.caption}>{item.caption}</Text>
-        {captionsVisible && item.transcript ? (
+        {narrativeVisible && item.transcript ? (
           <Text style={styles.transcript} accessibilityLiveRegion="polite">{item.transcript}</Text>
         ) : null}
         <Text style={styles.timestamp}>{new Date(item.published_at).toLocaleDateString()}</Text>
@@ -96,7 +107,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
           <Pressable accessibilityRole="button" accessibilityLabel="Copy link to this civic video" style={styles.button} onPress={copyVideoLink}>
             <Text style={styles.buttonText}>Copy link</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => navigation.navigate('DiscussTab')}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Discuss this civic video" style={styles.discussButton} onPress={() => item.discussion_post_id ? navigation.navigate('DiscussTab', { screen: 'DiscussDetail', params: { postId: item.discussion_post_id, returnToVideoId: item.video_id } }) : navigation.navigate('DiscussTab')}>
             <Text style={styles.discussButtonText}>Discuss</Text>
           </Pressable>
           <Pressable accessibilityRole="button" style={styles.button} onPress={() => openExternalUrl(item.source.url, 'evidence source')}>
@@ -110,10 +121,15 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
               <Text style={styles.buttonText}>{item.bills[0].bill_id.toUpperCase()}</Text>
             </Pressable>
           ) : null}
-          <Pressable accessibilityRole="button" accessibilityState={{ checked: captionsVisible }} style={styles.button} onPress={() => setCaptionsVisible((value) => !value)}>
-            <Text style={styles.buttonText}>Captions {captionsVisible ? 'on' : 'off'}</Text>
+          {item.accessibility?.official_transcript_url ? (
+            <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl(item.accessibility!.official_transcript_url, item.accessibility!.official_transcript_label)}>
+              <Text style={styles.buttonText}>{item.accessibility.official_transcript_label}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityState={{ checked: narrativeVisible }} style={styles.button} onPress={() => setNarrativeVisible((value) => !value)}>
+            <Text style={styles.buttonText}>{narrativeLabel} {narrativeVisible ? 'shown' : 'hidden'}</Text>
           </Pressable>
-          {(reducedMotion || mediaUnavailable) && (
+          {!linkOut && (reducedMotion || mediaUnavailable) && (
             <Pressable accessibilityRole="button" style={styles.button} onPress={() => { setMediaUnavailable(false); player.play(); }}>
               <Text style={styles.buttonText}>Play video</Text>
             </Pressable>
@@ -134,20 +150,41 @@ export default function WatchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    apiClient.getWatchVideos({ signal: controller.signal })
+    apiClient.getWatchVideos({ limit: 10 }, { signal: controller.signal })
       .then((result) => {
         setVideos(result.videos);
         setActiveId(result.videos[0]?.video_id ?? null);
+        setNextCursor(result.next_cursor);
+        setHasMore(result.has_more);
       })
       .catch((reason) => { if (reason?.name !== 'AbortError') setError('Watch could not load.'); })
       .finally(() => setLoading(false));
     return () => controller.abort();
   }, []);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || !nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    apiClient.getWatchVideos({ cursor: nextCursor, limit: 10 })
+      .then((result) => {
+        setVideos((current) => {
+          const known = new Set(current.map((item) => item.video_id));
+          return [...current, ...result.videos.filter((item) => !known.has(item.video_id))];
+        });
+        setNextCursor(result.next_cursor);
+        setHasMore(result.has_more);
+      })
+      .catch(() => setError('More Watch videos could not load.'))
+      .finally(() => setLoadingMore(false));
+  }, [hasMore, nextCursor, loadingMore]);
 
   useEffect(load, [load]);
   useEffect(() => {
@@ -179,6 +216,9 @@ export default function WatchScreen() {
       windowSize={3}
       viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
       onViewableItemsChanged={onViewableItemsChanged}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loadingMore ? <ActivityIndicator accessibilityLabel="Loading more Watch videos" color="#fff" /> : null}
     />
   );
 }

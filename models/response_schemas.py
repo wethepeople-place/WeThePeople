@@ -494,6 +494,20 @@ class VideoBillLink(BaseModel):
     bill_id: str
     title: Optional[str] = None
 
+class VideoDelivery(BaseModel):
+    mode: Literal["official_embed", "hosted_video", "link_out"]
+    provider: Optional[str] = None
+    provider_video_id: Optional[str] = None
+    canonical_url: str
+    source_label: Optional[str] = None
+    development_only: bool = False
+
+class VideoAccessibility(BaseModel):
+    text_kind: Literal["overview", "transcript"]
+    official_transcript_url: str
+    official_transcript_label: str
+    development_only: bool = False
+
 class VideoItem(BaseModel):
     video_id: str
     creator_label: str
@@ -501,14 +515,19 @@ class VideoItem(BaseModel):
     transcript: Optional[str] = None
     captions_url: Optional[str] = None
     media_url: str
+    delivery: Optional[VideoDelivery] = None
+    accessibility: Optional[VideoAccessibility] = None
     published_at: str
     source: IssueSource
     issue: VideoIssueLink
     bills: List[VideoBillLink]
+    discussion_post_id: Optional[int] = None
 
 class VideosResponse(BaseModel):
     total: int
     videos: List[VideoItem]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 class VideoSharePreview(BaseModel):
     video_id: str

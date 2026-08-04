@@ -1,0 +1,142 @@
+{
+  "version": "2026-08-04",
+  "phase": "4c-approved-source-registry",
+  "posture": "contract_only_no_network_no_production_media",
+  "policy_reference": "config/watch_phase4c_decision.json",
+  "runtime_changes_authorized": false,
+  "production_media_enabled": false,
+  "default_fallback": "link_out",
+  "source_states": ["candidate", "approved", "suspended", "withdrawn"],
+  "delivery_modes": ["official_embed", "licensed_hosted", "publisher_feed_embed", "publisher_feed_hosted", "link_out"],
+  "required_source_fields": [
+    "source_id", "publisher_name", "source_state", "official_domains", "official_channels",
+    "allowed_delivery_modes", "canonical_source_url", "evidence", "privacy", "poster",
+    "accessibility", "review", "takedown"
+  ],
+  "conditional_requirements": {
+    "official_embed": ["official_channel_reference", "embed_terms_url", "embed_terms_reviewed_at", "privacy_reviewed_at"],
+    "licensed_hosted": ["rights_basis", "license_or_agreement_reference", "allowed_uses", "rights_reviewed_at"],
+    "publisher_feed_embed": ["publisher_warranty_reference", "feed_identity", "official_channel_reference", "embed_terms_url", "takedown_contact", "audit_retention"],
+    "publisher_feed_hosted": ["publisher_warranty_reference", "feed_identity", "rights_basis", "license_or_agreement_reference", "allowed_uses", "takedown_contact", "audit_retention"],
+    "link_out": ["canonical_source_url"]
+  },
+  "global_guards": {
+    "approved_required_for_non_link_out": true,
+    "official_domains_https_only": true,
+    "delivery_reference_must_match_official_domain_or_channel": true,
+    "local_hosting_rights_bases": ["owned", "licensed", "public_domain", "publisher_agreement"],
+    "captions_or_transcript_required_for_playback": true,
+    "poster_requires_owned_licensed_publisher_supplied_or_embed_rendered_basis": true,
+    "text_card_fallback_allowed": true,
+    "privacy_review_required_for_embed": true,
+    "unknown_or_expired_evidence_falls_back_to_link_out": true,
+    "network_fetch_allowed": false,
+    "credentials_allowed": false,
+    "download_allowed": false,
+    "external_publish_allowed": false
+  },
+  "sources": [
+    {
+      "source_id": "us-census-bureau",
+      "publisher_name": "U.S. Census Bureau",
+      "source_state": "approved",
+      "official_domains": ["census.gov"],
+      "official_channels": ["https://www.youtube.com/@uscensusbureau"],
+      "allowed_delivery_modes": ["official_embed", "link_out"],
+      "canonical_source_url": "https://www.census.gov/library/video.html",
+      "evidence": {
+        "official_identity_url": "https://www.census.gov/programs-surveys/international-programs/library/video.html",
+        "usage_policy_url": "https://www.census.gov/library/multimedia-usage-policy.html",
+        "privacy_url": "https://www.census.gov/about/policies/privacy/privacy-policy.html",
+        "accessibility_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+        "official_channel_reference": "https://www.youtube.com/@uscensusbureau",
+        "embed_terms_url": "https://support.google.com/youtube/answer/171780",
+        "embed_terms_reviewed_at": "2026-08-04T00:00:00Z",
+        "privacy_reviewed_at": "2026-08-04T00:00:00Z",
+        "finding": "The official Census channel, exact Census-hosted item page, YouTube embed terms, click-to-load privacy notice, and per-item official transcript support registry approval for official embedding. Approval is non-operational while production media remains disabled."
+      },
+      "privacy": {"reviewed_at": "2026-08-04T00:00:00Z", "finding": "Census warns that embedded third-party services may collect visitor information; Watch requires click-to-load consent and a direct Google Privacy Policy link."},
+      "poster": {"unknown_rights_fallback": "text_card", "finding": "No blanket platform-thumbnail reuse basis recorded."},
+      "accessibility": {"captions_or_transcript_required": true, "finding": "Each embedded item must expose a verified official transcript or captions; the approved pilot item exposes the official Census transcript."},
+      "review": {"reviewed_by": "phase4c-census-registry-approval", "reviewed_at": "2026-08-04T00:00:00Z", "evidence_expires_at": "2026-11-04T00:00:00Z"},
+      "takedown": {"contact": "https://www.census.gov/about/contact-us.html"}
+    },
+    {
+      "source_id": "us-government-accountability-office",
+      "publisher_name": "U.S. Government Accountability Office",
+      "source_state": "candidate",
+      "official_domains": ["gao.gov"],
+      "official_channels": ["https://www.youtube.com/usgao"],
+      "allowed_delivery_modes": ["link_out"],
+      "canonical_source_url": "https://www.gao.gov/about/stay-connected",
+      "evidence": {
+        "official_identity_url": "https://www.gao.gov/about/stay-connected",
+        "accessibility_url": "https://www.gao.gov/accessibility",
+        "finding": "GAO identifies its official YouTube channel and states that video files have closed captions and transcripts, but no source-specific embed, poster, or reuse policy was found in the bounded review."
+      },
+      "privacy": {"reviewed_at": null, "finding": "YouTube playback privacy requires a separate product review."},
+      "poster": {"unknown_rights_fallback": "text_card", "finding": "No source-level poster reuse rule found."},
+      "accessibility": {"captions_or_transcript_required": false, "finding": "GAO states closed captioning and transcripts are provided for video files; per-item verification remains required."},
+      "review": {"reviewed_by": "phase4c-source-policy-research", "reviewed_at": "2026-08-03T00:00:00Z", "evidence_expires_at": "2026-11-03T00:00:00Z"},
+      "takedown": {"contact": "https://www.gao.gov/about/contact-us"}
+    },
+    {
+      "source_id": "us-national-archives",
+      "publisher_name": "U.S. National Archives and Records Administration",
+      "source_state": "candidate",
+      "official_domains": ["archives.gov"],
+      "official_channels": ["https://www.youtube.com/usnationalarchives"],
+      "allowed_delivery_modes": ["link_out"],
+      "canonical_source_url": "https://www.archives.gov/social-media/youtube",
+      "evidence": {
+        "official_identity_url": "https://www.archives.gov/social-media/youtube",
+        "video_policy_url": "https://www.archives.gov/social-media/policies/video-comment-policy.html",
+        "accessibility_url": "https://www.archives.gov/global-pages/accessibility",
+        "finding": "NARA identifies official YouTube channels, warns that YouTube privacy applies, and says transcript coverage is incomplete."
+      },
+      "privacy": {"reviewed_at": null, "finding": "NARA expressly states its privacy policy does not apply on YouTube."},
+      "poster": {"unknown_rights_fallback": "text_card", "finding": "No source-level poster reuse rule found."},
+      "accessibility": {"captions_or_transcript_required": false, "finding": "Some transcripts exist; NARA reports it is still transcribing the channel."},
+      "review": {"reviewed_by": "phase4c-source-policy-research", "reviewed_at": "2026-08-03T00:00:00Z", "evidence_expires_at": "2026-11-03T00:00:00Z"},
+      "takedown": {"contact": "https://www.archives.gov/contact"}
+    },
+    {
+      "source_id": "library-of-congress",
+      "publisher_name": "Library of Congress",
+      "source_state": "candidate",
+      "official_domains": ["loc.gov"],
+      "official_channels": ["https://www.youtube.com/libraryofcongress"],
+      "allowed_delivery_modes": ["link_out"],
+      "canonical_source_url": "https://www.loc.gov/connect/",
+      "evidence": {
+        "official_identity_url": "https://www.loc.gov/connect/",
+        "third_party_privacy_url": "https://www.loc.gov/legal/third-party-websites-services-and-applications/",
+        "rights_caution_url": "https://www.loc.gov/legal",
+        "finding": "The Library identifies its YouTube channel and use of embedded YouTube content, while warning that third-party collection and item rights vary."
+      },
+      "privacy": {"reviewed_at": null, "finding": "The Library states it does not control information collected by third-party providers."},
+      "poster": {"unknown_rights_fallback": "text_card", "finding": "Collection-level access does not establish poster reuse rights."},
+      "accessibility": {"captions_or_transcript_required": false, "finding": "Some official event pages promise captions; catalog-wide coverage is not established."},
+      "review": {"reviewed_by": "phase4c-source-policy-research", "reviewed_at": "2026-08-03T00:00:00Z", "evidence_expires_at": "2026-11-03T00:00:00Z"},
+      "takedown": {"contact": "https://www.loc.gov/contact/"}
+    },
+    {
+      "source_id": "congressional-budget-office",
+      "publisher_name": "Congressional Budget Office",
+      "source_state": "candidate",
+      "official_domains": ["cbo.gov"],
+      "official_channels": ["https://www.youtube.com/uscbo"],
+      "allowed_delivery_modes": ["link_out"],
+      "canonical_source_url": "https://www.cbo.gov/publication/45697",
+      "evidence": {
+        "official_identity_url": "https://www.cbo.gov/publication/45697",
+        "finding": "CBO identifies its official channel, but the bounded review did not find source-specific embed, poster, privacy, or catalog-wide caption terms."
+      },
+      "privacy": {"reviewed_at": null, "finding": "YouTube playback privacy requires a separate product review."},
+      "poster": {"unknown_rights_fallback": "text_card", "finding": "No source-level poster reuse rule found."},
+      "accessibility": {"captions_or_transcript_required": false, "finding": "CBO describes accessibility as a value but catalog-wide caption or transcript evidence was not found."},
+      "review": {"reviewed_by": "phase4c-source-policy-research", "reviewed_at": "2026-08-03T00:00:00Z", "evidence_expires_at": "2026-11-03T00:00:00Z"},
+      "takedown": {"contact": "https://www.cbo.gov/about/contact-us"}
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "version": "2026-08-03",
+  "phase": "4c-real-civic-video-feed-decision",
+  "posture": "hybrid_delivery_policy_decision_only",
+  "runtime_changes_authorized": false,
+  "implementation_status": "hybrid_delivery_policy_approved_not_enabled",
+  "goal": "A curated, playable, source-backed civic-video feed on mobile and web with official evidence kept distinct from editorial narration.",
+  "audit": {
+    "existing_catalog_size": 1,
+    "existing_fixture": "data/watch_housing_rent.json",
+    "acceptance_media_eligible": false,
+    "local_rights_cleared_civic_media_count": 0,
+    "public_video_routes": ["GET /videos", "GET /videos/{video_id}", "GET /videos/{video_id}/share"],
+    "html_preview_route": "GET /videos/{video_id}/preview",
+    "web_surface": "share_preview_only",
+    "mobile_surface": "vertical_visibility_driven_feed",
+    "pagination": "none",
+    "editorial_ingestion": "bounded_fixture_loader_only",
+    "media_delivery": "direct_external_url",
+    "known_development_fallback": "MDN flower sample"
+  },
+  "catalog_contract": {
+    "minimum_published_items": 3,
+    "maximum_first_slice_items": 5,
+    "stable_identity_field": "video_id",
+    "one_primary_issue_required": true,
+    "one_or_more_official_evidence_citations_required": true,
+    "required_fields": [
+      "video_id", "creator_label", "editorial_caption", "transcript_or_captions", "poster_or_text_card",
+      "duration_ms", "width_px", "height_px", "aspect_ratio", "published_at", "publication_state", "availability_state",
+      "primary_issue_slug", "official_evidence_source_ids", "related_bill_ids", "discussion_post_id", "rights_basis",
+      "rights_holder", "rights_evidence_reference", "allowed_uses", "rights_reviewed_by", "rights_reviewed_at",
+      "media_delivery_mode", "delivery_reference", "poster_delivery_mode", "provenance_source_url", "provenance_retrieved_at", "editorial_reviewed_by", "editorial_reviewed_at",
+      "accessibility_reviewed_by", "accessibility_reviewed_at", "poster_alt_text"
+    ],
+    "publication_states": ["draft", "in_review", "published", "withdrawn"],
+    "availability_states": ["available", "media_unavailable", "rights_hold", "withdrawn"],
+    "rights_bases": ["owned", "licensed", "public_domain", "publisher_agreement", "official_embed_terms", "link_out_only"],
+    "fail_closed_when_missing": ["rights_basis", "rights_evidence_reference", "transcript_or_captions", "poster_alt_text", "official_evidence_source_ids", "editorial_reviewed_at", "accessibility_reviewed_at"],
+    "editorial_narration_must_be_labeled": true,
+    "official_evidence_must_be_separately_labeled": true,
+    "generic_flower_sample_allowed_for_acceptance": false
+  },
+  "delivery_policy": {
+    "default_mode": "official_embed",
+    "allowed_modes": ["official_embed", "licensed_hosted", "publisher_feed_embed", "publisher_feed_hosted", "link_out"],
+    "scalable_clearance_unit": "source_channel_feed_or_collection",
+    "item_by_item_outreach_required_by_default": false,
+    "official_embed_requires": ["official_publisher_or_channel", "platform_or_publisher_terms_allow_embed", "canonical_source_url", "no_download_or_redistribution", "privacy_review"],
+    "local_hosting_modes": ["licensed_hosted", "publisher_feed_hosted"],
+    "local_hosting_requires_rights_basis": ["owned", "licensed", "public_domain", "publisher_agreement"],
+    "publisher_feed_requires": ["approved_publisher", "publisher_rights_warranty", "stable_source_identity", "license_or_embed_terms", "captions_or_transcript", "takedown_contact", "audit_trail"],
+    "poster_policy": "use_only_owned_licensed_publisher_supplied_or_embed_rendered_assets_otherwise_text_card",
+    "unclear_rights_fallback": "link_out",
+    "link_out_never_claims_media_reuse_rights": true,
+    "embed_or_link_removal_must_preserve": ["transcript_when_permitted", "official_evidence", "issue", "bills", "discussion", "provenance"],
+    "automated_validation_fails_closed": true,
+    "download_from_embed_platform_allowed": false,
+    "platform_thumbnail_reuse_inferred": false,
+    "official_publication_implies_redistribution_rights": false
+  },
+  "cursor_contract": {
+    "ordering": ["sort_order ASC", "published_at DESC", "video_id ASC"],
+    "cursor_payload_fields": ["version", "sort_order", "published_at", "video_id"],
+    "opaque_urlsafe_base64": true,
+    "signed_or_authenticated": true,
+    "default_limit": 10,
+    "maximum_limit": 25,
+    "response_fields": ["videos", "next_cursor", "has_more"],
+    "snapshot_consistency_required": true,
+    "unknown_or_tampered_cursor_status": 400,
+    "stable_identity_preserved": true,
+    "offset_pagination_allowed": false
+  },
+  "interaction_parity": {
+    "platforms": ["mobile", "web"],
+    "required": [
+      "one_active_video", "pause_when_not_visible", "pause_when_app_or_tab_inactive", "manual_play_pause",
+      "muted_state_control", "captions_or_transcript", "reduced_motion", "descriptive_poster", "keyboard_controls_on_web",
+      "loading_state", "empty_state", "error_state", "media_unavailable_state", "share_exact_video",
+      "open_exact_issue", "open_each_evidence_source", "open_each_related_bill", "open_associated_discussion",
+      "return_to_same_video_id"
+    ],
+    "media_failure_preserves": ["transcript", "poster", "official_evidence", "issue", "bills", "discussion", "provenance"]
+  },
+  "editorial_authority": {
+    "private_authenticated_only": true,
+    "roles": ["editor", "reviewer", "publisher"],
+    "creator_self_publish_allowed": false,
+    "reviewer_must_differ_from_submitter": true,
+    "publisher_must_be_authorized": true,
+    "publish_requires_rights_review": true,
+    "publish_requires_accessibility_review": true,
+    "publish_requires_provenance_review": true,
+    "publish_requires_editorial_review": true,
+    "immutable_audit_event_required": true,
+    "public_upload_allowed": false,
+    "public_creator_accounts_allowed": false
+  },
+  "storage_abstraction": {
+    "logical_asset_kinds": ["video", "poster", "captions"],
+    "catalog_stores_provider_neutral_asset_key": true,
+    "public_api_exposes_resolved_delivery_url": true,
+    "development_provider": "explicit_local_or_test_fixture",
+    "production_provider": "deferred_owned_or_licensed_object_storage_plus_cdn",
+    "arbitrary_external_hotlink_production_ready": false,
+    "production_credentials_authorized": false,
+    "network_ingestion_authorized": false
+  },
+  "migration_compatibility": {
+    "preserve_tables": ["videos", "video_issues", "video_bills", "source_documents", "issues", "bills", "discussion_posts"],
+    "preserve_video_id": true,
+    "preserve_existing_read_routes": true,
+    "legacy_media_url_requires_compatibility_adapter": true,
+    "legacy_caption_maps_to_editorial_caption": true,
+    "legacy_source_id_remains_provenance_reference": true,
+    "backfill_must_not_invent_rights_or_review_metadata": true,
+    "legacy_fixture_publication_state": "development_only_until_reviewed"
+  },
+  "decisions": {
+    "keep": [
+      "canonical_video_issue_bill_source_and_discussion_identity", "public_read_only_api", "deterministic_sort_order",
+      "mobile_vertical_paging", "visibility_and_focus_playback", "transcript_fallback", "canonical_exact_video_sharing"
+    ],
+    "repair_before_acceptance": [
+      "hybrid_delivery_catalog_policy", "catalog_metadata_and_review_state", "cursor_pagination",
+      "web_playable_vertical_feed", "record_driven_navigation_and_return", "private_reviewed_editorial_ingestion",
+      "provider_neutral_media_storage", "multi_item_accessibility_performance_and_smoke_tests"
+    ],
+    "defer": [
+      "public_upload", "camera_recording", "open_creator_accounts", "direct_messages", "likes", "follows",
+      "public_engagement_counts", "algorithmic_recommendations", "behavioral_profiling", "notifications", "advertising",
+      "monetization", "broad_moderation_tooling", "production_cloud_credentials", "network_ingestion", "external_publishing"
+    ]
+  },
+  "staged_sequence": [
+    "hybrid_delivery_policy_and_source_registry_contract", "compatible_schema_and_cursor_api", "record_driven_navigation_contract",
+    "web_feed_and_mobile_parity", "private_editorial_workflow", "browser_device_accessibility_and_performance_acceptance"
+  ],
+  "first_approved_implementation_slice": {
+    "name": "hybrid-delivery-policy-and-source-registry-contract",
+    "blocked_until": [],
+    "allows_now": ["delivery_policy_contract", "approved_source_registry_schema", "conditional_fail_closed_validation", "focused_policy_tests", "documentation"],
+    "still_forbids": ["runtime_routes", "public_upload", "production_credentials", "network_download", "external_publish", "production_media_enablement"]
+  },
+  "test_plan": [
+    "catalog_rights_provenance_accessibility_fail_closed", "cursor_multi_page_determinism_and_tamper_rejection",
+    "one_active_video_mobile_and_web", "focus_visibility_and_reduced_motion", "keyboard_and_screen_reader_controls",
+    "exact_record_issue_evidence_bill_discussion_share_and_return", "unavailable_media_preserves_context",
+    "private_editorial_separation_of_duties", "no_public_upload_or_tracking_routes", "bounded_multi_video_performance"
+  ],
+  "drift_guards": {
+    "runtime_route_ui_job_model_or_migration_change_allowed_in_decision_slice": false,
+    "media_download_or_external_publish_allowed": false,
+    "production_storage_credentials_allowed": false,
+    "public_upload_allowed": false,
+    "unsourced_unlicensed_or_uncaptioned_publish_allowed": false,
+    "ranking_tracking_or_monetization_allowed": false,
+    "second_identity_or_data_store_allowed": false
+  }
+}
