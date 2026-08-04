@@ -76,6 +76,6 @@ def validate_embed_compatibility(*, root: Path = ROOT) -> EmbedCompatibilityVali
         web_source = mobile_source = ""
     if "IntersectionObserver" not in web_source or "threshold: [0.6]" not in web_source or "document.hidden" not in web_source:
         errors.add("web_audit_basis_drift")
-    if "useVideoPlayer(item.media_url" not in mobile_source or "itemVisiblePercentThreshold: 60" not in mobile_source or "AppState" not in mobile_source:
+    if "useVideoPlayer(" not in mobile_source or "item.media_url" not in mobile_source or "itemVisiblePercentThreshold: 60" not in mobile_source or "AppState" not in mobile_source:
         errors.add("mobile_audit_basis_drift")
     return EmbedCompatibilityValidation(not errors, tuple(sorted(errors)))

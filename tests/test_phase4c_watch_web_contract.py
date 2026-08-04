@@ -41,10 +41,11 @@ def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
     assert "loadEnv(mode, path.resolve(__dirname, '..'), 'WTP_')" in VITE_CONFIG
 
 
-def test_development_embed_is_explicit_opt_in_and_single_record_only():
+def test_development_embed_is_explicit_opt_in_and_record_driven():
     assert "import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true'" in PAGE
-    assert PAGE.count("providerVideoId: '-Zfh6IKiJ4s'") == 1
-    assert "'housing-rent-why-rents-move'" in PAGE
+    assert "item.delivery" in PAGE and "delivery?.mode === 'official_embed'" in PAGE
+    assert "delivery.provider === 'youtube'" in PAGE
+    assert "-Zfh6IKiJ4s" not in PAGE and "housing-rent-why-rents-move" not in PAGE
 
 
 def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_inactive():
@@ -55,6 +56,7 @@ def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_i
         'referrerPolicy="strict-origin-when-cross-origin"',
         "Load official video",
         "Watch at the official source instead",
+        "LinkOutCard",
     ):
         assert anchor in PAGE
     assert "DevelopmentEmbedCard" in PAGE and "Transcript" in PAGE

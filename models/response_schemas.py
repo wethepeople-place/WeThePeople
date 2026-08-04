@@ -494,6 +494,14 @@ class VideoBillLink(BaseModel):
     bill_id: str
     title: Optional[str] = None
 
+class VideoDelivery(BaseModel):
+    mode: Literal["official_embed", "hosted_video", "link_out"]
+    provider: Optional[str] = None
+    provider_video_id: Optional[str] = None
+    canonical_url: str
+    source_label: Optional[str] = None
+    development_only: bool = False
+
 class VideoItem(BaseModel):
     video_id: str
     creator_label: str
@@ -501,6 +509,7 @@ class VideoItem(BaseModel):
     transcript: Optional[str] = None
     captions_url: Optional[str] = None
     media_url: str
+    delivery: Optional[VideoDelivery] = None
     published_at: str
     source: IssueSource
     issue: VideoIssueLink

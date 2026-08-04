@@ -8,24 +8,20 @@ import ShareButton from '../components/ShareButton';
 type Video = {
   video_id: string; creator_label: string; caption: string; transcript: string | null;
   media_url: string; published_at: string;
+  delivery: Delivery | null;
   source: { url: string; publisher: string }; issue: { slug: string; title: string };
   bills: Array<{ bill_id: string; title: string | null }>;
   discussion_post_id: number | null;
 };
 type Feed = { videos: Video[]; next_cursor: string | null; has_more: boolean };
 
-type DevelopmentEmbed = {
-  provider: 'youtube'; providerVideoId: string; canonicalUrl: string; sourceLabel: string;
+type Delivery = {
+  mode: 'official_embed' | 'hosted_video' | 'link_out'; provider: string | null;
+  provider_video_id: string | null; canonical_url: string; source_label: string | null;
+  development_only: boolean;
 };
 
-const DEVELOPMENT_EMBEDS: Record<string, DevelopmentEmbed> = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true' ? {
-  'housing-rent-why-rents-move': {
-    provider: 'youtube',
-    providerVideoId: '-Zfh6IKiJ4s',
-    canonicalUrl: 'https://www.youtube.com/watch?v=-Zfh6IKiJ4s',
-    sourceLabel: 'U.S. Census Bureau',
-  },
-} : {};
+const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
 
 function CivicActions({ item }: { item: Video }) {
   return <div className="mt-5 flex flex-wrap gap-3">
@@ -37,7 +33,7 @@ function CivicActions({ item }: { item: Video }) {
   </div>;
 }
 
-function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: DevelopmentEmbed }) {
+function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: Delivery }) {
   const [consented, setConsented] = useState(false);
   const playerLoaded = active && consented;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
@@ -45,18 +41,18 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
       <div className="relative grid min-h-[240px] flex-1 place-content-center overflow-hidden rounded-2xl border border-white/15 bg-[#111827] text-center sm:min-h-[360px]">
         {playerLoaded ? <iframe
           className="absolute inset-0 h-full w-full"
-          src={`https://www.youtube-nocookie.com/embed/${embed.providerVideoId}?autoplay=0&playsinline=1&rel=0`}
-          title={`${item.caption} — ${embed.sourceLabel}`}
+          src={`https://www.youtube-nocookie.com/embed/${embed.provider_video_id}?autoplay=0&playsinline=1&rel=0`}
+          title={`${item.caption} — ${embed.source_label}`}
           referrerPolicy="strict-origin-when-cross-origin"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         /> : <div className="max-w-2xl p-8">
           <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development-only official embed test</p>
-          <h2 className="mt-3 text-2xl font-bold">Load video from {embed.sourceLabel}</h2>
+          <h2 className="mt-3 text-2xl font-bold">Load video from {embed.source_label}</h2>
           <p className="mt-3 leading-7 text-slate-300">The official YouTube player is not loaded until you choose to continue. Loading it shares basic request and playback data with YouTube under its policies.</p>
           {active && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950" onClick={() => setConsented(true)}>Load official video</button>}
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
-          <a className="mt-4 block font-semibold text-amber-300 underline" href={embed.canonicalUrl} target="_blank" rel="noreferrer">Watch at the official source instead</a>
+          <a className="mt-4 block font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
         </div>}
       </div>
       <div className="py-6">
@@ -65,6 +61,19 @@ function DevelopmentEmbedCard({ item, active, embed }: { item: Video; active: bo
         {item.transcript && <details className="mt-4 rounded-xl bg-white/10 p-4" open><summary className="cursor-pointer font-semibold">Transcript</summary><p className="mt-2 leading-7 text-slate-100">{item.transcript}</p></details>}
         <CivicActions item={item} />
       </div>
+    </div>
+  </article>;
+}
+
+function LinkOutCard({ item, delivery }: { item: Video; delivery: Delivery }) {
+  return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
+    <div className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 sm:px-8">
+      <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Development Watch fixture · {item.issue.title}</p>
+      <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
+      <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The transcript, official source, and civic context remain available.</p>
+      <a className="mt-5 w-fit rounded-full bg-white px-5 py-3 font-bold text-slate-950" href={delivery.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
+      {item.transcript && <details className="mt-4 rounded-xl bg-white/10 p-4" open><summary className="cursor-pointer font-semibold">Transcript</summary><p className="mt-2 leading-7 text-slate-100">{item.transcript}</p></details>}
+      <CivicActions item={item} />
     </div>
   </article>;
 }
@@ -98,10 +107,16 @@ function NativeVideoCard({ item, active, reducedMotion, onActive }: { item: Vide
 }
 
 function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void }) {
-  const developmentEmbed = DEVELOPMENT_EMBEDS[props.item.video_id];
-  return developmentEmbed
-    ? <DevelopmentEmbedCard item={props.item} active={props.active} embed={developmentEmbed} />
-    : <NativeVideoCard {...props} />;
+  const delivery = props.item.delivery;
+  if (delivery?.mode === 'official_embed') {
+    const authorized = (!delivery.development_only || DEVELOPMENT_EMBED_AUTHORIZED)
+      && delivery.provider === 'youtube' && Boolean(delivery.provider_video_id);
+    return authorized
+      ? <DevelopmentEmbedCard item={props.item} active={props.active} embed={delivery} />
+      : <LinkOutCard item={props.item} delivery={delivery} />;
+  }
+  if (delivery?.mode === 'link_out') return <LinkOutCard item={props.item} delivery={delivery} />;
+  return <NativeVideoCard {...props} />;
 }
 
 export default function WatchVideoPage() {

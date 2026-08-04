@@ -7,6 +7,7 @@ import json
 import os
 from datetime import datetime
 from html import escape
+from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -23,6 +24,28 @@ from routers.issues import _source
 router = APIRouter(prefix="/videos", tags=["videos"])
 PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://wethepeople.place").rstrip("/")
 CURSOR_SECRET = os.getenv("WTP_VIDEO_CURSOR_SECRET", "development-only-watch-cursor").encode()
+WATCH_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json"
+
+
+def _fixture_delivery(video_id: str) -> dict | None:
+    """Return optional delivery metadata without adding it to the database schema."""
+    if os.getenv("WTP_ENV") != "development" or os.getenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED") != "true":
+        return None
+    try:
+        payload = json.loads(WATCH_FIXTURE_PATH.read_text(encoding="utf-8"))
+        record = next(item for item in payload.get("videos", ()) if item.get("video_id") == video_id)
+        delivery = record.get("delivery")
+        if not isinstance(delivery, dict):
+            return None
+        canonical_url = delivery.get("canonical_url")
+        mode = delivery.get("mode")
+        if mode not in {"official_embed", "hosted_video", "link_out"} or not isinstance(canonical_url, str) or not canonical_url.startswith("https://"):
+            return None
+        if mode == "official_embed" and not all(delivery.get(field) for field in ("provider", "provider_video_id", "source_label")):
+            return {"mode": "link_out", "canonical_url": canonical_url, "development_only": bool(delivery.get("development_only"))}
+        return delivery
+    except (OSError, ValueError, StopIteration, TypeError):
+        return None
 
 
 def _cursor(row: Video) -> str:
@@ -97,6 +120,7 @@ def _serialize(row: Video, discussion_post_id: int | None = None) -> dict:
         "transcript": row.transcript,
         "captions_url": row.captions_url,
         "media_url": row.media_url,
+        "delivery": _fixture_delivery(row.video_id),
         "published_at": row.published_at.isoformat(),
         "source": _source(row.source),
         "issue": {"slug": issue.slug, "title": issue.title},

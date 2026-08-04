@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from jobs.load_housing_rent_slice import load_fixture as load_housing
-from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture
+from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture, validate_fixture
 from models.database import Base, get_db
 from models.issue_models import Video, VideoBill, VideoIssue
 from models.social_models import DiscussionAttachment, DiscussionPost
@@ -136,14 +136,42 @@ def test_watch_loader_rejects_scope_before_writing(tmp_path):
         assert session.query(Video).count() == 0
 
 
-def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path):
-    _, Session = _client(tmp_path)
+def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, monkeypatch):
+    client, Session = _client(tmp_path)
     payload = json.loads((Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json").read_text(encoding="utf-8"))
     assert len(payload["videos"]) == 3
     assert all("Development fixture" in item["creator_label"] for item in payload["videos"])
+    assert payload["videos"][0]["delivery"] == {
+        "mode": "official_embed",
+        "provider": "youtube",
+        "provider_video_id": "-Zfh6IKiJ4s",
+        "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+        "source_label": "U.S. Census Bureau",
+        "development_only": True,
+    }
     with Session() as session:
         load_housing(housing_fixture(), session)
         assert load_fixture(payload, session) == {"videos": 3, "video_issues": 3, "video_bills": 3}
+
+    assert client.get("/videos/housing-rent-why-rents-move").json()["delivery"] is None
+    monkeypatch.setenv("WTP_ENV", "development")
+    monkeypatch.setenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED", "true")
+    assert client.get("/videos/housing-rent-why-rents-move").json()["delivery"] == payload["videos"][0]["delivery"]
+    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
+
+
+def test_watch_loader_rejects_unsafe_official_embed_metadata():
+    payload = _watch_fixture()
+    payload["videos"][0]["delivery"] = {
+        "mode": "official_embed",
+        "provider": "youtube",
+        "provider_video_id": "example",
+        "canonical_url": "https://www.youtube.com/watch?v=example",
+        "source_label": "Official source",
+        "development_only": False,
+    }
+    with pytest.raises(WatchFixtureValidationError, match="must remain development_only"):
+        validate_fixture(payload)
 
 
 def test_watch_share_preview_is_canonical_source_backed_and_missing_safe(tmp_path):

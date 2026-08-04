@@ -22,10 +22,12 @@ import { openExternalUrl } from '../utils/openExternal';
 
 function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: boolean; reducedMotion: boolean }) {
   const navigation = useNavigation<any>();
-  const [captionsVisible, setCaptionsVisible] = useState(true);
+  const officialEmbed = item.delivery?.mode === 'official_embed' ? item.delivery : null;
+  const linkOut = item.delivery?.mode === 'link_out' ? item.delivery : officialEmbed;
+  const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [mediaUnavailable, setMediaUnavailable] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
-  const player = useVideoPlayer(item.media_url, (instance) => {
+  const player = useVideoPlayer(linkOut ? null : item.media_url, (instance) => {
     instance.loop = true;
     instance.muted = false;
   });
@@ -38,9 +40,9 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
   }, [player]);
 
   useEffect(() => {
-    if (active && !reducedMotion && !mediaUnavailable) player.play();
+    if (active && !reducedMotion && !mediaUnavailable && !linkOut) player.play();
     else player.pause();
-  }, [active, reducedMotion, mediaUnavailable, player]);
+  }, [active, reducedMotion, mediaUnavailable, linkOut, player]);
 
   const shareVideo = async () => {
     setShareStatus('Opening share options…');
@@ -66,7 +68,15 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
 
   return (
     <View style={styles.card} accessible accessibilityLabel={`${item.creator_label}. ${item.caption}`}>
-      {!mediaUnavailable ? (
+      {linkOut ? (
+        <View style={styles.unavailable}>
+          <Text style={styles.unavailableTitle}>Watch at the official source</Text>
+          <Text style={styles.body}>This provider opens in your browser. The transcript and civic context remain available here.</Text>
+          <Pressable accessibilityRole="link" style={styles.button} onPress={() => openExternalUrl(linkOut.canonical_url, linkOut.source_label ?? 'official video source')}>
+            <Text style={styles.buttonText}>Open official video</Text>
+          </Pressable>
+        </View>
+      ) : !mediaUnavailable ? (
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}
@@ -85,7 +95,7 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
       <View style={styles.overlay}>
         <Text style={styles.creator}>{item.creator_label}</Text>
         <Text style={styles.caption}>{item.caption}</Text>
-        {captionsVisible && item.transcript ? (
+        {transcriptVisible && item.transcript ? (
           <Text style={styles.transcript} accessibilityLiveRegion="polite">{item.transcript}</Text>
         ) : null}
         <Text style={styles.timestamp}>{new Date(item.published_at).toLocaleDateString()}</Text>
@@ -110,10 +120,10 @@ function WatchCard({ item, active, reducedMotion }: { item: WatchVideo; active: 
               <Text style={styles.buttonText}>{item.bills[0].bill_id.toUpperCase()}</Text>
             </Pressable>
           ) : null}
-          <Pressable accessibilityRole="button" accessibilityState={{ checked: captionsVisible }} style={styles.button} onPress={() => setCaptionsVisible((value) => !value)}>
-            <Text style={styles.buttonText}>Captions {captionsVisible ? 'on' : 'off'}</Text>
+          <Pressable accessibilityRole="button" accessibilityState={{ checked: transcriptVisible }} style={styles.button} onPress={() => setTranscriptVisible((value) => !value)}>
+            <Text style={styles.buttonText}>Transcript {transcriptVisible ? 'shown' : 'hidden'}</Text>
           </Pressable>
-          {(reducedMotion || mediaUnavailable) && (
+          {!linkOut && (reducedMotion || mediaUnavailable) && (
             <Pressable accessibilityRole="button" style={styles.button} onPress={() => { setMediaUnavailable(false); player.play(); }}>
               <Text style={styles.buttonText}>Play video</Text>
             </Pressable>

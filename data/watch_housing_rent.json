@@ -7,6 +7,14 @@
       "transcript": "Housing and rent costs reflect supply, wages, financing, and public policy. Open Evidence to inspect the official Housing and Rent sources, then follow the related bill to Congress.gov.",
       "captions_url": null,
       "media_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "delivery": {
+        "mode": "official_embed",
+        "provider": "youtube",
+        "provider_video_id": "-Zfh6IKiJ4s",
+        "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+        "source_label": "U.S. Census Bureau",
+        "development_only": true
+      },
       "published_at": "2026-07-31T00:00:00Z",
       "issue_slug": "housing-rent",
       "bill_ids": ["hr1-119"],

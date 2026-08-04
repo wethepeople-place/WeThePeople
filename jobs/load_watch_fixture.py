@@ -13,6 +13,7 @@ from models.issue_models import Issue, Video, VideoBill, VideoIssue
 
 ISSUE_SLUG = "housing-rent"
 BILL_ID = "hr1-119"
+DELIVERY_MODES = {"official_embed", "hosted_video", "link_out"}
 
 
 class WatchFixtureValidationError(ValueError):
@@ -49,6 +50,17 @@ def validate_fixture(payload: dict[str, Any]) -> None:
         _https(item.get("media_url"), "media_url")
         if item.get("captions_url"):
             _https(item["captions_url"], "captions_url")
+        delivery = item.get("delivery")
+        if delivery is not None:
+            if delivery.get("mode") not in DELIVERY_MODES:
+                raise WatchFixtureValidationError("delivery.mode is not supported")
+            _https(delivery.get("canonical_url"), "delivery.canonical_url")
+            if delivery["mode"] == "official_embed":
+                for field in ("provider", "provider_video_id", "source_label"):
+                    if not delivery.get(field):
+                        raise WatchFixtureValidationError(f"delivery.{field} is required for official_embed")
+                if delivery.get("development_only") is not True:
+                    raise WatchFixtureValidationError("Fixture official embeds must remain development_only")
         source = item.get("source") or {}
         _https(source.get("url"), "source.url")
         if not source.get("publisher") or not source.get("retrieved_at"):
