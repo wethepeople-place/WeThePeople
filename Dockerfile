@@ -50,6 +50,7 @@ WORKDIR /app
 COPY main.py .
 COPY routers/ routers/
 COPY models/ models/
+COPY middleware/ middleware/
 COPY connectors/ connectors/
 COPY services/ services/
 COPY jobs/ jobs/
