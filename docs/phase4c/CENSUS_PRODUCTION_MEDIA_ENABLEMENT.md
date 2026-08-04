@@ -13,7 +13,7 @@ Playback requires every gate below:
 - matching provider, video, canonical URL, and official transcript metadata;
 - evidence that has not reached its 2026-11-04 expiry.
 
-If any gate fails, the API omits production delivery metadata and Watch cannot create the embed. The allowlist contains one item only. It explicitly requires web consent, privacy-enhanced YouTube hosting, canonical link-out fallback, official transcript access, and mobile link-out. Credentials, downloads, ingestion, mobile inline embedding, and publication remain unauthorized.
+The single production catalog record lives separately in `data/watch_census_production_pilot.json`; the three-card development fixture is never used as production catalog data. If the kill switch is off or any approval gate fails, the API returns canonical `link_out` delivery for the pilot instead of falling through to native media playback. The allowlist contains one item only. It explicitly requires web consent, privacy-enhanced YouTube hosting, canonical link-out fallback, official transcript access, and mobile link-out. Credentials, downloads, ingestion, mobile inline embedding, and publication remain unauthorized.
 
 The web player still starts with zero iframe requests. Only the user's `Load official video` action creates the `youtube-nocookie.com` iframe. The canonical source link, Google Privacy Policy link, official Census transcript, text-card fallback, official player controls, strict referrer policy, and active-card unload behavior remain intact.
 

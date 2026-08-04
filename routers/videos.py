@@ -30,8 +30,8 @@ WATCH_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "data" / "watch_housi
 
 def _fixture_metadata(video_id: str) -> tuple[dict | None, dict | None]:
     """Return metadata only through the explicit development or production gate."""
-    if os.getenv("WTP_ENV") == "production" and os.getenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED") == "true":
-        return production_metadata(video_id)
+    if os.getenv("WTP_ENV") == "production":
+        return production_metadata(video_id, embed_enabled=os.getenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED") == "true")
     if os.getenv("WTP_ENV") != "development" or os.getenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED") != "true":
         return None, None
     try:

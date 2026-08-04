@@ -171,7 +171,8 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     monkeypatch.setenv("WTP_ENV", "production")
     monkeypatch.delenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED")
     production_disabled = client.get("/videos/housing-rent-why-rents-move").json()
-    assert production_disabled["delivery"] is None and production_disabled["accessibility"] is None
+    assert production_disabled["delivery"]["mode"] == "link_out"
+    assert production_disabled["accessibility"]["official_transcript_label"] == "Official Census transcript"
     monkeypatch.setenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED", "true")
     production_enabled = client.get("/videos/housing-rent-why-rents-move").json()
     assert production_enabled["delivery"] == payload["videos"][0]["delivery"] | {"development_only": False}

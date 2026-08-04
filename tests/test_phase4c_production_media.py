@@ -14,7 +14,7 @@ def _root(tmp_path, *, allowlist=None, registry=None, fixture=None):
     values = {
         "config/watch_phase4c_production_media_allowlist.json": allowlist or json.loads(PATH.read_text(encoding="utf-8")),
         "config/watch_phase4c_source_registry.json": registry or json.loads((ROOT / "config/watch_phase4c_source_registry.json").read_text(encoding="utf-8")),
-        "data/watch_housing_rent.json": fixture or json.loads((ROOT / "data/watch_housing_rent.json").read_text(encoding="utf-8")),
+        "data/watch_census_production_pilot.json": fixture or json.loads((ROOT / "data/watch_census_production_pilot.json").read_text(encoding="utf-8")),
     }
     for relative, value in values.items():
         (tmp_path / relative).write_text(json.dumps(value), encoding="utf-8")
@@ -27,13 +27,17 @@ def test_exact_production_allowlist_is_valid_and_returns_only_one_item():
     delivery, accessibility = production_metadata("housing-rent-why-rents-move", root=ROOT, now=now)
     assert delivery["mode"] == "official_embed" and delivery["development_only"] is False
     assert accessibility["official_transcript_label"] == "Official Census transcript" and accessibility["development_only"] is False
+    fallback, fallback_accessibility = production_metadata("housing-rent-why-rents-move", root=ROOT, now=now, embed_enabled=False)
+    assert fallback["mode"] == "link_out" and fallback["canonical_url"].startswith("https://www.youtube.com/")
+    assert fallback_accessibility["official_transcript_label"] == "Official Census transcript"
     assert production_metadata("housing-rent-evidence-first", root=ROOT, now=now) == (None, None)
 
 
 def test_expired_evidence_fails_closed(tmp_path):
     report = validate_production_media(root=_root(tmp_path), now=datetime(2026, 11, 4, tzinfo=timezone.utc))
     assert "production_evidence_expired" in report.error_codes
-    assert production_metadata("housing-rent-why-rents-move", root=tmp_path, now=datetime(2026, 11, 4, tzinfo=timezone.utc)) == (None, None)
+    fallback, accessibility = production_metadata("housing-rent-why-rents-move", root=tmp_path, now=datetime(2026, 11, 4, tzinfo=timezone.utc))
+    assert fallback["mode"] == "link_out" and accessibility["text_kind"] == "overview"
 
 
 def test_source_or_item_identity_drift_fails_closed(tmp_path):

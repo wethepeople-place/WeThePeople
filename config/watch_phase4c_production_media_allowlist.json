@@ -4,6 +4,7 @@
   "production_media_enabled": true,
   "runtime_changes_authorized": true,
   "default_fallback": "link_out",
+  "production_fixture": "data/watch_census_production_pilot.json",
   "credentials_allowed": false,
   "downloads_allowed": false,
   "ingestion_allowed": false,
