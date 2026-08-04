@@ -98,7 +98,7 @@ def _story_rows(db):
             s.title or "",
             body[:1000],
             s.sector,
-            f"https://journal.wethepeopleforus.com/story/{s.slug}",
+            f"https://journal.wethepeople.place/story/{s.slug}",
         )
 
 

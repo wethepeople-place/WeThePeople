@@ -61,7 +61,7 @@ TARGET_TABLES = [
 ]
 
 WD_API = "https://www.wikidata.org/w/api.php"
-HEADERS = {"User-Agent": "WeThePeopleBot/1.0 (https://wethepeopleforus.com; ops@wethepeopleforus.com)"}
+HEADERS = {"User-Agent": "WeThePeopleBot/1.0 (https://app.wethepeople.place; ops@wethepeople.place)"}
 
 
 def _search_entities(name: str) -> list[str]:

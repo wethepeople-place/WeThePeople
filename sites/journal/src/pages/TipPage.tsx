@@ -56,7 +56,7 @@ export default function TipPage() {
     title: 'Send a tip — The Influence Journal',
     description:
       'Tip the editorial team about a story idea, a public record, or context an existing story is missing.',
-    canonical: 'https://journal.wethepeopleforus.com/tip',
+    canonical: 'https://journal.wethepeople.place/tip',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

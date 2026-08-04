@@ -1,6 +1,6 @@
 # The Influence Journal
 
-Data-driven investigations into corporate influence on government. Part of the [WeThePeople](https://wethepeopleforus.com) ecosystem.
+Data-driven investigations into corporate influence on government. Part of the [WeThePeople](https://app.wethepeople.place) ecosystem.
 
 ## Planned Features
 

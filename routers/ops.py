@@ -1046,8 +1046,8 @@ def story_queue_view(
             f"<h2>Not found</h2><p>Story {story_id} not found.</p>", status_code=404,
         )
 
-    api_base = os.getenv("WTP_API_BASE", "https://api.wethepeopleforus.com")
-    journal_base = os.getenv("WTP_JOURNAL_BASE", "https://journal.wethepeopleforus.com")
+    api_base = os.getenv("WTP_API_BASE", "https://api.wethepeople.place")
+    journal_base = os.getenv("WTP_JOURNAL_BASE", "https://journal.wethepeople.place")
 
     safe_title = html.escape(story.title or "Untitled")
     safe_summary = html.escape(story.summary or "")
@@ -1313,7 +1313,7 @@ def story_queue_approve_get(
     if not story:
         return HTMLResponse(f"<h2>Not found</h2><p>Story {story_id} not found.</p>", status_code=404)
 
-    journal_base = os.getenv("WTP_JOURNAL_BASE", "https://journal.wethepeopleforus.com")
+    journal_base = os.getenv("WTP_JOURNAL_BASE", "https://journal.wethepeople.place")
     safe_slug = html.escape(story.slug or "")
     article_url = f"{journal_base}/story/{safe_slug}" if safe_slug else journal_base
     safe_title = html.escape(story.title or "Untitled")
@@ -1884,7 +1884,7 @@ def tips_queue_view(
             related_html = ""
             if related:
                 related_html = (
-                    " · related: <a href='https://journal.wethepeopleforus.com/story/"
+                    " · related: <a href='https://journal.wethepeople.place/story/"
                     + related + "' target='_blank' style='color:#b45309;'>"
                     + related + "</a>"
                 )
@@ -1992,7 +1992,7 @@ def tip_detail_view(
     related_link = ""
     if related:
         related_link = (
-            "<a href='https://journal.wethepeopleforus.com/story/" + related
+            "<a href='https://journal.wethepeople.place/story/" + related
             + "' target='_blank' style='color:#b45309;'>" + related + "</a>"
         )
 
@@ -2296,7 +2296,7 @@ def engagement_dashboard(
         story_rows = "".join(
             "<tr>"
             "<td style='padding:8px 10px;font-size:13px;'>"
-            "<a href='https://journal.wethepeopleforus.com/story/"
+            "<a href='https://journal.wethepeople.place/story/"
             + html.escape(slug or "")
             + "' target='_blank' style='color:#b45309;text-decoration:none;'>"
             + html.escape((title or slug or "")[:90])

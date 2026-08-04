@@ -160,7 +160,7 @@ def _build_svg(
   <!-- Stats -->
   {stat_blocks}
   <!-- Branding -->
-  <text x="80" y="580" fill="rgba(255,255,255,0.3)" font-size="18" font-family="system-ui, sans-serif" font-weight="600">wethepeopleforus.com</text>
+  <text x="80" y="580" fill="rgba(255,255,255,0.3)" font-size="18" font-family="system-ui, sans-serif" font-weight="600">wethepeople.place</text>
   <text x="1120" y="580" fill="rgba(255,255,255,0.15)" font-size="14" font-family="system-ui, sans-serif" text-anchor="end">Civic Transparency Platform</text>
 </svg>'''
     return svg

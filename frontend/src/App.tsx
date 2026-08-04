@@ -14,7 +14,7 @@ import ChemicalsLayout from "./layouts/ChemicalsLayout";
 import AgricultureLayout from "./layouts/AgricultureLayout";
 import TelecomLayout from "./layouts/TelecomLayout";
 import EducationLayout from "./layouts/EducationLayout";
-// VerifyLayout removed — verification moved to verify.wethepeopleforus.com
+// VerifyLayout removed — verification moved to verify.wethepeople.place
 import DashboardLayout from "./layouts/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 // ChatAgent is mounted on every non-landing page but its
@@ -118,7 +118,7 @@ const DataExplorerPage = React.lazy(() => import("./pages/DataExplorerPage"));
 const DataStoryPage = React.lazy(() => import("./pages/DataStoryPage"));
 const InfluenceTimelinePage = React.lazy(() => import("./pages/InfluenceTimelinePage"));
 const AnomaliesPage = React.lazy(() => import("./pages/AnomaliesPage"));
-// Verify pages removed — verification moved to verify.wethepeopleforus.com
+// Verify pages removed — verification moved to verify.wethepeople.place
 const CivicHubPage = React.lazy(() => import("./pages/CivicHubPage"));
 const PromiseDetailPage = React.lazy(() => import("./pages/PromiseDetailPage"));
 const BadgesPage = React.lazy(() => import("./pages/BadgesPage"));

@@ -52,7 +52,7 @@ export function getApiBaseUrl(): string {
     if (apiOverride) {
       try {
         const parsed = new URL(apiOverride);
-        const allowed = ['localhost', '127.0.0.1', 'api.wethepeopleforus.com'];
+        const allowed = ['localhost', '127.0.0.1', 'api.wethepeople.place'];
         // Reject URLs that include a userinfo segment. `URL` resolves
         // hostname correctly for `https://attacker@victim/...` (hostname
         // is "victim", which would pass the allowlist), but the userinfo

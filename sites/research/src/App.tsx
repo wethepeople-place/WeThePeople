@@ -512,7 +512,7 @@ function HomePage() {
             >
               All data sourced from the{' '}
               <a
-                href="https://wethepeopleforus.com"
+                href="https://app.wethepeople.place"
                 style={{
                   color: 'var(--color-research)',
                   textDecoration: 'underline',
@@ -565,7 +565,7 @@ function SiteFooter() {
         </p>
         <div className="flex items-center gap-6">
           <a
-            href="https://wethepeopleforus.com"
+            href="https://app.wethepeople.place"
             style={linkStyle}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-research)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-3)')}
@@ -573,7 +573,7 @@ function SiteFooter() {
             Main Site
           </a>
           <a
-            href="https://wethepeopleforus.com/methodology"
+            href="https://app.wethepeople.place/methodology"
             style={linkStyle}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-research)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-3)')}

@@ -49,7 +49,7 @@ const SECTIONS: LongformSection[] = [
     ],
     callout: {
       label: 'Editorial standards',
-      text: 'Public, dated, mapped to SPJ + AP. journal.wethepeopleforus.com/standards',
+      text: 'Public, dated, mapped to SPJ + AP. journal.wethepeople.place/standards',
     },
   },
   {
@@ -70,7 +70,7 @@ const SECTIONS: LongformSection[] = [
     id: 'contact',
     title: 'Get in touch',
     body: [
-      'Press inquiries: press@wethepeopleforus.com (replies within 1 business day; faster if your deadline is tight).',
+      'Press inquiries: press@wethepeople.place (replies within 1 business day; faster if your deadline is tight).',
       'Data corrections, security disclosures, and general questions: wethepeopleforus@gmail.com.',
       'How to cite: see the citation guide at /cite for the recommended format and per-dataset attribution lines.',
     ],

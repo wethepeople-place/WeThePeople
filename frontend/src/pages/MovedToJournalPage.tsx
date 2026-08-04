@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ExternalLink, ArrowLeft, Newspaper, ArrowUpRight } from 'lucide-react';
 
-const JOURNAL_BASE = 'https://journal.wethepeopleforus.com';
+const JOURNAL_BASE = 'https://journal.wethepeople.place';
 
 /**
  * Replaces the previous /stories and /stories/:slug routes.
@@ -214,7 +214,7 @@ export default function MovedToJournalPage() {
             letterSpacing: '0.04em',
           }}
         >
-          journal.wethepeopleforus.com
+          journal.wethepeople.place
         </p>
       </div>
     </div>

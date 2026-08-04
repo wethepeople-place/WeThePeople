@@ -136,8 +136,8 @@ export default function FinanceDashboardPage() {
 
   const subNavLinks: SubNavLink[] = [
     { to: '/finance/institutions', label: 'Institutions', desc: 'Full institution directory', color: 'var(--color-green)' },
-    { to: 'https://research.wethepeopleforus.com/insider-trades', label: 'Insider trades', desc: 'Corporate insider trading (WTP Research)', color: 'var(--color-research)', external: true },
-    { to: 'https://research.wethepeopleforus.com/news', label: 'News & regulatory', desc: 'Latest sector developments (WTP Research)', color: 'var(--color-research)', external: true },
+    { to: 'https://research.wethepeople.place/insider-trades', label: 'Insider trades', desc: 'Corporate insider trading (WTP Research)', color: 'var(--color-research)', external: true },
+    { to: 'https://research.wethepeople.place/news', label: 'News & regulatory', desc: 'Latest sector developments (WTP Research)', color: 'var(--color-research)', external: true },
     { to: '/finance/compare', label: 'Compare', desc: 'Side-by-side institution analysis', color: 'var(--color-ind)' },
   ];
 
@@ -171,7 +171,7 @@ export default function FinanceDashboardPage() {
         sub="Lobbying, contracts, enforcement, and insider trades across the nation's largest banks, insurers, and investment firms."
         ctas={[
           { label: 'Browse institutions', to: '/finance/institutions', primary: true },
-          { label: 'Insider trades', to: 'https://research.wethepeopleforus.com/insider-trades', external: true, badge: 'Research' },
+          { label: 'Insider trades', to: 'https://research.wethepeople.place/insider-trades', external: true, badge: 'Research' },
         ]}
         rightSlot={statCards.map((stat) => (
           <StatCard key={stat.label} {...stat} />
@@ -242,7 +242,7 @@ export default function FinanceDashboardPage() {
           <SectionHeading
             title="Recent activity"
             linkLabel="Full feed"
-            linkTo="https://research.wethepeopleforus.com/insider-trades"
+            linkTo="https://research.wethepeople.place/insider-trades"
             external
           />
           <div

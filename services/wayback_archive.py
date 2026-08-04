@@ -56,7 +56,7 @@ def archive_url(target_url: str, timeout_s: int = DEFAULT_TIMEOUT_S) -> Optional
             SAVE_API + target_url,
             timeout=timeout_s,
             allow_redirects=True,
-            headers={"User-Agent": "WeThePeople-Journal/1.0 (+https://wethepeopleforus.com)"},
+            headers={"User-Agent": "WeThePeople-Journal/1.0 (+https://app.wethepeople.place)"},
         )
     except Exception as e:
         logger.warning("wayback_archive: request failed for %s: %s", target_url, e)
@@ -88,7 +88,7 @@ def archive_url(target_url: str, timeout_s: int = DEFAULT_TIMEOUT_S) -> Optional
 def archive_published_story(slug: str, journal_base: Optional[str] = None) -> Optional[str]:
     """Submit a published story URL to the Wayback Machine."""
     base = journal_base or os.getenv(
-        "WTP_JOURNAL_BASE", "https://journal.wethepeopleforus.com"
+        "WTP_JOURNAL_BASE", "https://journal.wethepeople.place"
     )
     if not slug:
         return None

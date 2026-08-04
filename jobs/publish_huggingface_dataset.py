@@ -90,7 +90,7 @@ pretty_name: WeThePeople — US Civic Influence Dataset
 
 # WeThePeople — US Civic Influence Dataset
 
-Nightly mirror of the [WeThePeople](https://wethepeopleforus.com) civic-transparency
+Nightly mirror of the [WeThePeople](https://app.wethepeople.place) civic-transparency
 platform. Tracks how corporate money moves through US federal politics:
 lobbying disclosures, congressional stock trades, government contracts,
 enforcement actions, PAC donations, and the 537 sitting members of
@@ -104,9 +104,9 @@ retractions are filtered out. Everything else is included verbatim.
 
 - **Filename:** `{snapshot_filename}`
 - **Generated:** {generated_at}
-- **Bulk SQLite:** [https://api.wethepeopleforus.com/bulk/snapshot](https://api.wethepeopleforus.com/bulk/snapshot)
-- **Manifest:** [https://api.wethepeopleforus.com/bulk/manifest](https://api.wethepeopleforus.com/bulk/manifest)
-- **CSV exports:** [https://api.wethepeopleforus.com/export/_index](https://api.wethepeopleforus.com/export/_index)
+- **Bulk SQLite:** [https://api.wethepeople.place/bulk/snapshot](https://api.wethepeople.place/bulk/snapshot)
+- **Manifest:** [https://api.wethepeople.place/bulk/manifest](https://api.wethepeople.place/bulk/manifest)
+- **CSV exports:** [https://api.wethepeople.place/export/_index](https://api.wethepeople.place/export/_index)
 
 ## What's in here
 
@@ -148,7 +148,7 @@ For full SQL access, use the SQLite snapshot directly — same schema,
 same data:
 
 ```bash
-curl -L https://api.wethepeopleforus.com/bulk/snapshot -o wtp.db.gz
+curl -L https://api.wethepeople.place/bulk/snapshot -o wtp.db.gz
 gunzip wtp.db.gz
 sqlite3 wtp.db "SELECT * FROM stories LIMIT 5;"
 ```
@@ -181,7 +181,7 @@ sqlite3 wtp.db "SELECT * FROM stories LIMIT 5;"
 
 Attribution appreciated:
 
-> Data: WeThePeople (wethepeopleforus.com), aggregated from public US government records.
+> Data: WeThePeople (wethepeople.place), aggregated from public US government records.
 
 ## Citation
 

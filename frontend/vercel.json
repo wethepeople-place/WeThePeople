@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/watch/:videoId",
-      "destination": "https://api.wethepeopleforus.com/videos/:videoId/preview"
+      "destination": "https://api.wethepeople.place/videos/:videoId/preview"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://api.wethepeopleforus.com/:path*"
+      "destination": "https://api.wethepeople.place/:path*"
     },
     {
       "source": "/((?!api/).*)",

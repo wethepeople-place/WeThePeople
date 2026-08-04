@@ -57,7 +57,7 @@ import type {
 // Last-resort fallback if expo Constants isn't readable for any reason.
 // Normally the URL comes from app.config.ts -> extra.apiUrl, which already
 // defaults to production when WTP_API_URL is unset at build time.
-const PRODUCTION_API = 'https://api.wethepeopleforus.com';
+const PRODUCTION_API = 'https://api.wethepeople.place';
 
 function getApiUrl(): string {
   try {

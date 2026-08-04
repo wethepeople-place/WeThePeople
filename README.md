@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://wethepeopleforus.com/favicon.svg" alt="WeThePeople" width="80" />
+  <img src="https://app.wethepeople.place/favicon.svg" alt="WeThePeople" width="80" />
 </p>
 
 <h1 align="center">WeThePeople</h1>
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img alt="Vercel" src="https://img.shields.io/badge/frontend-Vercel-black?logo=vercel" />
+  <img alt="GitHub Pages" src="https://img.shields.io/badge/frontend-GitHub%20Pages-222?logo=github" />
   <img alt="FastAPI" src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" />
   <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" />
@@ -36,10 +36,10 @@ WeThePeople is an open-source civic social video network where people share pers
 
 | Platform | Status | Description |
 |----------|--------|-------------|
-| **[WeThePeople](https://wethepeopleforus.com)** | Live | The core lobbying and influence tracker. Congressional trades, money flows, enforcement actions, lobbying filings, government contracts. 1,000+ tracked entities across 11 sectors. |
-| **[WTP Research](https://research.wethepeopleforus.com)** | Live | 21 deep-dive research tools: patent explorer, drug lookup, clinical trials, insider trades, FDA recalls, toxic releases, foreign lobbying (FARA), revolving door tracker, campaign finance, government salaries, bill text analysis, market movers, regulatory news, earmarks tracker, college scorecard, FCC complaints, federal grants, food safety, spectrum search, student loans, treasury data. |
-| **[The Influence Journal](https://journal.wethepeopleforus.com)** | In editorial review | AI-generated data investigations from 20 detection patterns. The journal subdomain serves an "in editorial review" placeholder while every published story is audited against [`research/EDITORIAL_STANDARDS.md`](research/EDITORIAL_STANDARDS.md) (the canonical 5-part editorial standard installed May 2026). The data pipeline, detectors, and Veritas verification continue to run; story regeneration under the new standards is in progress. Stories will return only after passing the regression audit and human review. |
-| **[Veritas Verify](https://verify.wethepeopleforus.com)** | Live | Public claim-verification interface. Submit any URL, transcript, or text — Veritas extracts every verifiable claim, scores each against 70+ authoritative evidence sources via BM25, and produces a structured verdict with linked evidence. Backed by automated daily ingestion of government RSS feeds (Federal Register, Congress, SEC, Treasury, GAO, etc.) and institutional sources. Zero AI hallucination — deterministic by design. |
+| **[WeThePeople](https://app.wethepeople.place)** | Deployment in progress | The full civic application, hosted separately from the public landing page. |
+| **WTP Research** | Planned | Deep-dive civic research tools; its production subdomain is not configured yet. |
+| **The Influence Journal** | Planned | Data investigations remain in editorial and infrastructure review. |
+| **Veritas Verify** | Planned | Claim-verification interface; automatic legacy deployment is disabled pending infrastructure review. |
 | **Mobile App** | Preview | iOS and Android via Expo SDK 54. 45+ screens covering all 11 sectors, congressional trades, ZIP lookup, stories, anomalies, state explorer, influence network, chat agent, account/auth, watchlists, and company comparison. Available via Expo Go preview channel. |
 
 ---
@@ -289,7 +289,7 @@ cd mobile && npm ci && npm run start
 
 ## API
 
-Interactive docs at [`/docs`](https://api.wethepeopleforus.com/docs) (Swagger) and [`/redoc`](https://api.wethepeopleforus.com/redoc) (ReDoc).
+Interactive docs at [`/docs`](https://api.wethepeople.place/docs) (Swagger) and [`/redoc`](https://api.wethepeople.place/redoc) (ReDoc).
 
 The API is versioned under `/v1/` with backward-compatible unprefixed routes. Rate limited at 60 req/min per IP.
 
@@ -373,22 +373,22 @@ Some proprietary components (detection engine, claim verification pipeline / Ver
 WeThePeople is built and maintained by **[Obelus Labs LLC](https://github.com/Obelus-Labs-LLC)**, a US-registered LLC focused on civic transparency and accountability tooling. Solo-founded and currently self-funded.
 
 For commercial licensing, enterprise verification API access, custom data engagements, or partnership inquiries: **wethepeopleforus@gmail.com**.
-Press inquiries: **press@wethepeopleforus.com**.
+Press inquiries: **press@wethepeople.place**.
 
 ## Citing the platform
 
-Journalists and researchers should cite the underlying primary source first (Senate LDA, FEC, USASpending.gov, Congress.gov, etc.). When attribution to the platform is appropriate, see the [Citation Guide](https://wethepeopleforus.com/cite) for recommended formats and per-dataset attribution lines.
+Journalists and researchers should cite the underlying primary source first (Senate LDA, FEC, USASpending.gov, Congress.gov, etc.). When attribution to the platform is appropriate, see the [Citation Guide](https://app.wethepeople.place/cite) for recommended formats and per-dataset attribution lines.
 
 ## Editorial standards
 
-The Influence Journal's editorial standards are published at [journal.wethepeopleforus.com/standards](https://journal.wethepeopleforus.com/standards) and apply to every story. The page maps each rule explicitly to the [SPJ Code of Ethics](https://www.spj.org/ethicscode.asp) and the [AP guidelines on generative AI](https://www.ap.org/about/news-values-and-principles/standards-around-generative-ai/). It covers what we publish, what we refuse, how we verify, how we correct, and how we stay independent.
+The Influence Journal's editorial standards are published at [journal.wethepeople.place/standards](https://journal.wethepeople.place/standards) and apply to every story. The page maps each rule explicitly to the [SPJ Code of Ethics](https://www.spj.org/ethicscode.asp) and the [AP guidelines on generative AI](https://www.ap.org/about/news-values-and-principles/standards-around-generative-ai/). It covers what we publish, what we refuse, how we verify, how we correct, and how we stay independent.
 
-Veritas, our verification engine, is a deterministic source-matching layer (not a language model). The methodology is documented at [/verify-our-data](https://journal.wethepeopleforus.com/verify-our-data).
+Veritas, our verification engine, is a deterministic source-matching layer (not a language model). The methodology is documented at [/verify-our-data](https://journal.wethepeople.place/verify-our-data).
 
 ---
 
 <p align="center">
-  <strong><a href="https://wethepeopleforus.com">wethepeopleforus.com</a></strong>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://twitter.com/WTPForUs">Twitter</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/sponsors/Obelus-Labs-LLC">GitHub Sponsors</a>
+  <strong><a href="https://app.wethepeople.place">wethepeople.place</a></strong>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://twitter.com/WTPForUs">Twitter</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://github.com/sponsors/Obelus-Labs-LLC">GitHub Sponsors</a>
 </p>
 
 <p align="center">

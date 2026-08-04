@@ -92,9 +92,9 @@ export default function HomePage() {
 
   // Authoritative auth state — combines local Bearer token (set when the
   // user logged in on this origin) with a cross-subdomain session probe
-  // (covers users who logged in on wethepeopleforus.com whose
-  // wtp_session cookie is now valid on .wethepeopleforus.com but
-  // whose localStorage on verify.wethepeopleforus.com is empty).
+  // (covers users who logged in on wethepeople.place whose
+  // wtp_session cookie is now valid on .wethepeople.place but
+  // whose localStorage on verify.wethepeople.place is empty).
   // Starts as null = unknown so the UI doesn't flash "Sign in to verify"
   // before we know.
   const [sessionAuthed, setSessionAuthed] = useState<boolean | null>(
@@ -288,7 +288,7 @@ export default function HomePage() {
                     Sign in
                   </a>
                   <a
-                    href="https://wethepeopleforus.com/signup?next=https://verify.wethepeopleforus.com"
+                    href="https://app.wethepeople.place/signup?next=https://verify.wethepeople.place"
                     style={{
                       fontFamily: FONT_MONO, fontSize: 11, fontWeight: 700,
                       letterSpacing: '0.18em', textTransform: 'uppercase',
@@ -303,7 +303,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <a
-                    href="https://wethepeopleforus.com/pricing"
+                    href="https://app.wethepeople.place/pricing"
                     style={{
                       fontFamily: FONT_MONO, fontSize: 11, fontWeight: 700,
                       letterSpacing: '0.18em', textTransform: 'uppercase',

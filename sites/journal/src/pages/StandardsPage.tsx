@@ -140,7 +140,7 @@ export default function StandardsPage() {
     title: 'Editorial Standards — The Influence Journal',
     description:
       'Public editorial standards for The Influence Journal, mapped explicitly to the SPJ Code of Ethics and AP guidelines on generative AI. How we verify, correct, disclose AI use, and stay independent.',
-    canonical: 'https://journal.wethepeopleforus.com/standards',
+    canonical: 'https://journal.wethepeople.place/standards',
   });
 
   return (
@@ -380,14 +380,14 @@ export default function StandardsPage() {
           believe a story contains a factual error, that is the fastest path to a
           correction. You can also email{' '}
           <a
-            href="mailto:editor@wethepeopleforus.com"
+            href="mailto:editor@wethepeople.place"
             style={{
               color: 'var(--color-accent-text)',
               textDecoration: 'underline',
               textUnderlineOffset: '3px',
             }}
           >
-            editor@wethepeopleforus.com
+            editor@wethepeople.place
           </a>
           .
         </p>

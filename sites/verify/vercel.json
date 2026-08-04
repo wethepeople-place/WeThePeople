@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api.wethepeopleforus.com/:path*"
+      "destination": "https://api.wethepeople.place/:path*"
     },
     {
       "source": "/claims/:path*",
-      "destination": "https://api.wethepeopleforus.com/claims/:path*"
+      "destination": "https://api.wethepeople.place/claims/:path*"
     },
     {
       "source": "/((?!api/|claims/).*)",

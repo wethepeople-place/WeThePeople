@@ -1,6 +1,6 @@
 # WTP Research
 
-Deep-dive research tools for civic data. Part of the [WeThePeople](https://wethepeopleforus.com) ecosystem.
+Deep-dive research tools for civic data. Part of the [WeThePeople](https://app.wethepeople.place) ecosystem.
 
 ## Planned Features
 

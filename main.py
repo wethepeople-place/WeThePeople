@@ -123,7 +123,7 @@ app.add_middleware(RateLimitHeadersMiddleware)
 # --- CORS ---
 _cors_origins_raw = os.getenv(
     "CORS_ALLOW_ORIGINS",
-    "https://wethepeopleforus.com,https://www.wethepeopleforus.com,http://localhost:5173,http://127.0.0.1:5173",
+    "https://app.wethepeople.place,https://www.wethepeople.place,http://localhost:5173,http://127.0.0.1:5173",
 )
 _cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
 if _cors_origins:

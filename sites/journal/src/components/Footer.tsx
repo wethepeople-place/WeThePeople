@@ -8,9 +8,9 @@ const LINKS: Array<{ label: string; to?: string; href?: string }> = [
   { label: 'Coverage', to: '/coverage' },
   { label: 'Verify Data', to: '/verify-our-data' },
   { label: 'Corrections', to: '/corrections' },
-  { label: 'Main Site', href: 'https://wethepeopleforus.com' },
-  { label: 'Research', href: 'https://research.wethepeopleforus.com' },
-  { label: 'Methodology', href: 'https://wethepeopleforus.com/methodology' },
+  { label: 'Main Site', href: 'https://app.wethepeople.place' },
+  { label: 'Research', href: 'https://research.wethepeople.place' },
+  { label: 'Methodology', href: 'https://app.wethepeople.place/methodology' },
   { label: 'GitHub', href: 'https://github.com/Obelus-Labs-LLC/WeThePeople' },
 ];
 

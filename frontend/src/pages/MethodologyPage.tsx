@@ -57,7 +57,7 @@ const SECTIONS: LongformSection[] = [
     id: 'corrections',
     title: 'Corrections and data audits',
     body: [
-      'Errors in upstream government data are frequent and often discovered weeks late. We run nightly reconciliation jobs. Story-level corrections are published in the journal at journal.wethepeopleforus.com/corrections; commit-level fixes are tracked in CHANGELOG.md in the public repo. If you find an error, email wethepeopleforus@gmail.com.',
+      'Errors in upstream government data are frequent and often discovered weeks late. We run nightly reconciliation jobs. Story-level corrections are published in the journal at journal.wethepeople.place/corrections; commit-level fixes are tracked in CHANGELOG.md in the public repo. If you find an error, email wethepeopleforus@gmail.com.',
     ],
   },
   {
@@ -65,7 +65,7 @@ const SECTIONS: LongformSection[] = [
     id: 'replicability',
     title: 'Reproducing our work',
     body: [
-      'All computation code is open-source at github.com/Obelus-Labs-LLC/WeThePeople. The API itself is the canonical export surface — every published number traces back to a public api.wethepeopleforus.com endpoint, which returns JSON suitable for tooling. Academic researchers can request a bulk ETL snapshot via wethepeopleforus@gmail.com.',
+      'All computation code is open-source at github.com/Obelus-Labs-LLC/WeThePeople. The API itself is the canonical export surface — every published number traces back to a public api.wethepeople.place endpoint, which returns JSON suitable for tooling. Academic researchers can request a bulk ETL snapshot via wethepeopleforus@gmail.com.',
     ],
   },
 ];

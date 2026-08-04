@@ -75,8 +75,8 @@ const BOT_PATTERNS = [
   'chrome-lighthouse',
 ];
 
-const API_BASE = 'https://api.wethepeopleforus.com';
-const SITE_URL = 'https://journal.wethepeopleforus.com';
+const API_BASE = 'https://api.wethepeople.place';
+const SITE_URL = 'https://journal.wethepeople.place';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 // Static sitemap entries that don't depend on the API.
@@ -145,7 +145,7 @@ async function handleStoryForBot(slug) {
       author: {
         '@type': 'Organization',
         name: 'WeThePeople Research',
-        url: 'https://wethepeopleforus.com',
+        url: 'https://app.wethepeople.place',
       },
       publisher: {
         '@type': 'Organization',

@@ -1026,7 +1026,7 @@ def _email_draft_for_review(
     # marketing host. Default to the production API base; allow
     # override per environment.
     queue_url = os.getenv(
-        "WTP_QUEUE_URL", "https://api.wethepeopleforus.com/ops/story-queue",
+        "WTP_QUEUE_URL", "https://api.wethepeople.place/ops/story-queue",
     )
     # Sign a per-story, view-only token (72h expiry) so the email link
     # never carries the raw press key.

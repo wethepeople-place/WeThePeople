@@ -60,7 +60,7 @@ def _set_session_cookie(response: Response, access_token: str) -> None:
     sites (journal/research/verify) authenticate with the same JWT
     without rebuilding their own JWT-in-localStorage flow.
 
-    Domain=.wethepeopleforus.com is set in production via
+    Domain=.wethepeople.place is set in production via
     WTP_COOKIE_DOMAIN. In dev (localhost) the env var is empty so
     the cookie scopes to the current host, which is what we want.
     HttpOnly so XSS can't read the token; SameSite=Lax so it still
@@ -553,7 +553,7 @@ def request_email_verification(
     sent = False
     try:
         from services.email import send_email
-        app_url = os.getenv("WTP_PUBLIC_APP_URL", "https://wethepeopleforus.com").rstrip("/")
+        app_url = os.getenv("WTP_PUBLIC_APP_URL", "https://app.wethepeople.place").rstrip("/")
         verify_url = f"{app_url}/verify-email?token={raw_token}"
         sent = send_email(
             to=[user.email], subject="Verify your WeThePeople email",
@@ -633,7 +633,7 @@ def forgot_password(
         # consumer can look the user up without re-querying by email.
         from services.jwt_auth import create_password_reset_token
         token = create_password_reset_token(user.id, user.email, user.session_version or 1)
-        reset_url = f"https://wethepeopleforus.com/reset-password?token={token}"
+        reset_url = f"https://app.wethepeople.place/reset-password?token={token}"
 
         # Compose the email. Plain HTML, no template engine needed.
         html = f"""
@@ -843,8 +843,8 @@ def get_me(
     Side effect — refresh the cross-subdomain `wtp_session` cookie on
     the way out. Users who logged in BEFORE the cookie wiring shipped
     only have their JWT in localStorage on the main host; their
-    browser has no cookie scoped to .wethepeopleforus.com, so visits
-    to verify.wethepeopleforus.com / journal.wethepeopleforus.com
+    browser has no cookie scoped to .wethepeople.place, so visits
+    to verify.wethepeople.place / journal.wethepeople.place
     show the auth wall even though their main-site session is valid.
     Re-minting the cookie here on every /auth/me call (idempotent —
     same token, same domain, same expiry) heals those pre-existing
@@ -1433,7 +1433,7 @@ def create_checkout(
         )
 
     stripe.api_key = stripe_key
-    origin = os.getenv("WTP_PUBLIC_ORIGIN", "https://wethepeopleforus.com").rstrip("/")
+    origin = os.getenv("WTP_PUBLIC_ORIGIN", "https://app.wethepeople.place").rstrip("/")
 
     try:
         session = stripe.checkout.Session.create(

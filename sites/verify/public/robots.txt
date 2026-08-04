@@ -5,4 +5,4 @@ Allow: /
 # don't waste crawler budget on /results/quick or /results/{id}.
 Disallow: /results/
 
-Sitemap: https://verify.wethepeopleforus.com/sitemap.xml
+Sitemap: https://verify.wethepeople.place/sitemap.xml

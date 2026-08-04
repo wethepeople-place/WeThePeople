@@ -162,7 +162,7 @@ export default function CoverageBalancePage() {
     title: 'Coverage Balance — The Influence Journal',
     description:
       'Live, non-partisan breakdown of every published Influence Journal story by party, sector, and category.',
-    canonical: 'https://journal.wethepeopleforus.com/coverage',
+    canonical: 'https://journal.wethepeople.place/coverage',
   });
 
   useEffect(() => {

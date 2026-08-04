@@ -702,7 +702,7 @@ export default function MethodologyPage() {
   usePageMeta({
     title: `${page.title} — The Influence Journal`,
     description: page.metaDescription,
-    canonical: `https://journal.wethepeopleforus.com/methodology${
+    canonical: `https://journal.wethepeople.place/methodology${
       key === 'index' ? '' : `/${key}`
     }`,
   });

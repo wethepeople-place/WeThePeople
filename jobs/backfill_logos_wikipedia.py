@@ -60,7 +60,7 @@ TARGET_TABLES = [
 ]
 
 WP_MEDIA_API = "https://en.wikipedia.org/api/rest_v1/page/media-list/"
-HEADERS = {"User-Agent": "WeThePeopleBot/1.0 (https://wethepeopleforus.com)"}
+HEADERS = {"User-Agent": "WeThePeopleBot/1.0 (https://app.wethepeople.place)"}
 
 # Words in a filename that disqualify it as a logo candidate. Most of
 # these come from caught false positives in the smoke test —

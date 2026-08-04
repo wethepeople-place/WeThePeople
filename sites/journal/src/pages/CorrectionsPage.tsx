@@ -116,7 +116,7 @@ export default function CorrectionsPage() {
     title: 'Corrections & Retractions — The Influence Journal',
     description:
       "WeThePeople's full record of corrections, updates, and retractions across every Influence Journal story.",
-    canonical: 'https://journal.wethepeopleforus.com/corrections',
+    canonical: 'https://journal.wethepeople.place/corrections',
   });
 
   useEffect(() => {
