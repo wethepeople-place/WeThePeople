@@ -57,6 +57,8 @@ COPY jobs/ jobs/
 COPY utils/ utils/
 COPY alembic/ alembic/
 COPY alembic.ini .
+COPY alembic_canonical/ alembic_canonical/
+COPY alembic-canonical.ini .
 
 # Environment
 ENV PYTHONUNBUFFERED=1 \
