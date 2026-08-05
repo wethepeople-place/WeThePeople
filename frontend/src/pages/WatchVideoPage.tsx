@@ -140,11 +140,12 @@ export default function WatchVideoPage() {
   const navigate = useNavigate();
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeId, setActiveId] = useState(videoId || '');
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${getApiBaseUrl()}/videos?limit=25`, { signal: controller.signal }).then(async (r) => { if (!r.ok) throw new Error('Watch could not load'); return r.json() as Promise<Feed>; }).then((feed) => { setVideos(feed.videos); setActiveId((id) => id || feed.videos[0]?.video_id || ''); }).catch((e) => { if (e.name !== 'AbortError') setError(e.message); });
+    fetch(`${getApiBaseUrl()}/videos?limit=25`, { signal: controller.signal }).then(async (r) => { if (!r.ok) throw new Error('Watch could not load'); return r.json() as Promise<Feed>; }).then((feed) => { setVideos(feed.videos); setActiveId((id) => id || feed.videos[0]?.video_id || ''); setLoaded(true); }).catch((e) => { if (e.name !== 'AbortError') setError(e.message); });
     return () => controller.abort();
   }, []);
   useEffect(() => {
@@ -155,6 +156,7 @@ export default function WatchVideoPage() {
     return () => observer.disconnect();
   }, [videos, videoId, navigate]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
-  if (!videos.length) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
+  if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
+  if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-12 text-center text-white"><h1 className="text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
   return <main className="h-screen snap-y snap-mandatory overflow-y-auto bg-[#070b14]">{videos.map((item) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} />)}</main>;
 }
