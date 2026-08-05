@@ -2,7 +2,7 @@
 
 Date: 2026-08-05
 
-Status: Proposed provider decision; research only
+Status: Mux selected for pilot planning; credentials, resources, and implementation deferred
 
 ## Recommendation
 
@@ -44,7 +44,7 @@ Pilot maximum:
 - Delivery: 5,000 minutes, within the first 100,000 free minutes = **USD 0**.
 - Modeled usage total: **USD 0.30/month** before taxes or optional features.
 
-Important billing caveat: Mux's Free plan stores only 10 videos, so it cannot hold the 20-video pilot. The official pricing page says Pay As You Go has no storage limit and includes a USD 20 monthly usage credit. The comparison treats USD 0.30 as metered usage and expects it to fit inside that credit, but account/payment requirements and whether any minimum invoice applies must be confirmed at approval time. Do not assume a zero invoice until the live checkout terms are reviewed.
+Mux's Free plan stores only 10 videos, so it cannot hold the 20-video pilot. The official pricing page says Pay As You Go has no storage limit and includes a USD 20 monthly usage credit. On 2026-08-05, the owner reviewed the live PAYG checkout, which stated USD 0 due today and end-of-cycle billing only for usage, plus applicable sales tax. The owner then enrolled the account in PAYG. The modeled USD 0.30 usage fits inside the listed USD 20 monthly credit, so the expected provider usage charge is USD 0 unless pricing, credit eligibility, taxes, or actual usage changes.
 
 Stress check within the hard ceiling: after the free delivery allowance, USD 99.70 would buy about 99,700 additional 1080p delivery minutes at the first paid tier. The contract's 5,000-minute maximum is therefore far below the USD 100 guardrail.
 
@@ -69,7 +69,7 @@ At the stricter 60-minute published-library case, the bill remains USD 5 storage
 
 | Provider | Maximum modeled pilot cost | Billing caveat | Ceiling margin |
 |---|---:|---|---:|
-| Mux Basic PAYG | USD 0.30/month metered usage | Free plan is limited to 10 stored videos; confirm PAYG payment/minimum-invoice terms | USD 99.70 |
+| Mux Basic PAYG | USD 0.30/month metered usage; expected to be covered by the USD 20 credit | Live checkout confirmed USD 0 today and usage-only end-of-cycle billing; monitor taxes and term changes | USD 99.70 |
 | Cloudflare Stream | USD 10/month | USD 5 prepaid storage block plus post-paid delivery | USD 90 |
 
 Neither provider requires anything close to USD 100 for the approved pilot envelope. The ceiling remains a kill-switch threshold, not a budget target.
@@ -95,12 +95,12 @@ Neither provider requires anything close to USD 100 for the approved pilot envel
 ## Unresolved blockers and evidence gaps
 
 - Neither reviewed product documentation establishes built-in malware scanning suitable for the contract's malware gate. Before implementation, approve a quarantine/scanning design or amend the gate with equivalent documented media-validation controls. Direct-upload completion alone is not a clean malware result.
-- Mux's reviewed documentation establishes resumable direct upload but did not provide a definitive self-service file-size/concurrency limit for the intended PAYG account. Confirm that the 2 GB contract limit is supported before signup approval.
+- Mux's reviewed documentation establishes resumable direct upload but did not provide a definitive self-service file-size/concurrency limit for the PAYG account. Confirm that the 2 GB contract limit is supported before credential or resource approval.
 - Neither public product guide is sufficient proof of backup-purge timing or complete deletion from subprocessors. Confirm deletion commitments and lawful-hold behavior through the then-current DPA, privacy terms, and support response.
-- The Mux pricing page describes a USD 20 monthly usage credit but does not clearly resolve minimum-invoice/payment-card behavior in the reviewed text. Obtain written or checkout-level confirmation before treating the modeled USD 0.30 as the invoice amount.
+- The live Mux PAYG checkout resolved the minimum-charge question for enrollment by stating USD 0 due today and usage-only end-of-cycle billing. Pricing, credit eligibility, tax treatment, and checkout terms must still be rechecked before future plan changes.
 - Cloudflare's prepaid storage purchase is clear, but taxes, currency conversion, and account-wide interactions with existing Cloudflare services are outside this model.
 
-These gaps block account approval or implementation; they do not reverse the provisional Mux recommendation.
+These gaps block credential creation, provider resources, or implementation; they do not reverse the Mux selection for pilot planning.
 
 ## Security and privacy findings
 
@@ -166,11 +166,11 @@ Provider payloads map into application-owned states; they never directly change 
 - Live video, DRM, custom media domains, MP4 public downloads, watermarking, premium encoding, paid AI workflows, viewer-level analytics, and more than one provider in production.
 - TikTok Share Kit/Direct Post, which remains downstream of the independent canonical creator pilot.
 
-## Approval gates before any account is created
+## Approval gates before credentials or provider resources are created
 
-1. Confirm Mux PAYG payment requirements, USD 20 usage-credit behavior, tax treatment, and absence/presence of a minimum monthly invoice.
+1. Treat PAYG enrollment as complete; do not change plans without rechecking pricing, credits, taxes, and recurring terms.
 2. Review Mux's then-current DPA, security materials, subprocessor list, data locations, deletion behavior, incident terms, and account-level access controls.
-3. Confirm exact direct-upload file, duration, timeout, and concurrency limits for the intended account tier.
+3. Confirm exact direct-upload file, duration, timeout, and concurrency limits for the PAYG account.
 4. Approve the proposed privacy posture: private-by-default review playback, wildcard CORS forbidden, optional viewer cookie disabled, no direct personal identifiers in provider metadata.
 5. Approve a cost monitor at USD 50 warning, USD 75 upload freeze, and USD 100 hard publication freeze. These controls require current usage data and must fail safely if billing telemetry is unavailable.
 6. Approve the provider adapter design and fake-adapter contract tests before provider SDK installation.
