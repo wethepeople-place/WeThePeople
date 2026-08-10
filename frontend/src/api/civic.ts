@@ -161,7 +161,31 @@ export function reviseSolution(solutionId: number, data: { title: string; summar
 export interface PublicDiscussionDetail {
   id: number; body: string; author: { display_name: string }; created_at: string;
   replies: Array<{ id: number; body: string; author: { display_name: string }; created_at: string }>;
-  attachments: Array<{ type: string; reference_id: string; label: string | null }>;
+  attachments: Array<{
+    type: 'video' | 'issue' | 'bill' | 'politician' | 'solution' | 'source';
+    reference_id: string;
+    label: string | null;
+    source?: { url: string; publisher: string } | null;
+  }>;
+}
+
+export interface PublicDiscussionPost {
+  id: number;
+  body: string;
+  author: { id: number | null; display_name: string };
+  moderation_status: 'published';
+  reply_count: number;
+  created_at: string;
+  updated_at: string;
+  attachments: Array<{
+    type: 'video' | 'issue' | 'bill' | 'politician' | 'solution' | 'source';
+    reference_id: string;
+    label: string | null;
+  }>;
+}
+
+export function fetchPublicDiscussions(issueSlug?: string) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: issueSlug ? { issue_slug: issueSlug } : {} });
 }
 
 export function fetchPublicDiscussion(postId: number) {

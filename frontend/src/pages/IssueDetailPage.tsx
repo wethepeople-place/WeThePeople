@@ -42,6 +42,10 @@ export default function IssueDetailPage() {
         <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.evidence.length} evidence series</span>
         <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.bills.length} reviewed bills</span>
         <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/issues/${slug}/solutions`}>Citizen solutions</Link>
+        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/discuss?issue=${encodeURIComponent(slug)}`}>Public discussion</Link>
+        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to="/government">Government activity</Link>
+        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`}>Find your representatives</Link>
+        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/courts?issue=${encodeURIComponent(slug)}`}>Related court proceedings</Link>
       </div>
 
       <section className="mt-14">

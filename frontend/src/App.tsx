@@ -25,6 +25,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 // initial bundle parse doesn't block on it.
 const ChatAgent = React.lazy(() => import("./components/ChatAgent"));
 import EcosystemNav from "./components/EcosystemNav";
+import CivicJourneyNav from "./components/CivicJourneyNav";
 
 // ── Lazy-loaded pages ──
 
@@ -32,8 +33,12 @@ const HomePage = React.lazy(() => import("./pages/HomePage"));
 const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage"));
 const SolutionsPage = React.lazy(() => import("./pages/SolutionsPage"));
 const SolutionDetailPage = React.lazy(() => import("./pages/SolutionDetailPage"));
+const DiscussionsPage = React.lazy(() => import("./pages/DiscussionsPage"));
 const DiscussionDetailPage = React.lazy(() => import("./pages/DiscussionDetailPage"));
 const WatchVideoPage = React.lazy(() => import("./pages/WatchVideoPage"));
+const GovernmentPage = React.lazy(() => import("./pages/GovernmentPage"));
+const CourtsPage = React.lazy(() => import("./pages/CourtsPage"));
+const CourtCasePage = React.lazy(() => import("./pages/CourtCasePage"));
 const PoliticsDashboardPage = React.lazy(() => import("./pages/PoliticsDashboardPage"));
 const PeoplePage = React.lazy(() => import("./pages/PeoplePage"));
 const PersonProfilePage = React.lazy(() => import("./pages/PersonProfilePage"));
@@ -194,6 +199,7 @@ const App: React.FC = () => (
           top:0 with z-[60]; the per-page SiteHeader / SectorHeader stick
           right below it (top-[52px], z-50). */}
       <EcosystemNav active="core" />
+      <CivicJourneyNav />
       <GlobalOverlays />
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center bg-slate-950">
@@ -206,9 +212,13 @@ const App: React.FC = () => (
           <Route path="/issues/:slug" element={<IssueDetailPage />} />
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
           <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />
+          <Route path="/discuss" element={<DiscussionsPage />} />
           <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
           <Route path="/watch" element={<WatchVideoPage />} />
           <Route path="/watch/:videoId" element={<WatchVideoPage />} />
+          <Route path="/government" element={<GovernmentPage />} />
+          <Route path="/courts" element={<CourtsPage />} />
+          <Route path="/courts/:caseId" element={<CourtCasePage />} />
 
           {/*
             Capture the natural /<sector>/companies/<id> guess that 404'd

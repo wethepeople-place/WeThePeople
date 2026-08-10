@@ -163,6 +163,7 @@ def _base_query(db: Session):
 
 @router.get("", response_model=DiscussionFeedResponse)
 def list_discussions(
+    issue_slug: Optional[str] = Query(default=None, min_length=1, max_length=100),
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     user: Optional[User] = Depends(get_optional_user),
@@ -170,6 +171,8 @@ def list_discussions(
 ):
     blocked = _blocked_ids(user, db)
     query = _base_query(db)
+    if issue_slug:
+        query = query.join(DiscussionAttachment).filter(DiscussionAttachment.issue_slug == issue_slug)
     if blocked:
         query = query.filter((DiscussionPost.author_id.is_(None)) | (~DiscussionPost.author_id.in_(blocked)))
     total = query.count()

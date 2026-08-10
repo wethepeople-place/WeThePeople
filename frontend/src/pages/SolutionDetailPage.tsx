@@ -52,6 +52,12 @@ export default function SolutionDetailPage() {
     <p className="mt-4 text-xs leading-5 text-text-3">{item.vote_rule} Current ballots: {item.vote_totals.total_ballots}.</p>
     {editing && <form className="mt-8 space-y-4 rounded-card border border-accent/50 bg-surface p-6" onSubmit={revise}><label className="block">Title<input name="title" required minLength={5} maxLength={500} defaultValue={item.title} className="mt-1 w-full rounded border border-border bg-bg p-3" /></label><label className="block">Summary<textarea name="summary" required minLength={10} maxLength={1000} defaultValue={item.summary} className="mt-1 w-full rounded border border-border bg-bg p-3" /></label><label className="block">Full proposal<textarea name="body" required minLength={20} maxLength={10000} rows={7} defaultValue={item.body} className="mt-1 w-full rounded border border-border bg-bg p-3" /></label><label className="block">What changed?<input name="change_note" required minLength={3} maxLength={500} className="mt-1 w-full rounded border border-border bg-bg p-3" /></label><button className="rounded bg-accent px-4 py-2 font-semibold text-slate-950">Save revision</button></form>}
     <section className="mt-12"><h2 className="font-display text-3xl">Revision history</h2><div className="mt-5 space-y-3">{revisions.map((revision) => <div key={revision.revision_number} className="rounded border border-border bg-surface p-4"><p className="font-semibold">Revision {revision.revision_number} · {revision.change_note}</p><p className="mt-1 text-sm text-text-3">{revision.editor_display_name} · {new Date(revision.created_at).toLocaleString()}</p></div>)}</div></section>
-    <div className="mt-12 flex flex-wrap gap-5">{item.discussion_post_id && <Link className="text-accent-text underline" to={`/discuss/${item.discussion_post_id}`}>Open citizen discussion</Link>}<Link className="text-accent-text underline" to={`/issues/${slug}`}>Return to official evidence</Link></div>
+    <div className="mt-12 flex flex-wrap gap-5">
+      {item.discussion_post_id && <Link className="text-accent-text underline" to={`/discuss/${item.discussion_post_id}`}>Open citizen discussion</Link>}
+      <Link className="text-accent-text underline" to={`/issues/${slug}`}>Return to official evidence</Link>
+      <Link className="text-accent-text underline" to="/government">Government activity</Link>
+      <Link className="text-accent-text underline" to={`/courts?issue=${encodeURIComponent(slug)}`}>Related court proceedings</Link>
+      <Link className="text-accent-text underline" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`}>Contact your representatives</Link>
+    </div>
   </article></main>;
 }
