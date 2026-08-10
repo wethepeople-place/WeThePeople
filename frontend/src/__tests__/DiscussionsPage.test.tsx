@@ -1,0 +1,59 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+import DiscussionsPage from '../pages/DiscussionsPage';
+
+describe('DiscussionsPage', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }),
+    }));
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('settles an empty public feed and links back into the journey', async () => {
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByText('No published discussions yet')).toBeTruthy());
+    expect(screen.queryByText('Loading discussions…')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Explore Watch' }).getAttribute('href')).toBe('/watch');
+  });
+
+  it('requests and preserves issue context', async () => {
+    render(<MemoryRouter initialEntries={['/discuss?issue=housing-rent']}><DiscussionsPage /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByText('No published discussions yet')).toBeTruthy());
+    expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('issue_slug=housing-rent');
+    expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
+  });
+
+  it('renders a source-linked discussion', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        total: 1,
+        limit: 20,
+        offset: 0,
+        items: [{
+          id: 7,
+          body: 'What should Congress do next?',
+          author: { id: 2, display_name: 'Civic neighbor' },
+          moderation_status: 'published',
+          reply_count: 1,
+          created_at: '2026-08-09T00:00:00Z',
+          updated_at: '2026-08-09T00:00:00Z',
+          attachments: [{ type: 'issue', reference_id: 'housing-rent', label: 'Housing & Rent evidence' }],
+        }],
+      }),
+    } as Response);
+
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByRole('link', { name: 'What should Congress do next?' }).getAttribute('href')).toBe('/discuss/7'));
+    expect(screen.getByRole('link', { name: 'Housing & Rent evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
+    expect(screen.getByText('Civic neighbor · 1 reply')).toBeTruthy();
+  });
+});

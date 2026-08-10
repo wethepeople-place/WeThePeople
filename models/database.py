@@ -679,6 +679,7 @@ import models.auth_models  # noqa: F401 — register User, APIKeyRecord, AuditLo
 import models.civic_models  # noqa: F401 — register promises, badges, proposals, annotations
 import models.issue_models  # noqa: F401 — register issue-centered evidence links
 import models.social_models  # noqa: F401 — register normalized Discuss records
+import models.court_models  # noqa: F401 — register source-backed court case records
 import models.rate_limit_models  # noqa: F401 — register rate_limit_records table
 import models.pipeline_models  # noqa: F401 — register DLQ, processed_records, data_quality_checks tables
 import models.telecom_models  # noqa: F401 — register telecom sector tables

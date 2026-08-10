@@ -71,6 +71,7 @@ function initials(name: string): string {
 
 export default function RepresentativeLookupPage() {
   const [searchParams] = useSearchParams();
+  const issueSlug = searchParams.get('issue')?.trim() || '';
   const [zip, setZip] = useState('');
   const [submittedZip, setSubmittedZip] = useState('');
   const [reps, setReps] = useState<Representative[]>([]);
@@ -218,6 +219,14 @@ export default function RepresentativeLookupPage() {
           >
             Enter your zip code to find your congressional representatives. See their voting records, legislative activity, and financial data.
           </p>
+          {issueSlug && (
+            <p style={{ marginTop: 12, fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--color-text-2)' }}>
+              Looking up representatives for this issue journey.{' '}
+              <Link to={`/issues/${encodeURIComponent(issueSlug)}`} style={{ color: 'var(--color-accent-text)' }}>
+                Return to official evidence
+              </Link>
+            </p>
+          )}
         </motion.div>
 
         {/* Search form */}

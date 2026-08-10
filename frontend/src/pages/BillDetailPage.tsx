@@ -347,6 +347,12 @@ export default function BillDetailPage() {
             View on Congress.gov
             <ExternalLink size={12} />
           </a>
+          <Link
+            to={`/courts?bill=${encodeURIComponent(bill.bill_id)}`}
+            style={{ ...backLinkStyle, color: 'var(--color-accent-text)' }}
+          >
+            Related court proceedings
+          </Link>
         </div>
 
         {/* Bill ID tag */}

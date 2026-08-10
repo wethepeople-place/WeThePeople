@@ -81,6 +81,8 @@ def test_curated_thread_is_idempotent_paginated_and_source_backed():
     assert [attachment["type"] for attachment in item["attachments"]] == ["bill", "issue", "source", "video"]
     source = next(value for value in item["attachments"] if value["type"] == "source")["source"]
     assert source["url"].startswith("https://") and source["publisher"] == "Congress.gov"
+    assert client.get("/discussions", params={"issue_slug": "housing-rent"}).json()["total"] == 1
+    assert client.get("/discussions", params={"issue_slug": "not-reviewed"}).json()["total"] == 0
     detail = client.get(f"/discussions/{item['id']}?reply_limit=1").json()
     assert detail["reply_total"] == 0 and detail["replies"] == []
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
