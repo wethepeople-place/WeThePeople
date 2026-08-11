@@ -2,8 +2,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "frontend" / "src" / "pages" / "WatchVideoPage.tsx").read_text(encoding="utf-8")
+PROVIDERS = (ROOT / "frontend" / "src" / "features" / "watch" / "providers.ts").read_text(encoding="utf-8")
 APP = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
 VITE_CONFIG = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
+PAGES_WORKFLOW = (ROOT / ".github" / "workflows" / "deploy-app-pages.yml").read_text(encoding="utf-8")
 
 
 def test_web_watch_has_feed_and_exact_video_routes():
@@ -44,24 +46,37 @@ def test_web_watch_local_api_target_is_loaded_from_the_repository_root():
 def test_embed_is_server_authorized_and_development_remains_explicit_opt_in():
     assert "import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true'" in PAGE
     assert "item.delivery" in PAGE and "delivery?.mode === 'official_embed'" in PAGE
-    assert "delivery.provider === 'youtube'" in PAGE
+    assert "getOfficialEmbedUrl(delivery)" in PAGE
     assert "-Zfh6IKiJ4s" not in PAGE and "housing-rent-why-rents-move" not in PAGE
 
 
 def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_inactive():
     for anchor in (
         "playerLoaded = active && consented",
-        "www.youtube-nocookie.com/embed/",
-        "autoplay=0",
         'referrerPolicy="strict-origin-when-cross-origin"',
         "Load official video",
         "Watch at the official source instead",
         "LinkOutCard",
-        "https://policies.google.com/privacy",
-        "Google's Privacy Policy",
+        "getProviderPrivacyUrl(provider)",
     ):
         assert anchor in PAGE
     assert "OfficialEmbedCard" in PAGE and "Transcript" in PAGE
+
+
+def test_cross_provider_urls_are_validated_and_never_accept_arbitrary_html():
+    for provider in ("youtube", "tiktok", "facebook"):
+        assert provider in PROVIDERS
+    for anchor in ("youtube-nocookie.com/embed/", "tiktok.com/player/v1/", "facebook.com/plugins/video.php"):
+        assert anchor in PROVIDERS
+    assert "new URL(delivery.canonical_url)" in PROVIDERS
+    assert "PROVIDER_IDS[provider].test" in PROVIDERS
+    assert "dangerouslySetInnerHTML" not in PAGE + PROVIDERS
+
+
+def test_direct_watch_identity_fetch_and_github_pages_fallback_are_present():
+    assert "encodeURIComponent(videoId)" in PAGE
+    assert "This civic video is unavailable." in PAGE
+    assert "cp dist/index.html dist/404.html" in PAGES_WORKFLOW
 
 
 def test_production_embed_copy_is_not_mislabeled_as_development():

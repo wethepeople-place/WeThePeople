@@ -122,12 +122,11 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
 
       <nav
         aria-label="WeThePeople ecosystem"
-        className="sticky top-0 z-[60]"
+        className="sticky top-0 z-[60] w-full overflow-hidden px-2 sm:px-7"
         style={{
           display: 'flex',
           alignItems: 'center',
           height: 52,
-          padding: '0 28px',
           borderBottom: `1px solid ${BORDER}`,
           background: 'rgba(7,9,12,0.92)',
           backdropFilter: 'blur(12px)',
@@ -143,8 +142,8 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            paddingRight: 20,
-            marginRight: 16,
+            paddingRight: 8,
+            marginRight: 6,
             borderRight: `1px solid ${BORDER}`,
             textDecoration: 'none',
             height: 52,
@@ -168,13 +167,13 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
           >
             WTP
           </div>
-          <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: T2 }}>
+          <span className="hidden sm:inline" style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: T2 }}>
             WeThePeople
           </span>
         </a>
 
         {/* Site switcher */}
-        <div role="tablist" style={{ display: 'flex', gap: 2 }}>
+        <div role="tablist" className="min-w-0 flex-1 overflow-x-auto" style={{ display: 'flex', gap: 2 }}>
           {SWITCHER_ORDER.map((key) => {
             const site = SITES[key];
             const isActive = active === key;
@@ -219,9 +218,9 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
                 gold) buttons sit to the right of the badge, OR
                 the UserMenu when authenticated. */}
         <div
+          className="hidden md:flex"
           style={{
             marginLeft: 'auto',
-            display: 'flex',
             alignItems: 'center',
             gap: 16,
           }}
