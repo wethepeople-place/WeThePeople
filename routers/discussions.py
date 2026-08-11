@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 from typing import Literal, Optional
+from urllib.parse import parse_qs, urlparse
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
@@ -16,7 +18,9 @@ from models.social_models import (
     DiscussionPost,
     DiscussionReply,
     DiscussionReport,
+    DiscussionVideoLink,
 )
+from models.issue_models import Issue
 from routers.issues import _source
 from models.response_schemas import IssueSource
 from services.jwt_auth import get_current_user, get_optional_user
@@ -27,6 +31,8 @@ router = APIRouter(prefix="/discussions", tags=["discussions"])
 REPLY_LIMIT = 10
 REPORT_LIMIT = 5
 BLOCK_LIMIT = 10
+POST_LIMIT = 5
+YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 
 class ReplyCreate(BaseModel):
@@ -47,6 +53,32 @@ class ReportCreate(BaseModel):
     target_id: int
     reason: str = Field(min_length=1, max_length=100)
     details: Optional[str] = Field(default=None, max_length=2000)
+
+
+class DiscussionCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=10000)
+    video_url: str = Field(min_length=1, max_length=1000)
+    issue_slug: Optional[str] = Field(default=None, min_length=1, max_length=100)
+
+    @field_validator("body")
+    @classmethod
+    def body_must_have_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Post body must contain text")
+        return value
+
+
+class DiscussionVideoLinkItem(BaseModel):
+    provider: Literal["youtube"]
+    provider_video_id: str
+    canonical_url: str
+
+
+class DiscussionCreatedResponse(BaseModel):
+    id: int
+    moderation_status: Literal["pending"]
+    message: str
 
 
 class DiscussionAuthor(BaseModel):
@@ -70,6 +102,7 @@ class DiscussionPostItem(BaseModel):
     created_at: str
     updated_at: str
     attachments: list[DiscussionAttachmentItem]
+    video_link: Optional[DiscussionVideoLinkItem]
 
 
 class DiscussionFeedResponse(BaseModel):
@@ -152,13 +185,71 @@ def _post(row: DiscussionPost, published_reply_count: int) -> dict:
         "created_at": row.created_at.isoformat(),
         "updated_at": row.updated_at.isoformat(),
         "attachments": [_attachment(item) for item in sorted(row.attachments, key=lambda item: item.attachment_type)],
+        "video_link": ({
+            "provider": row.video_link.provider,
+            "provider_video_id": row.video_link.provider_video_id,
+            "canonical_url": row.video_link.canonical_url,
+        } if row.video_link else None),
     }
+
+
+def _youtube_link(raw_url: str) -> tuple[str, str]:
+    try:
+        parsed = urlparse(raw_url.strip())
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Enter a valid YouTube link")
+    if parsed.scheme != "https":
+        raise HTTPException(status_code=422, detail="YouTube links must use https")
+    host = (parsed.hostname or "").lower()
+    video_id = None
+    if host == "youtu.be":
+        video_id = parsed.path.strip("/").split("/")[0]
+    elif host in {"youtube.com", "www.youtube.com", "m.youtube.com"}:
+        if parsed.path == "/watch":
+            video_id = parse_qs(parsed.query).get("v", [None])[0]
+        elif parsed.path.startswith(("/shorts/", "/embed/")):
+            parts = parsed.path.strip("/").split("/")
+            video_id = parts[1] if len(parts) == 2 else None
+    if not video_id or not YOUTUBE_ID.fullmatch(video_id):
+        raise HTTPException(status_code=422, detail="Enter a valid YouTube video link")
+    return video_id, f"https://www.youtube.com/watch?v={video_id}"
 
 
 def _base_query(db: Session):
     return db.query(DiscussionPost).options(
         selectinload(DiscussionPost.attachments).joinedload(DiscussionAttachment.source),
+        joinedload(DiscussionPost.video_link),
     ).filter(DiscussionPost.moderation_status == "published")
+
+
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=DiscussionCreatedResponse)
+def create_discussion(
+    body: DiscussionCreate,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:create", POST_LIMIT, db)
+    video_id, canonical_url = _youtube_link(body.video_url)
+    if body.issue_slug and db.get(Issue, body.issue_slug) is None:
+        raise HTTPException(status_code=422, detail="Choose a reviewed WTP issue")
+    post = DiscussionPost(
+        author_id=user.id,
+        author_label=user.display_name or "Community member",
+        body=body.body,
+        moderation_status="pending",
+    )
+    post.video_link = DiscussionVideoLink(
+        provider="youtube", provider_video_id=video_id, canonical_url=canonical_url
+    )
+    if body.issue_slug:
+        post.attachments.append(DiscussionAttachment(
+            attachment_type="issue", issue_slug=body.issue_slug, label="Related issue"
+        ))
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return {"id": post.id, "moderation_status": "pending", "message": "Submitted for moderation"}
 
 
 @router.get("", response_model=DiscussionFeedResponse)

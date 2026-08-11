@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicDiscussion, PublicDiscussionDetail } from '../api/civic';
+import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 
 export default function DiscussionDetailPage() {
   const { postId = '' } = useParams();
@@ -23,6 +24,7 @@ export default function DiscussionDetailPage() {
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Citizen discussion</p>
     <h1 className="mt-4 font-display text-4xl">{item.body}</h1>
     <p className="mt-3 text-sm text-text-3">{item.author.display_name}</p>
+    {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`YouTube video shared by ${item.author.display_name}`} />}
     {related.length > 0 && <aside aria-label="Related civic context" className="mt-8 flex flex-wrap gap-2">{related.map((attachment) => {
       const internal = href(attachment.type, attachment.reference_id);
       const label = attachment.label || attachment.source?.publisher || `Related ${attachment.type}`;
