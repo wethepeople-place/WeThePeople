@@ -4,6 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 
 import DiscussionsPage from '../pages/DiscussionsPage';
 
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false }),
+}));
+
 describe('DiscussionsPage', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

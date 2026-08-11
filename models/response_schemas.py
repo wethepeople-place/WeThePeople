@@ -522,6 +522,20 @@ class VideoItem(BaseModel):
     issue: VideoIssueLink
     bills: List[VideoBillLink]
     discussion_post_id: Optional[int] = None
+    like_count: int = 0
+    discussion_count: int = 0
+    liked: bool = False
+    saved: bool = False
+
+class VideoInteractionState(BaseModel):
+    video_id: str
+    like_count: int
+    discussion_count: int
+    liked: bool
+    saved: bool
+
+class VideoInteractionUpdate(BaseModel):
+    active: bool
 
 class VideosResponse(BaseModel):
     total: int

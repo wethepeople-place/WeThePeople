@@ -190,8 +190,8 @@ export interface PublicDiscussionPost {
   video_link?: DiscussionVideoLink | null;
 }
 
-export function fetchPublicDiscussions(issueSlug?: string) {
-  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: issueSlug ? { issue_slug: issueSlug } : {} });
+export function fetchPublicDiscussions(issueSlug?: string, videoId?: string) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: { ...(issueSlug ? { issue_slug: issueSlug } : {}), ...(videoId ? { video_id: videoId } : {}) } });
 }
 
 export function fetchPublicDiscussion(postId: number) {

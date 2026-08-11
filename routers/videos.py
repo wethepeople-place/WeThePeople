@@ -5,22 +5,25 @@ import hashlib
 import hmac
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, or_
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.database import get_db
-from models.issue_models import Video, VideoBill, VideoIssue
-from models.response_schemas import VideoItem, VideoSharePreview, VideosResponse
-from models.social_models import DiscussionAttachment, DiscussionPost
+from models.auth_models import User
+from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
+from models.response_schemas import VideoInteractionState, VideoInteractionUpdate, VideoItem, VideoSharePreview, VideosResponse
+from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply
 from routers.issues import _source
 from services.watch_phase4c_production_media import production_metadata
+from services.jwt_auth import get_current_user, get_optional_user
+from services.rate_limit_store import check_rate_limit
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://app.wethepeople.place").rstrip("/")
@@ -113,24 +116,30 @@ def _query(db: Session):
     )
 
 
-def _discussion_post_id(db: Session, row: Video) -> int | None:
-    issue_slug = row.issue_links[0].issue_slug if row.issue_links else None
+def _discussion_post_ids(db: Session, row: Video) -> list[int]:
     direct = db.query(DiscussionAttachment.post_id).join(DiscussionPost).filter(
         DiscussionAttachment.attachment_type == "video",
         DiscussionAttachment.video_id == row.video_id,
         DiscussionPost.moderation_status == "published",
-    ).order_by(DiscussionAttachment.post_id).first()
-    if direct:
-        return direct[0]
-    fallback = db.query(DiscussionAttachment.post_id).join(DiscussionPost).filter(
-        DiscussionAttachment.attachment_type == "issue",
-        DiscussionAttachment.issue_slug == issue_slug,
-        DiscussionPost.moderation_status == "published",
-    ).order_by(DiscussionAttachment.post_id).first()
-    return fallback[0] if fallback else None
+    ).order_by(DiscussionAttachment.post_id).all()
+    return [post_id for post_id, in direct]
 
 
-def _serialize(row: Video, discussion_post_id: int | None = None) -> dict:
+def _interaction_state(db: Session, row: Video, user: User | None) -> dict:
+    post_ids = _discussion_post_ids(db, row)
+    reply_count = db.query(DiscussionReply).filter(
+        DiscussionReply.post_id.in_(post_ids), DiscussionReply.moderation_status == "published"
+    ).count() if post_ids else 0
+    return {
+        "discussion_post_id": post_ids[0] if post_ids else None,
+        "discussion_count": len(post_ids) + reply_count,
+        "like_count": db.query(VideoLike).filter(VideoLike.video_id == row.video_id).count(),
+        "liked": bool(user and db.query(VideoLike.id).filter_by(video_id=row.video_id, user_id=user.id).first()),
+        "saved": bool(user and db.query(VideoSave.id).filter_by(video_id=row.video_id, user_id=user.id).first()),
+    }
+
+
+def _serialize(row: Video, interaction: dict | None = None) -> dict:
     if len(row.issue_links) != 1 or row.issue_links[0].issue is None:
         raise HTTPException(status_code=503, detail="Video issue metadata is incomplete")
     issue = row.issue_links[0].issue
@@ -151,12 +160,12 @@ def _serialize(row: Video, discussion_post_id: int | None = None) -> dict:
         "source": _source(row.source),
         "issue": {"slug": issue.slug, "title": issue.title},
         "bills": [{"bill_id": bill.bill_id, "title": bill.title} for bill in bills],
-        "discussion_post_id": discussion_post_id,
+        **(interaction or {"discussion_post_id": None, "discussion_count": 0, "like_count": 0, "liked": False, "saved": False}),
     }
 
 
 @router.get("", response_model=VideosResponse)
-def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), db: Session = Depends(get_db)):
+def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
     query = _query(db)
     total = query.count()
     if cursor:
@@ -169,15 +178,43 @@ def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), 
     rows = query.order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).limit(limit + 1).all()
     has_more = len(rows) > limit
     page = rows[:limit]
-    return {"total": total, "videos": [_serialize(row, _discussion_post_id(db, row)) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
+    return {"total": total, "videos": [_serialize(row, _interaction_state(db, row, user)) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
 
 
 @router.get("/{video_id}", response_model=VideoItem)
-def get_video(video_id: str, db: Session = Depends(get_db)):
+def get_video(video_id: str, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
     row = _query(db).filter(Video.video_id == video_id).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")
-    return _serialize(row, _discussion_post_id(db, row))
+    return _serialize(row, _interaction_state(db, row, user))
+
+
+def _set_interaction(video_id: str, active: bool, model, request: Request, user: User, db: Session) -> dict:
+    row = db.get(Video, video_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    host = request.client.host if request.client else "unknown"
+    allowed, _, reset_at = check_rate_limit(ip=f"user:{user.id}:ip:{host}", endpoint="watch:interaction", max_requests=60, window_seconds=60, db=db)
+    if not allowed:
+        retry_after = max(1, int(reset_at - datetime.now(timezone.utc).timestamp()))
+        raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": str(retry_after)})
+    existing = db.query(model).filter_by(video_id=video_id, user_id=user.id).first()
+    if existing and not active:
+        db.delete(existing)
+    elif not existing and active:
+        db.add(model(video_id=video_id, user_id=user.id))
+    db.commit()
+    return {"video_id": video_id, **_interaction_state(db, row, user)}
+
+
+@router.put("/{video_id}/like", response_model=VideoInteractionState)
+def set_video_like(video_id: str, body: VideoInteractionUpdate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _set_interaction(video_id, body.active, VideoLike, request, user, db)
+
+
+@router.put("/{video_id}/save", response_model=VideoInteractionState)
+def set_video_save(video_id: str, body: VideoInteractionUpdate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _set_interaction(video_id, body.active, VideoSave, request, user, db)
 
 
 @router.get("/{video_id}/share", response_model=VideoSharePreview)

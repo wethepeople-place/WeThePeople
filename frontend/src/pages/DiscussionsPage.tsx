@@ -19,6 +19,7 @@ function attachmentUrl(attachment: PublicDiscussionPost['attachments'][number]):
 export default function DiscussionsPage() {
   const [params] = useSearchParams();
   const issue = params.get('issue') || '';
+  const videoId = params.get('video') || '';
   const [items, setItems] = useState<PublicDiscussionPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,9 +31,9 @@ export default function DiscussionsPage() {
 
   useEffect(() => {
     let active = true;
-    fetchPublicDiscussions(issue || undefined).then((result) => active && setItems(result.items)).catch((reason) => active && setError(reason.message)).finally(() => active && setLoading(false));
+    fetchPublicDiscussions(issue || undefined, videoId || undefined).then((result) => active && setItems(result.items)).catch((reason) => active && setError(reason.message)).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [issue]);
+  }, [issue, videoId]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
@@ -46,6 +47,7 @@ export default function DiscussionsPage() {
   return <main className="min-h-screen bg-bg px-5 py-12 text-text-1"><div className="mx-auto max-w-3xl">
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Discuss</p>
     <h1 className="mt-3 font-display text-4xl sm:text-5xl">Public civic discussion</h1>
+    {videoId && <><p className="mt-3 max-w-2xl text-text-2">Published conversation connected to this exact reviewed Watch video.</p><p className="mt-4"><Link className="text-accent-text underline" to={`/watch/${videoId}`}>Return to this Watch video</Link></p></>}
     <p className="mt-3 max-w-2xl text-text-2">{issue ? 'Conversation connected to this issue’s reviewed evidence, government activity, and citizen solutions.' : 'Conversation connected to reviewed evidence, government activity, and citizen solutions.'}</p>
     {issue && <p className="mt-4"><Link className="text-accent-text underline" to={`/issues/${issue}`}>Return to official issue evidence</Link></p>}
 
@@ -62,7 +64,7 @@ export default function DiscussionsPage() {
 
     {loading && <p className="mt-10 text-text-2">Loading discussions…</p>}
     {error && <div role="alert" className="mt-6 rounded-card border border-border bg-surface p-6 text-text-2">{error}</div>}
-    {!loading && !error && items.length === 0 && <div className="mt-10 rounded-card border border-border bg-surface p-8"><h2 className="text-xl font-semibold">No published discussions yet</h2><p className="mt-2 text-text-2">Reviewed, source-linked conversations will appear here.</p><Link className="mt-5 inline-block text-accent-text underline" to="/watch">Explore Watch</Link></div>}
+    {!loading && !error && items.length === 0 && <div className="mt-10 rounded-card border border-border bg-surface p-8"><h2 className="text-xl font-semibold">No published discussions yet</h2><p className="mt-2 text-text-2">{videoId ? 'No reviewed conversation is connected to this video yet. Nothing is created or published automatically.' : 'Reviewed, source-linked conversations will appear here.'}</p><Link className="mt-5 inline-block text-accent-text underline" to={videoId ? `/watch/${videoId}` : '/watch'}>{videoId ? 'Return to this video' : 'Explore Watch'}</Link></div>}
 
     <section className="mt-10 space-y-5">{items.map((item) => <article key={item.id} className="rounded-card border border-border bg-surface p-6">
       <Link className="block text-lg leading-8 hover:text-accent-text" to={`/discuss/${item.id}`}>{item.body}</Link>

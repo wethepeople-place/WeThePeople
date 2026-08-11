@@ -13,9 +13,11 @@ from sqlalchemy.pool import StaticPool
 from jobs.load_housing_rent_slice import load_fixture as load_housing
 from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture, validate_fixture
 from models.database import Base, get_db
-from models.issue_models import Video, VideoBill, VideoIssue
-from models.social_models import DiscussionAttachment, DiscussionPost
+from models.auth_models import User
+from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
+from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply
 from routers.videos import router
+from services.jwt_auth import get_current_user, get_optional_user
 from tests.test_housing_rent_loader import _fixture as housing_fixture
 
 
@@ -103,6 +105,54 @@ def test_watch_exposes_only_published_exact_or_issue_discussion(tmp_path):
         session.commit()
         published_id = published.id
     assert client.get("/videos/housing-rent-why-rents-move").json()["discussion_post_id"] == published_id
+
+
+def test_watch_interactions_are_authenticated_idempotent_private_and_video_scoped(tmp_path):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+        original = session.get(Video, "housing-rent-why-rents-move")
+        other = Video(video_id="other-video", creator_label="Editor", caption="Other", media_url=original.media_url, source=original.source, published_at=original.published_at, sort_order=2)
+        alice = User(email="alice@example.test", hashed_password="unused")
+        bob = User(email="bob@example.test", hashed_password="unused")
+        session.add_all((other, alice, bob)); session.flush()
+        session.add(VideoIssue(video=other, issue=original.issue_links[0].issue))
+        post = DiscussionPost(author_id=alice.id, author_label="Alice", body="Published", moderation_status="published")
+        hidden = DiscussionPost(author_id=alice.id, author_label="Alice", body="Hidden", moderation_status="hidden")
+        session.add_all((post, hidden)); session.flush()
+        session.add_all((
+            DiscussionAttachment(post_id=post.id, attachment_type="video", video_id=original.video_id, label="Watch"),
+            DiscussionAttachment(post_id=hidden.id, attachment_type="video", video_id=original.video_id, label="Hidden"),
+            DiscussionReply(post_id=post.id, author_id=bob.id, body="Published reply", moderation_status="published"),
+            VideoSave(user_id=bob.id, video_id=original.video_id),
+        ))
+        session.commit()
+        alice_id = alice.id
+
+    assert client.put("/videos/housing-rent-why-rents-move/like", json={"active": True}).status_code == 401
+
+    def current_user():
+        with Session() as session:
+            return session.get(User, alice_id)
+
+    client.app.dependency_overrides[get_current_user] = current_user
+    client.app.dependency_overrides[get_optional_user] = current_user
+    first = client.put("/videos/housing-rent-why-rents-move/like", json={"active": True})
+    second = client.put("/videos/housing-rent-why-rents-move/like", json={"active": True})
+    saved = client.put("/videos/housing-rent-why-rents-move/save", json={"active": True})
+    assert first.status_code == second.status_code == saved.status_code == 200
+    assert first.json()["like_count"] == second.json()["like_count"] == 1
+    assert saved.json()["saved"] is True
+
+    item = client.get("/videos/housing-rent-why-rents-move").json()
+    assert item["liked"] is True and item["saved"] is True
+    assert item["discussion_count"] == 2
+    assert "save_count" not in item and "savers" not in item
+    assert client.get("/videos/other-video").json()["like_count"] == 0
+    with Session() as session:
+        assert session.query(VideoLike).count() == 1
+        assert session.query(VideoSave).count() == 2
 
 
 def test_watch_cursor_is_deterministic_and_rejects_tampering(tmp_path):
