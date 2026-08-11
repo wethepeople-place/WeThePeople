@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
 import ShareButton from '../components/ShareButton';
+import { getOfficialEmbedUrl, getProviderLabel, getProviderPrivacyUrl, getValidatedProvider } from '../features/watch/providers';
 
 type Video = {
   video_id: string; creator_label: string; caption: string; transcript: string | null;
@@ -51,22 +52,28 @@ function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean })
 
 function OfficialEmbedCard({ item, active, embed }: { item: Video; active: boolean; embed: Delivery }) {
   const [consented, setConsented] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const provider = getValidatedProvider(embed);
+  const embedUrl = getOfficialEmbedUrl(embed);
   const playerLoaded = active && consented;
+  if (!provider || !embedUrl) return <LinkOutCard item={item} delivery={embed} />;
+  const providerLabel = getProviderLabel(provider);
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-8">
       <div className="relative grid min-h-[240px] flex-1 place-content-center overflow-hidden rounded-2xl border border-white/15 bg-[#111827] text-center sm:min-h-[360px]">
-        {playerLoaded ? <iframe
+        {playerLoaded && !failed ? <iframe
           className="absolute inset-0 h-full w-full"
-          src={`https://www.youtube-nocookie.com/embed/${embed.provider_video_id}?autoplay=0&playsinline=1&rel=0`}
+          src={embedUrl}
           title={`${item.caption} — ${embed.source_label}`}
           referrerPolicy="strict-origin-when-cross-origin"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
+          onError={() => setFailed(true)}
         /> : <div className="max-w-2xl p-8">
           <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Official source video</p>
-          <h2 className="mt-3 text-2xl font-bold">Load video from {embed.source_label}</h2>
-          <p className="mt-3 leading-7 text-slate-300">The official YouTube player is not loaded until you choose to continue. Loading it shares basic request and playback data with YouTube under its policies. Review <a className="font-semibold text-amber-300 underline" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's Privacy Policy</a> before continuing.</p>
-          {active && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950" onClick={() => setConsented(true)}>Load official video</button>}
+          <h2 className="mt-3 text-2xl font-bold">{failed ? 'Inline player unavailable' : `Load video from ${embed.source_label || providerLabel}`}</h2>
+          <p className="mt-3 leading-7 text-slate-300">The official {providerLabel} player is not loaded until you choose to continue. Loading it shares basic request and playback data with {providerLabel} under its policies. Review <a className="font-semibold text-amber-300 underline" href={getProviderPrivacyUrl(provider)} target="_blank" rel="noreferrer">{providerLabel}'s Privacy Policy</a> before continuing.</p>
+          {active && !failed && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950" onClick={() => setConsented(true)}>Load official video</button>}
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
           <a className="mt-4 block font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
         </div>}
@@ -126,7 +133,7 @@ function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean
   const delivery = props.item.delivery;
   if (delivery?.mode === 'official_embed') {
     const authorized = (!delivery.development_only || DEVELOPMENT_EMBED_AUTHORIZED)
-      && delivery.provider === 'youtube' && Boolean(delivery.provider_video_id);
+      && Boolean(getOfficialEmbedUrl(delivery));
     return authorized
       ? <OfficialEmbedCard item={props.item} active={props.active} embed={delivery} />
       : <LinkOutCard item={props.item} delivery={delivery} />;
@@ -145,14 +152,30 @@ export default function WatchVideoPage() {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${getApiBaseUrl()}/videos?limit=25`, { signal: controller.signal }).then(async (r) => { if (!r.ok) throw new Error('Watch could not load'); return r.json() as Promise<Feed>; }).then((feed) => { setVideos(feed.videos); setActiveId((id) => id || feed.videos[0]?.video_id || ''); setLoaded(true); }).catch((e) => { if (e.name !== 'AbortError') setError(e.message); });
+    const loadFeed = async () => {
+      const feedResponse = await fetch(`${getApiBaseUrl()}/videos?limit=25`, { signal: controller.signal });
+      if (!feedResponse.ok) throw new Error('Watch could not load');
+      const feed = await feedResponse.json() as Feed;
+      let items = feed.videos;
+      if (videoId && !items.some((item) => item.video_id === videoId)) {
+        const exactResponse = await fetch(`${getApiBaseUrl()}/videos/${encodeURIComponent(videoId)}`, { signal: controller.signal });
+        if (exactResponse.status === 404) throw new Error('This civic video is unavailable.');
+        if (!exactResponse.ok) throw new Error('Watch could not load');
+        const exact = await exactResponse.json() as Video;
+        items = [exact, ...items];
+      }
+      setVideos(items);
+      setActiveId(videoId || items[0]?.video_id || '');
+      setLoaded(true);
+    };
+    void loadFeed().catch((e) => { if (e.name !== 'AbortError') { setError(e.message); setLoaded(true); } });
     return () => controller.abort();
-  }, []);
+  }, [videoId]);
   useEffect(() => {
     if (!videos.length) return;
     const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; setActiveId(id); navigate(`/watch/${id}`, { replace: true }); } }, { threshold: [0.6] });
     document.querySelectorAll('[data-video-id]').forEach((node) => observer.observe(node));
-    const requested = document.querySelector(`[data-video-id="${CSS.escape(videoId || '')}"]`); requested?.scrollIntoView();
+    const requested = Array.from(document.querySelectorAll<HTMLElement>('[data-video-id]')).find((node) => node.dataset.videoId === videoId); requested?.scrollIntoView();
     return () => observer.disconnect();
   }, [videos, videoId, navigate]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
