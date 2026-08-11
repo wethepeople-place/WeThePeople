@@ -90,6 +90,12 @@ def test_production_embed_copy_is_not_mislabeled_as_development():
     assert "Development-only official embed test" not in PAGE
 
 
+def test_watch_poc_has_provider_position_and_scroll_orientation_cues():
+    for anchor in ("Temporary POC", "Video ${position} of ${total}", "Scroll for next video", "aspect-[9/16]", 'aria-label="Civic video feed"'):
+        assert anchor in PAGE
+    assert "motion-safe:animate-bounce" in PAGE
+
+
 def test_official_transcript_is_record_driven_and_editorial_text_is_labeled_overview():
     assert "accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript'" in PAGE
     assert "accessibility.official_transcript_url" in PAGE

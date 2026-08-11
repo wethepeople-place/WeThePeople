@@ -55,6 +55,8 @@ COPY connectors/ connectors/
 COPY services/ services/
 COPY jobs/ jobs/
 COPY utils/ utils/
+COPY config/ config/
+COPY runtime_data/watch_census_production_pilot.json runtime_data/watch_census_production_pilot.json
 COPY alembic/ alembic/
 COPY alembic.ini .
 COPY alembic_canonical/ alembic_canonical/

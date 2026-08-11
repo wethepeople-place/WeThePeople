@@ -37,13 +37,16 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
     try:
         allowlist = _read(root, "config/watch_phase4c_production_media_allowlist.json")
         registry = _read(root, "config/watch_phase4c_source_registry.json")
-        fixture = _read(root, "data/watch_census_production_pilot.json")
+        fixture_path = allowlist.get("production_fixture")
+        if not isinstance(fixture_path, str):
+            raise OSError("production fixture path missing")
+        fixture = _read(root, fixture_path)
     except (OSError, json.JSONDecodeError):
         return ProductionMediaValidation(False, ("production_media_inputs_unreadable",))
 
     if allowlist.get("production_media_enabled") is not True or allowlist.get("runtime_changes_authorized") is not True or allowlist.get("default_fallback") != "link_out":
         errors.add("production_authority_invalid")
-    if allowlist.get("production_fixture") != "data/watch_census_production_pilot.json":
+    if allowlist.get("production_fixture") != "runtime_data/watch_census_production_pilot.json":
         errors.add("production_fixture_invalid")
     if any(allowlist.get(key) is not False for key in ("credentials_allowed", "downloads_allowed", "ingestion_allowed", "mobile_inline_embed_allowed")):
         errors.add("operational_scope_drift")
@@ -81,7 +84,10 @@ def production_metadata(video_id: str, *, root: Path = ROOT, now: datetime | Non
     try:
         allowlist = _read(root, "config/watch_phase4c_production_media_allowlist.json")
         item = next((item for item in allowlist.get("items", ()) if item.get("video_id") == video_id), None)
-        fixture = _read(root, "data/watch_census_production_pilot.json")
+        fixture_path = allowlist.get("production_fixture")
+        if not isinstance(fixture_path, str):
+            raise OSError("production fixture path missing")
+        fixture = _read(root, fixture_path)
         record = next((record for record in fixture.get("videos", ()) if record.get("video_id") == video_id), None)
     except (OSError, json.JSONDecodeError):
         return None, None
