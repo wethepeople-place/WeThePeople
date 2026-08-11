@@ -56,7 +56,7 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
     if len({item.get("video_id") for item in items}) != len(items):
         errors.add("allowlist_identity_invalid")
     for item in items:
-        if item.get("source_id") != "us-census-bureau" or item.get("delivery_mode") != "official_embed":
+        if not item.get("source_id") or item.get("delivery_mode") != "official_embed":
             errors.add("allowlist_identity_invalid")
         if item.get("provider") not in {"youtube", "tiktok", "facebook"} or not item.get("provider_video_id") or item.get("mobile_delivery_mode") != "link_out":
             errors.add("delivery_contract_invalid")

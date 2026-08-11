@@ -1,62 +1,46 @@
 {
   "videos": [
     {
-      "video_id": "housing-rent-why-rents-move",
-      "creator_label": "WeThePeople.place · Development fixture",
-      "caption": "Development preview 1 of 3: housing costs are policy outcomes.",
-      "transcript": "Housing and rent costs reflect supply, wages, financing, and public policy. Open Evidence to inspect the official Housing and Rent sources, then follow the related bill to Congress.gov.",
+      "video_id": "housing-rent-road-act-explained",
+      "creator_label": "Money Instructor",
+      "caption": "Senate Passes Housing Bill to Lower Costs: What It Means for You",
+      "transcript": "This independent educational overview explains provisions intended to increase housing supply and affordability, while noting that effects on rents and home prices may take time. Open the official enrolled bill for the authoritative text.",
       "captions_url": null,
-      "media_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-      "delivery": {
-        "mode": "official_embed",
-        "provider": "youtube",
-        "provider_video_id": "-Zfh6IKiJ4s",
-        "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
-        "source_label": "U.S. Census Bureau",
-        "development_only": true
-      },
-      "accessibility": {
-        "text_kind": "overview",
-        "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
-        "official_transcript_label": "Official Census transcript",
-        "development_only": true
-      },
-      "published_at": "2026-07-31T00:00:00Z",
+      "media_url": "https://www.youtube.com/watch?v=maODCSHgPww",
+      "delivery": {"mode":"official_embed","provider":"youtube","provider_video_id":"maODCSHgPww","canonical_url":"https://www.youtube.com/watch?v=maODCSHgPww","source_label":"Money Instructor","development_only":true},
+      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.govinfo.gov/app/details/BILLS-119hr6644enr","official_transcript_label":"Official enrolled H.R. 6644","development_only":true},
+      "published_at": "2026-06-23T12:45:19Z",
       "issue_slug": "housing-rent",
-      "bill_ids": ["hr1-119"],
-      "source": {
-        "url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
-        "publisher": "Congress.gov",
-        "retrieved_at": "2026-07-31T00:00:00Z"
-      }
+      "bill_ids": ["hr6644-119"],
+      "source": {"url":"https://www.youtube.com/watch?v=maODCSHgPww","publisher":"Money Instructor","retrieved_at":"2026-08-11T00:00:00Z"}
     },
     {
-      "video_id": "housing-rent-evidence-first",
-      "creator_label": "WeThePeople.place · Development fixture",
-      "caption": "Development preview 2 of 3: compare the claim with official evidence.",
-      "transcript": "This development-only card exercises multi-video paging. It reuses the generic fallback media and does not represent cleared civic media. Open Evidence to inspect the official Housing and Rent sources.",
+      "video_id": "housing-rent-road-act-becomes-law",
+      "creator_label": "CNBC",
+      "caption": "The 21st Century ROAD to Housing Act Becomes Law",
+      "transcript": "CNBC reports that the bipartisan housing measure became law without the president's signature. The law addresses housing supply and affordability through changes spanning development, financing, homeownership, and federal housing programs. Open the official enrolled bill for the authoritative text.",
       "captions_url": null,
-      "media_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-      "delivery": {"mode":"official_embed","provider":"tiktok","provider_video_id":"6718335390845095173","canonical_url":"https://www.tiktok.com/@scout2015/video/6718335390845095173","source_label":"TikTok sample","development_only":true},
-      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.congress.gov/bill/119th-congress/house-bill/1","official_transcript_label":"Temporary POC evidence","development_only":true},
-      "published_at": "2026-07-30T00:00:00Z",
+      "media_url": "https://www.tiktok.com/@cnbc/video/7662018978608450830",
+      "delivery": {"mode":"official_embed","provider":"tiktok","provider_video_id":"7662018978608450830","canonical_url":"https://www.tiktok.com/@cnbc/video/7662018978608450830","source_label":"CNBC","development_only":true},
+      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.govinfo.gov/app/details/BILLS-119hr6644enr","official_transcript_label":"Official enrolled H.R. 6644","development_only":true},
+      "published_at": "2026-07-13T00:00:00Z",
       "issue_slug": "housing-rent",
-      "bill_ids": ["hr1-119"],
-      "source": {"url": "https://www.congress.gov/bill/119th-congress/house-bill/1", "publisher": "Congress.gov", "retrieved_at": "2026-07-31T00:00:00Z"}
+      "bill_ids": ["hr6644-119"],
+      "source": {"url":"https://www.tiktok.com/@cnbc/video/7662018978608450830","publisher":"CNBC","retrieved_at":"2026-08-11T00:00:00Z"}
     },
     {
-      "video_id": "housing-rent-follow-the-bill",
-      "creator_label": "WeThePeople.place · Development fixture",
-      "caption": "Development preview 3 of 3: follow the related bill to its official record.",
-      "transcript": "This development-only card proves stable identity, sharing, and record navigation across multiple feed items. The generic fallback media is not Phase 4C acceptance content.",
+      "video_id": "housing-rent-road-act-speaker",
+      "creator_label": "C-SPAN",
+      "caption": "Speaker Johnson Discusses the Housing Bill's Path to Law",
+      "transcript": "In this C-SPAN clip, House Speaker Mike Johnson discusses the bipartisan housing bill, its overwhelming congressional support, and the constitutional path by which it could become law without a presidential signature. Open the official enrolled bill for the authoritative text and final enacted record.",
       "captions_url": null,
-      "media_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-      "delivery": {"mode":"official_embed","provider":"facebook","provider_video_id":"10153231379946729","canonical_url":"https://www.facebook.com/facebook/videos/10153231379946729/","source_label":"Facebook sample","development_only":true},
-      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.congress.gov/bill/119th-congress/house-bill/1","official_transcript_label":"Temporary POC evidence","development_only":true},
-      "published_at": "2026-07-29T00:00:00Z",
+      "media_url": "https://www.facebook.com/CSPAN/videos/4416844301889182/",
+      "delivery": {"mode":"official_embed","provider":"facebook","provider_video_id":"4416844301889182","canonical_url":"https://www.facebook.com/CSPAN/videos/4416844301889182/","source_label":"C-SPAN","development_only":true},
+      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.govinfo.gov/app/details/BILLS-119hr6644enr","official_transcript_label":"Official enrolled H.R. 6644","development_only":true},
+      "published_at": "2026-06-30T00:00:00Z",
       "issue_slug": "housing-rent",
-      "bill_ids": ["hr1-119"],
-      "source": {"url": "https://www.congress.gov/bill/119th-congress/house-bill/1", "publisher": "Congress.gov", "retrieved_at": "2026-07-31T00:00:00Z"}
+      "bill_ids": ["hr6644-119"],
+      "source": {"url":"https://www.facebook.com/CSPAN/videos/4416844301889182/","publisher":"C-SPAN","retrieved_at":"2026-08-11T00:00:00Z"}
     }
   ]
 }

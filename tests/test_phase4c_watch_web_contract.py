@@ -91,7 +91,7 @@ def test_production_embed_copy_is_not_mislabeled_as_development():
 
 
 def test_watch_poc_has_provider_position_and_scroll_orientation_cues():
-    for anchor in ("Temporary POC", "Video ${position} of ${total}", "Scroll for next video", "aspect-[9/16]", 'aria-label="Civic video feed"'):
+    for anchor in ("Reviewed source", "Video ${position} of ${total}", "Scroll for next video", "aspect-[9/16]", 'aria-label="Civic video feed"'):
         assert anchor in PAGE
     assert "motion-safe:animate-bounce" in PAGE
 

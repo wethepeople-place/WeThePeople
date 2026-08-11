@@ -43,7 +43,7 @@ function CivicActions({ item }: { item: Video }) {
 function WatchStatus({ item, provider, position, total }: { item: Video; provider: string; position: number; total: number }) {
   return <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest">
     <span className="rounded-full bg-white/10 px-3 py-1.5 text-white">{provider}</span>
-    <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">Temporary POC</span>
+    <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">Reviewed source</span>
     <span className="ml-auto text-slate-400" aria-label={`Video ${position} of ${total}`}>{position} / {total}</span>
     <span className="basis-full text-amber-300">Watch · {item.issue.title}</span>
   </div>;
