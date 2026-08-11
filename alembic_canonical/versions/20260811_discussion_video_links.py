@@ -1,14 +1,14 @@
 """Add normalized external video links for moderated discussion posts.
 
-Revision ID: discussion_video_links_001
-Revises: admin_suspension_001
+Revision ID: canonical_discussion_video_links_001
+Revises: canonical_courts_001
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "discussion_video_links_001"
-down_revision = "admin_suspension_001"
+revision = "canonical_discussion_video_links_001"
+down_revision = "canonical_courts_001"
 branch_labels = None
 depends_on = None
 
