@@ -6,6 +6,8 @@ PROVIDERS = (ROOT / "frontend" / "src" / "features" / "watch" / "providers.ts").
 APP = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
 VITE_CONFIG = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
 PAGES_WORKFLOW = (ROOT / ".github" / "workflows" / "deploy-app-pages.yml").read_text(encoding="utf-8")
+PACKAGE = (ROOT / "frontend" / "package.json").read_text(encoding="utf-8")
+ROUTE_GENERATOR = (ROOT / "frontend" / "scripts" / "generate-spa-routes.mjs").read_text(encoding="utf-8")
 
 
 def test_web_watch_has_feed_and_exact_video_routes():
@@ -77,6 +79,10 @@ def test_direct_watch_identity_fetch_and_github_pages_fallback_are_present():
     assert "encodeURIComponent(videoId)" in PAGE
     assert "This civic video is unavailable." in PAGE
     assert "cp dist/index.html dist/404.html" in PAGES_WORKFLOW
+    assert '"postbuild": "node scripts/generate-spa-routes.mjs"' in PACKAGE
+    assert "await writeRoute(['watch'], indexHtml)" in ROUTE_GENERATOR
+    assert "await writeRoute(['watch', video.video_id], html)" in ROUTE_GENERATOR
+    assert "og:title" in ROUTE_GENERATOR and "og:description" in ROUTE_GENERATOR
 
 
 def test_production_embed_copy_is_not_mislabeled_as_development():
