@@ -166,7 +166,8 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     enabled = client.get("/videos/housing-rent-why-rents-move").json()
     assert enabled["delivery"] == payload["videos"][0]["delivery"]
     assert enabled["accessibility"] == payload["videos"][0]["accessibility"]
-    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
+    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"]["provider"] == "tiktok"
+    assert client.get("/videos/housing-rent-follow-the-bill").json()["delivery"]["provider"] == "facebook"
 
     monkeypatch.setenv("WTP_ENV", "production")
     monkeypatch.delenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED")
@@ -177,7 +178,8 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     production_enabled = client.get("/videos/housing-rent-why-rents-move").json()
     assert production_enabled["delivery"] == payload["videos"][0]["delivery"] | {"development_only": False}
     assert production_enabled["accessibility"] == payload["videos"][0]["accessibility"] | {"development_only": False}
-    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"] is None
+    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"]["provider"] == "tiktok"
+    assert client.get("/videos/housing-rent-follow-the-bill").json()["delivery"]["provider"] == "facebook"
 
 
 def test_watch_loader_rejects_unsafe_official_embed_metadata():

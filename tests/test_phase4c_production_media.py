@@ -21,7 +21,7 @@ def _root(tmp_path, *, allowlist=None, registry=None, fixture=None):
     return tmp_path
 
 
-def test_exact_production_allowlist_is_valid_and_returns_only_one_item():
+def test_exact_production_allowlist_is_valid_and_returns_three_bounded_items():
     now = datetime(2026, 8, 4, tzinfo=timezone.utc)
     assert validate_production_media(root=ROOT, now=now).valid is True
     delivery, accessibility = production_metadata("housing-rent-why-rents-move", root=ROOT, now=now)
@@ -30,7 +30,10 @@ def test_exact_production_allowlist_is_valid_and_returns_only_one_item():
     fallback, fallback_accessibility = production_metadata("housing-rent-why-rents-move", root=ROOT, now=now, embed_enabled=False)
     assert fallback["mode"] == "link_out" and fallback["canonical_url"].startswith("https://www.youtube.com/")
     assert fallback_accessibility["official_transcript_label"] == "Official Census transcript"
-    assert production_metadata("housing-rent-evidence-first", root=ROOT, now=now) == (None, None)
+    tiktok, _ = production_metadata("housing-rent-evidence-first", root=ROOT, now=now)
+    facebook, _ = production_metadata("housing-rent-follow-the-bill", root=ROOT, now=now)
+    assert tiktok["provider"] == "tiktok" and facebook["provider"] == "facebook"
+    assert production_metadata("not-allowlisted", root=ROOT, now=now) == (None, None)
 
 
 def test_expired_evidence_fails_closed(tmp_path):

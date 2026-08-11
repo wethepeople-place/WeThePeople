@@ -22,6 +22,32 @@
       "web_consent_required": true,
       "web_privacy_enhanced_host_required": true,
       "mobile_delivery_mode": "link_out"
+    },
+    {
+      "video_id": "housing-rent-evidence-first",
+      "source_id": "us-census-bureau",
+      "delivery_mode": "official_embed",
+      "provider": "tiktok",
+      "provider_video_id": "6718335390845095173",
+      "canonical_url": "https://www.tiktok.com/@scout2015/video/6718335390845095173",
+      "official_transcript_url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+      "evidence_expires_at": "2026-11-04T00:00:00Z",
+      "web_consent_required": true,
+      "web_privacy_enhanced_host_required": false,
+      "mobile_delivery_mode": "link_out"
+    },
+    {
+      "video_id": "housing-rent-follow-the-bill",
+      "source_id": "us-census-bureau",
+      "delivery_mode": "official_embed",
+      "provider": "facebook",
+      "provider_video_id": "10153231379946729",
+      "canonical_url": "https://www.facebook.com/facebook/videos/10153231379946729/",
+      "official_transcript_url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+      "evidence_expires_at": "2026-11-04T00:00:00Z",
+      "web_consent_required": true,
+      "web_privacy_enhanced_host_required": false,
+      "mobile_delivery_mode": "link_out"
     }
   ]
 }
