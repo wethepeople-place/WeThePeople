@@ -36,12 +36,12 @@ export function getOfficialEmbedUrl(delivery: ProviderDelivery): string | null {
   if (!provider) return null
   const id = delivery.provider_video_id as string
   if (provider === 'youtube') {
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=0&playsinline=1&controls=1&cc_load_policy=1`
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&controls=1&cc_load_policy=1`
   }
   if (provider === 'tiktok') {
-    return `https://www.tiktok.com/player/v1/${id}?autoplay=0&controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1`
+    return `https://www.tiktok.com/player/v1/${id}?autoplay=1&controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1`
   }
-  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(delivery.canonical_url)}&show_text=false&autoplay=false`
+  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(delivery.canonical_url)}&show_text=false&autoplay=true`
 }
 
 export function getProviderPrivacyUrl(provider: WatchProvider): string {

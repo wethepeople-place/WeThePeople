@@ -56,7 +56,7 @@ def test_development_embed_is_consent_gated_privacy_enhanced_and_unloaded_when_i
     for anchor in (
         "playerLoaded = active && consented",
         'referrerPolicy="strict-origin-when-cross-origin"',
-        "Load official video",
+        "Play video from ${providerLabel}",
         "Watch at the official source instead",
         "LinkOutCard",
         "getProviderPrivacyUrl(provider)",
@@ -86,7 +86,7 @@ def test_direct_watch_identity_fetch_and_github_pages_fallback_are_present():
 
 
 def test_production_embed_copy_is_not_mislabeled_as_development():
-    assert "Official source video" in PAGE
+    assert "Playing connects to ${providerLabel}" in PAGE
     assert "Development-only official embed test" not in PAGE
 
 
