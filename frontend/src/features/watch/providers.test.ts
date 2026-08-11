@@ -11,6 +11,7 @@ describe('Watch provider adapters', () => {
     const delivery = { provider, provider_video_id, canonical_url }
     expect(getValidatedProvider(delivery)).toBe(provider)
     expect(getOfficialEmbedUrl(delivery)).toContain(expected)
+    expect(getOfficialEmbedUrl(delivery)).toContain('autoplay=1')
   })
 
   it.each([

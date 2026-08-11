@@ -85,13 +85,13 @@ function OfficialEmbedCard({ item, active, embed, position, total }: { item: Vid
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onError={() => setFailed(true)}
-        /> : <div className="max-w-2xl p-8">
-          <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Official source video</p>
-          <h2 className="mt-3 text-2xl font-bold">{failed ? 'Inline player unavailable' : `Load video from ${embed.source_label || providerLabel}`}</h2>
-          <p className="mt-3 leading-7 text-slate-300">The official {providerLabel} player is not loaded until you choose to continue. Loading it shares basic request and playback data with {providerLabel} under its policies. Review <a className="font-semibold text-amber-300 underline" href={getProviderPrivacyUrl(provider)} target="_blank" rel="noreferrer">{providerLabel}'s Privacy Policy</a> before continuing.</p>
-          {active && !failed && <button className="mt-6 rounded-full bg-white px-5 py-3 font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" onClick={() => setConsented(true)}>Load official video</button>}
+        /> : <div className="flex h-full max-w-2xl flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 p-8">
+          <p className="text-sm font-bold uppercase tracking-widest text-amber-300">{embed.source_label || providerLabel}</p>
+          <h2 className="mt-3 line-clamp-3 text-2xl font-bold">{failed ? 'Inline player unavailable' : item.caption}</h2>
+          {active && !failed && <button aria-label={`Play video from ${providerLabel}`} className="mt-7 grid h-20 w-20 place-content-center rounded-full bg-white text-slate-950 shadow-xl outline-none transition hover:scale-105 focus-visible:ring-4 focus-visible:ring-amber-300/70" onClick={() => setConsented(true)}><Play className="ml-1 h-9 w-9 fill-current" aria-hidden="true" /></button>}
+          <p className="mt-5 text-sm text-slate-300">Playing connects to {providerLabel}. <a className="text-amber-300 underline" href={getProviderPrivacyUrl(provider)} target="_blank" rel="noreferrer">Privacy details</a></p>
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
-          <a className="mt-4 block font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
+          <a className="mt-4 block text-sm font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
         </div>}
       </div>
       <div className="py-3 lg:py-6">

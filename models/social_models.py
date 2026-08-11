@@ -42,6 +42,27 @@ class DiscussionPost(Base):
     author = relationship("User")
     replies = relationship("DiscussionReply", back_populates="post", cascade="all, delete-orphan")
     attachments = relationship("DiscussionAttachment", back_populates="post", cascade="all, delete-orphan")
+    video_link = relationship("DiscussionVideoLink", back_populates="post", cascade="all, delete-orphan", uselist=False)
+
+
+class DiscussionVideoLink(Base):
+    """A normalized external video link submitted with a community post."""
+
+    __tablename__ = "discussion_video_links"
+    __table_args__ = (
+        UniqueConstraint("post_id", name="uq_discussion_video_link_post"),
+        CheckConstraint("provider IN ('youtube')", name="ck_discussion_video_link_provider"),
+        CheckConstraint("length(provider_video_id) = 11", name="ck_discussion_video_link_id_length"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey("discussion_posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider = Column(String(20), nullable=False)
+    provider_video_id = Column(String(100), nullable=False, index=True)
+    canonical_url = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    post = relationship("DiscussionPost", back_populates="video_link")
 
 
 class DiscussionReply(Base):

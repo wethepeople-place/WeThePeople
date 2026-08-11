@@ -11,7 +11,7 @@ from jobs.load_housing_rent_slice import load_fixture as load_housing
 from jobs.load_watch_fixture import load_fixture as load_watch
 from models.auth_models import User
 from models.database import Base, get_db
-from models.social_models import DiscussionBlock, DiscussionPost, DiscussionReport
+from models.social_models import DiscussionBlock, DiscussionPost, DiscussionReport, DiscussionVideoLink
 from routers.discussions import router
 from services.jwt_auth import get_current_user, get_optional_user
 from tests.test_housing_rent_loader import _fixture as housing_fixture
@@ -144,3 +144,48 @@ def test_reports_are_private_and_blocks_filter_the_authenticated_feed():
     with Session() as session:
         assert session.query(DiscussionReport).count() == 1
         assert session.query(DiscussionBlock).count() == 1
+
+
+def test_youtube_post_is_normalized_and_held_for_moderation():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    assert client.post("/discussions", json={"body": "Worth discussing", "video_url": "https://youtu.be/maODCSHgPww"}).status_code == 401
+
+    _as_user(app, Session, alice_id)
+    created = client.post("/discussions", json={
+        "body": "  What policy tradeoff does this highlight?  ",
+        "video_url": "https://www.youtube.com/watch?v=maODCSHgPww&utm_source=test",
+        "issue_slug": "housing-rent",
+    })
+    assert created.status_code == 201
+    assert created.json()["moderation_status"] == "pending"
+    with Session() as session:
+        post = session.get(DiscussionPost, created.json()["id"])
+        assert post.body == "What policy tradeoff does this highlight?"
+        assert post.moderation_status == "pending"
+        assert post.video_link.canonical_url == "https://www.youtube.com/watch?v=maODCSHgPww"
+        post.moderation_status = "published"
+        session.commit()
+
+    public = client.get(f"/discussions/{created.json()['id']}")
+    assert public.status_code == 200
+    assert public.json()["video_link"] == {
+        "provider": "youtube",
+        "provider_video_id": "maODCSHgPww",
+        "canonical_url": "https://www.youtube.com/watch?v=maODCSHgPww",
+    }
+
+
+def test_video_post_rejects_untrusted_or_malformed_links():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    _as_user(app, Session, alice_id)
+    for url in (
+        "http://www.youtube.com/watch?v=maODCSHgPww",
+        "https://evil.example/watch?v=maODCSHgPww",
+        "https://www.youtube.com/watch?v=not-valid",
+        "https://www.youtube.com.evil.example/watch?v=maODCSHgPww",
+    ):
+        assert client.post("/discussions", json={"body": "Discuss", "video_url": url}).status_code == 422
+    with Session() as session:
+        assert session.query(DiscussionVideoLink).count() == 0

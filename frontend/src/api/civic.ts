@@ -167,6 +167,11 @@ export interface PublicDiscussionDetail {
     label: string | null;
     source?: { url: string; publisher: string } | null;
   }>;
+  video_link?: DiscussionVideoLink | null;
+}
+
+export interface DiscussionVideoLink {
+  provider: 'youtube'; provider_video_id: string; canonical_url: string;
 }
 
 export interface PublicDiscussionPost {
@@ -182,6 +187,7 @@ export interface PublicDiscussionPost {
     reference_id: string;
     label: string | null;
   }>;
+  video_link?: DiscussionVideoLink | null;
 }
 
 export function fetchPublicDiscussions(issueSlug?: string) {
@@ -190,6 +196,10 @@ export function fetchPublicDiscussions(issueSlug?: string) {
 
 export function fetchPublicDiscussion(postId: number) {
   return apiFetch<PublicDiscussionDetail>(`/discussions/${postId}`);
+}
+
+export function createVideoDiscussion(data: { body: string; video_url: string; issue_slug?: string }) {
+  return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
 }
 
 // ── Badges ──
