@@ -4,6 +4,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import WatchVideoPage from '../pages/WatchVideoPage'
 
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, authedFetch: fetch }),
+}))
+
 
 describe('WatchVideoPage', () => {
   beforeEach(() => {

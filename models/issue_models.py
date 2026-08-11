@@ -189,3 +189,23 @@ class VideoBill(Base):
 
     video = relationship("Video", backref="bill_links")
     bill = relationship("Bill")
+
+
+class VideoLike(Base):
+    __tablename__ = "video_likes"
+    __table_args__ = (UniqueConstraint("user_id", "video_id", name="uq_video_like_user_video"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    video_id = Column(String(100), ForeignKey("videos.video_id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class VideoSave(Base):
+    __tablename__ = "video_saves"
+    __table_args__ = (UniqueConstraint("user_id", "video_id", name="uq_video_save_user_video"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    video_id = Column(String(100), ForeignKey("videos.video_id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
