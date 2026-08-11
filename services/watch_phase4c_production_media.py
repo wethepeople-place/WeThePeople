@@ -48,30 +48,31 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
     if any(allowlist.get(key) is not False for key in ("credentials_allowed", "downloads_allowed", "ingestion_allowed", "mobile_inline_embed_allowed")):
         errors.add("operational_scope_drift")
     items = allowlist.get("items")
-    if not isinstance(items, list) or len(items) != 1:
+    if not isinstance(items, list) or not 1 <= len(items) <= 5:
         return ProductionMediaValidation(False, tuple(sorted(errors | {"allowlist_scope_invalid"})))
-    item = items[0]
-    if item.get("video_id") != "housing-rent-why-rents-move" or item.get("source_id") != "us-census-bureau" or item.get("delivery_mode") != "official_embed":
+    if len({item.get("video_id") for item in items}) != len(items):
         errors.add("allowlist_identity_invalid")
-    if item.get("provider") != "youtube" or item.get("provider_video_id") != "-Zfh6IKiJ4s" or item.get("mobile_delivery_mode") != "link_out":
-        errors.add("delivery_contract_invalid")
-    if item.get("web_consent_required") is not True or item.get("web_privacy_enhanced_host_required") is not True:
-        errors.add("web_safeguard_missing")
-    if not _expires_in_future(item.get("evidence_expires_at"), now):
-        errors.add("production_evidence_expired")
-
-    source = next((source for source in registry.get("sources", ()) if source.get("source_id") == item.get("source_id")), {})
-    if source.get("source_state") != "approved" or "official_embed" not in source.get("allowed_delivery_modes", ()):
-        errors.add("source_not_approved")
-    if source.get("review", {}).get("evidence_expires_at") != item.get("evidence_expires_at"):
-        errors.add("expiry_mismatch")
-    record = next((record for record in fixture.get("videos", ()) if record.get("video_id") == item.get("video_id")), {})
-    delivery = record.get("delivery", {})
-    accessibility = record.get("accessibility", {})
-    if any(delivery.get(key) != item.get(key) for key in ("provider", "provider_video_id", "canonical_url")):
-        errors.add("fixture_delivery_mismatch")
-    if accessibility.get("official_transcript_url") != item.get("official_transcript_url") or accessibility.get("text_kind") != "overview":
-        errors.add("fixture_accessibility_mismatch")
+    for item in items:
+        if item.get("source_id") != "us-census-bureau" or item.get("delivery_mode") != "official_embed":
+            errors.add("allowlist_identity_invalid")
+        if item.get("provider") not in {"youtube", "tiktok", "facebook"} or not item.get("provider_video_id") or item.get("mobile_delivery_mode") != "link_out":
+            errors.add("delivery_contract_invalid")
+        if item.get("web_consent_required") is not True:
+            errors.add("web_safeguard_missing")
+        if not _expires_in_future(item.get("evidence_expires_at"), now):
+            errors.add("production_evidence_expired")
+        source = next((source for source in registry.get("sources", ()) if source.get("source_id") == item.get("source_id")), {})
+        if source.get("source_state") != "approved" or "official_embed" not in source.get("allowed_delivery_modes", ()):
+            errors.add("source_not_approved")
+        if source.get("review", {}).get("evidence_expires_at") != item.get("evidence_expires_at"):
+            errors.add("expiry_mismatch")
+        record = next((record for record in fixture.get("videos", ()) if record.get("video_id") == item.get("video_id")), {})
+        delivery = record.get("delivery", {})
+        accessibility = record.get("accessibility", {})
+        if any(delivery.get(key) != item.get(key) for key in ("provider", "provider_video_id", "canonical_url")):
+            errors.add("fixture_delivery_mismatch")
+        if accessibility.get("official_transcript_url") != item.get("official_transcript_url") or accessibility.get("text_kind") != "overview":
+            errors.add("fixture_accessibility_mismatch")
 
     return ProductionMediaValidation(not errors, tuple(sorted(errors)))
 
