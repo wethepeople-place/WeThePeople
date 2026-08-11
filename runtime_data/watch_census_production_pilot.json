@@ -1,0 +1,62 @@
+{
+  "videos": [
+    {
+      "video_id": "housing-rent-why-rents-move",
+      "creator_label": "U.S. Census Bureau",
+      "caption": "Tracking Housing Trends with the Housing Unit Change Viewer",
+      "transcript": "Housing and rent costs reflect supply, wages, financing, and public policy. Open Evidence to inspect the official Housing and Rent sources, then follow the related bill to Congress.gov.",
+      "captions_url": null,
+      "media_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+      "delivery": {
+        "mode": "official_embed",
+        "provider": "youtube",
+        "provider_video_id": "-Zfh6IKiJ4s",
+        "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
+        "source_label": "U.S. Census Bureau",
+        "development_only": true
+      },
+      "accessibility": {
+        "text_kind": "overview",
+        "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
+        "official_transcript_label": "Official Census transcript",
+        "development_only": true
+      },
+      "published_at": "2025-05-30T00:00:00Z",
+      "issue_slug": "housing-rent",
+      "bill_ids": ["hr1-119"],
+      "source": {
+        "url": "https://www.census.gov/library/video/2025/tracking-housing-trends-with-housing-unit-change-viewer.html",
+        "publisher": "U.S. Census Bureau",
+        "retrieved_at": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "video_id": "housing-rent-evidence-first",
+      "creator_label": "Temporary cross-provider POC",
+      "caption": "Temporary TikTok playback and fallback test",
+      "transcript": "Temporary proof-of-concept content. This card exists to verify TikTok playback, sharing, evidence, and safe link-out behavior. Its subject matter will be replaced after editorial review.",
+      "captions_url": null,
+      "media_url": "https://www.tiktok.com/@scout2015/video/6718335390845095173",
+      "delivery": {"mode":"official_embed","provider":"tiktok","provider_video_id":"6718335390845095173","canonical_url":"https://www.tiktok.com/@scout2015/video/6718335390845095173","source_label":"TikTok sample","development_only":true},
+      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.congress.gov/bill/119th-congress/house-bill/1","official_transcript_label":"Temporary POC evidence","development_only":true},
+      "published_at": "2025-05-29T00:00:00Z",
+      "issue_slug": "housing-rent",
+      "bill_ids": ["hr1-119"],
+      "source": {"url":"https://www.congress.gov/bill/119th-congress/house-bill/1","publisher":"Congress.gov","retrieved_at":"2026-08-10T00:00:00Z"}
+    },
+    {
+      "video_id": "housing-rent-follow-the-bill",
+      "creator_label": "Temporary cross-provider POC",
+      "caption": "Temporary Facebook playback and fallback test",
+      "transcript": "Temporary proof-of-concept content. This card exists to verify Facebook playback, sharing, evidence, and safe link-out behavior. Its subject matter will be replaced after editorial review.",
+      "captions_url": null,
+      "media_url": "https://www.facebook.com/facebook/videos/10153231379946729/",
+      "delivery": {"mode":"official_embed","provider":"facebook","provider_video_id":"10153231379946729","canonical_url":"https://www.facebook.com/facebook/videos/10153231379946729/","source_label":"Facebook sample","development_only":true},
+      "accessibility": {"text_kind":"overview","official_transcript_url":"https://www.congress.gov/bill/119th-congress/house-bill/1","official_transcript_label":"Temporary POC evidence","development_only":true},
+      "published_at": "2025-05-28T00:00:00Z",
+      "issue_slug": "housing-rent",
+      "bill_ids": ["hr1-119"],
+      "source": {"url":"https://www.congress.gov/bill/119th-congress/house-bill/1","publisher":"Congress.gov","retrieved_at":"2026-08-10T00:00:00Z"}
+    }
+  ]
+}

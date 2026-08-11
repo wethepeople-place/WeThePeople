@@ -6,15 +6,16 @@ from services.watch_phase4c_production_media import production_metadata, validat
 
 ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / "config" / "watch_phase4c_production_media_allowlist.json"
+DOCKERFILE = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
 
 def _root(tmp_path, *, allowlist=None, registry=None, fixture=None):
     (tmp_path / "config").mkdir()
-    (tmp_path / "data").mkdir()
+    (tmp_path / "runtime_data").mkdir()
     values = {
         "config/watch_phase4c_production_media_allowlist.json": allowlist or json.loads(PATH.read_text(encoding="utf-8")),
         "config/watch_phase4c_source_registry.json": registry or json.loads((ROOT / "config/watch_phase4c_source_registry.json").read_text(encoding="utf-8")),
-        "data/watch_census_production_pilot.json": fixture or json.loads((ROOT / "data/watch_census_production_pilot.json").read_text(encoding="utf-8")),
+        "runtime_data/watch_census_production_pilot.json": fixture or json.loads((ROOT / "data/watch_census_production_pilot.json").read_text(encoding="utf-8")),
     }
     for relative, value in values.items():
         (tmp_path / relative).write_text(json.dumps(value), encoding="utf-8")
@@ -34,6 +35,12 @@ def test_exact_production_allowlist_is_valid_and_returns_three_bounded_items():
     facebook, _ = production_metadata("housing-rent-follow-the-bill", root=ROOT, now=now)
     assert tiktok["provider"] == "tiktok" and facebook["provider"] == "facebook"
     assert production_metadata("not-allowlisted", root=ROOT, now=now) == (None, None)
+
+
+def test_production_media_inputs_are_baked_outside_the_database_volume():
+    assert "COPY config/ config/" in DOCKERFILE
+    assert "COPY runtime_data/watch_census_production_pilot.json runtime_data/watch_census_production_pilot.json" in DOCKERFILE
+    assert json.loads(PATH.read_text(encoding="utf-8"))["production_fixture"] == "runtime_data/watch_census_production_pilot.json"
 
 
 def test_expired_evidence_fails_closed(tmp_path):
