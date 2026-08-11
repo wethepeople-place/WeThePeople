@@ -136,50 +136,63 @@ def test_watch_loader_rejects_scope_before_writing(tmp_path):
         assert session.query(Video).count() == 0
 
 
+def test_reviewed_catalog_replacement_is_exact_and_idempotent(tmp_path):
+    _, Session = _client(tmp_path)
+    reviewed = json.loads((Path(__file__).resolve().parents[1] / "runtime_data" / "watch_census_production_pilot.json").read_text(encoding="utf-8"))
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+        first = load_fixture(reviewed, session, replace_reviewed_catalog=True)
+        second = load_fixture(reviewed, session, replace_reviewed_catalog=True)
+        assert first == second == {"videos": 3, "video_issues": 3, "video_bills": 3}
+        assert {value for value, in session.query(Video.video_id).all()} == {item["video_id"] for item in reviewed["videos"]}
+        assert {value for value, in session.query(VideoBill.bill_id).all()} == {"hr6644-119"}
+
+
 def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, monkeypatch):
     client, Session = _client(tmp_path)
     payload = json.loads((Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json").read_text(encoding="utf-8"))
     assert len(payload["videos"]) == 3
-    assert all("Development fixture" in item["creator_label"] for item in payload["videos"])
+    assert [item["creator_label"] for item in payload["videos"]] == ["Money Instructor", "CNBC", "C-SPAN"]
     assert payload["videos"][0]["delivery"] == {
         "mode": "official_embed",
         "provider": "youtube",
-        "provider_video_id": "-Zfh6IKiJ4s",
-        "canonical_url": "https://www.youtube.com/watch?v=-Zfh6IKiJ4s",
-        "source_label": "U.S. Census Bureau",
+        "provider_video_id": "maODCSHgPww",
+        "canonical_url": "https://www.youtube.com/watch?v=maODCSHgPww",
+        "source_label": "Money Instructor",
         "development_only": True,
     }
     assert payload["videos"][0]["accessibility"] == {
         "text_kind": "overview",
-        "official_transcript_url": "https://www2.census.gov/about/training-workshops/data-gems/2025/tracking-housing-trends-with-housing-unit-change-viewer/tracking-housing-trends-transcript.pdf",
-        "official_transcript_label": "Official Census transcript",
+        "official_transcript_url": "https://www.govinfo.gov/app/details/BILLS-119hr6644enr",
+        "official_transcript_label": "Official enrolled H.R. 6644",
         "development_only": True,
     }
     with Session() as session:
         load_housing(housing_fixture(), session)
         assert load_fixture(payload, session) == {"videos": 3, "video_issues": 3, "video_bills": 3}
 
-    disabled = client.get("/videos/housing-rent-why-rents-move").json()
+    disabled = client.get("/videos/housing-rent-road-act-explained").json()
     assert disabled["delivery"] is None and disabled["accessibility"] is None
     monkeypatch.setenv("WTP_ENV", "development")
     monkeypatch.setenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED", "true")
-    enabled = client.get("/videos/housing-rent-why-rents-move").json()
+    enabled = client.get("/videos/housing-rent-road-act-explained").json()
     assert enabled["delivery"] == payload["videos"][0]["delivery"]
     assert enabled["accessibility"] == payload["videos"][0]["accessibility"]
-    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"]["provider"] == "tiktok"
-    assert client.get("/videos/housing-rent-follow-the-bill").json()["delivery"]["provider"] == "facebook"
+    assert client.get("/videos/housing-rent-road-act-becomes-law").json()["delivery"]["provider"] == "tiktok"
+    assert client.get("/videos/housing-rent-road-act-speaker").json()["delivery"]["provider"] == "facebook"
 
     monkeypatch.setenv("WTP_ENV", "production")
     monkeypatch.delenv("WTP_ENABLE_DEVELOPMENT_WATCH_EMBED")
-    production_disabled = client.get("/videos/housing-rent-why-rents-move").json()
+    production_disabled = client.get("/videos/housing-rent-road-act-explained").json()
     assert production_disabled["delivery"]["mode"] == "link_out"
-    assert production_disabled["accessibility"]["official_transcript_label"] == "Official Census transcript"
+    assert production_disabled["accessibility"]["official_transcript_label"] == "Official enrolled H.R. 6644"
     monkeypatch.setenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED", "true")
-    production_enabled = client.get("/videos/housing-rent-why-rents-move").json()
+    production_enabled = client.get("/videos/housing-rent-road-act-explained").json()
     assert production_enabled["delivery"] == payload["videos"][0]["delivery"] | {"development_only": False}
     assert production_enabled["accessibility"] == payload["videos"][0]["accessibility"] | {"development_only": False}
-    assert client.get("/videos/housing-rent-evidence-first").json()["delivery"]["provider"] == "tiktok"
-    assert client.get("/videos/housing-rent-follow-the-bill").json()["delivery"]["provider"] == "facebook"
+    assert client.get("/videos/housing-rent-road-act-becomes-law").json()["delivery"]["provider"] == "tiktok"
+    assert client.get("/videos/housing-rent-road-act-speaker").json()["delivery"]["provider"] == "facebook"
 
 
 def test_watch_loader_rejects_unsafe_official_embed_metadata():

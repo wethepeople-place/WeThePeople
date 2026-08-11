@@ -9,10 +9,17 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from models.database import Bill, SessionLocal, SourceDocument
-from models.issue_models import Issue, Video, VideoBill, VideoIssue
+from models.issue_models import Issue, IssueBill, Video, VideoBill, VideoIssue
 
 ISSUE_SLUG = "housing-rent"
-BILL_ID = "hr1-119"
+LEGACY_BILL_ID = "hr1-119"
+ROAD_ACT_BILL_ID = "hr6644-119"
+ALLOWED_BILL_IDS = {LEGACY_BILL_ID, ROAD_ACT_BILL_ID}
+REPLACED_VIDEO_IDS = {
+    "housing-rent-why-rents-move",
+    "housing-rent-evidence-first",
+    "housing-rent-follow-the-bill",
+}
 DELIVERY_MODES = {"official_embed", "hosted_video", "link_out"}
 
 
@@ -42,7 +49,7 @@ def validate_fixture(payload: dict[str, Any]) -> None:
     for item in videos:
         if item.get("issue_slug") != ISSUE_SLUG:
             raise WatchFixtureValidationError("Fixture identifiers exceed the reviewed Watch scope")
-        if item.get("bill_ids") != [BILL_ID]:
+        if not isinstance(item.get("bill_ids"), list) or len(item["bill_ids"]) != 1 or item["bill_ids"][0] not in ALLOWED_BILL_IDS:
             raise WatchFixtureValidationError("Fixture must link exactly the reviewed Housing & Rent bill")
         for field in ("creator_label", "caption", "transcript", "published_at"):
             if not item.get(field):
@@ -78,14 +85,60 @@ def validate_fixture(payload: dict[str, Any]) -> None:
         _datetime(item["published_at"])
 
 
-def load_fixture(payload: dict[str, Any], session: Session) -> dict[str, int]:
+def load_fixture(payload: dict[str, Any], session: Session, *, replace_reviewed_catalog: bool = False) -> dict[str, int]:
     validate_fixture(payload)
     issue = session.get(Issue, ISSUE_SLUG)
-    bill = session.get(Bill, BILL_ID)
-    if issue is None or bill is None:
+    if issue is None:
         raise WatchFixtureValidationError("Load the complete Housing & Rent fixture first")
 
+    desired_ids = {item["video_id"] for item in payload["videos"]}
+    if replace_reviewed_catalog:
+        current_ids = {value for value, in session.query(Video.video_id).all()}
+        allowed_current = REPLACED_VIDEO_IDS | desired_ids
+        if not current_ids <= allowed_current:
+            raise WatchFixtureValidationError("Production catalog contains videos outside the exact reviewed replacement scope")
+        removed = current_ids - desired_ids
+        if removed:
+            session.query(VideoBill).filter(VideoBill.video_id.in_(removed)).delete(synchronize_session=False)
+            session.query(VideoIssue).filter(VideoIssue.video_id.in_(removed)).delete(synchronize_session=False)
+            session.query(Video).filter(Video.video_id.in_(removed)).delete(synchronize_session=False)
+
     for sort_order, item in enumerate(payload["videos"]):
+        bill_id = item["bill_ids"][0]
+        bill = session.get(Bill, bill_id)
+        if bill is None and bill_id == ROAD_ACT_BILL_ID:
+            bill = Bill(
+                bill_id=ROAD_ACT_BILL_ID,
+                congress=119,
+                bill_type="hr",
+                bill_number=6644,
+                title="21st Century ROAD to Housing Act",
+                policy_area="Housing and Community Development",
+                status_bucket="became_law",
+                status_reason="Became Public Law 119-101 without presidential signature",
+                latest_action_text="Became Public Law No: 119-101.",
+                latest_action_date=_datetime("2026-07-11T00:00:00Z"),
+                needs_enrichment=0,
+                full_text_url="https://www.govinfo.gov/app/details/BILLS-119hr6644enr",
+            )
+            session.add(bill)
+            session.flush()
+        if bill is None:
+            raise WatchFixtureValidationError("Load the complete Housing & Rent fixture first")
+        if bill_id == ROAD_ACT_BILL_ID and session.get(IssueBill, (ISSUE_SLUG, bill_id)) is None:
+            evidence_url = "https://www.govinfo.gov/app/details/BILLS-119hr6644enr"
+            evidence_source = session.query(SourceDocument).filter_by(url=evidence_url).first()
+            if evidence_source is None:
+                evidence_source = SourceDocument(url=evidence_url, publisher="U.S. Government Publishing Office", retrieved_at=_datetime("2026-08-11T00:00:00Z"))
+                session.add(evidence_source)
+                session.flush()
+            session.add(IssueBill(
+                issue=issue,
+                bill=bill,
+                phase="enacted",
+                relevance_note="The enacted law addresses housing supply, affordability, financing, homeownership, and federal housing programs.",
+                source_id=evidence_source.id,
+            ))
         source_data = item["source"]
         source = session.query(SourceDocument).filter_by(url=source_data["url"]).first()
         if source is None:
@@ -109,7 +162,8 @@ def load_fixture(payload: dict[str, Any], session: Session) -> dict[str, int]:
         session.flush()
         if session.get(VideoIssue, (video.video_id, ISSUE_SLUG)) is None:
             session.add(VideoIssue(video=video, issue=issue))
-        if session.get(VideoBill, (video.video_id, BILL_ID)) is None:
+        session.query(VideoBill).filter(VideoBill.video_id == video.video_id, VideoBill.bill_id != bill_id).delete(synchronize_session=False)
+        if session.get(VideoBill, (video.video_id, bill_id)) is None:
             session.add(VideoBill(video=video, bill=bill))
     session.commit()
     count = len(payload["videos"])
@@ -119,10 +173,11 @@ def load_fixture(payload: dict[str, Any], session: Session) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("fixture", type=Path)
+    parser.add_argument("--replace-reviewed-catalog", action="store_true")
     args = parser.parse_args()
     payload = json.loads(args.fixture.read_text(encoding="utf-8"))
     with SessionLocal() as session:
-        print(json.dumps(load_fixture(payload, session), sort_keys=True))
+        print(json.dumps(load_fixture(payload, session, replace_reviewed_catalog=args.replace_reviewed_catalog), sort_keys=True))
 
 
 if __name__ == "__main__":

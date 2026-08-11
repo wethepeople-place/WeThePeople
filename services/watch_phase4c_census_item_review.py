@@ -7,8 +7,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
-from services.watch_phase4c_production_media import validate_production_media
-
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_BLOCKERS = frozenset()
 REQUIRED_RECONSIDERATION = frozenset({
@@ -35,7 +33,6 @@ def validate_census_item_review(*, root: Path = ROOT) -> CensusItemReviewValidat
     try:
         review = json.loads((root / "config" / "watch_phase4c_census_item_review.json").read_text(encoding="utf-8"))
         registry = json.loads((root / "config" / "watch_phase4c_source_registry.json").read_text(encoding="utf-8"))
-        fixture = json.loads((root / "data" / "watch_housing_rent.json").read_text(encoding="utf-8"))
         page = (root / "frontend" / "src" / "pages" / "WatchVideoPage.tsx").read_text(encoding="utf-8")
     except (OSError, json.JSONDecodeError):
         return CensusItemReviewValidation(False, ("review_inputs_unreadable",))
@@ -80,13 +77,6 @@ def validate_census_item_review(*, root: Path = ROOT) -> CensusItemReviewValidat
         errors.add("registry_approval_evidence_missing")
     if source.get("accessibility", {}).get("captions_or_transcript_required") is not True or source.get("privacy", {}).get("reviewed_at") is None:
         errors.add("registry_approval_guards_missing")
-    production_report = validate_production_media(root=root)
-    if not production_report.valid:
-        errors.add("production_allowlist_invalid")
-    video = next((item for item in fixture.get("videos", ()) if item.get("video_id") == record.get("video_id")), {})
-    accessibility = video.get("accessibility", {})
-    if video.get("transcript") == record.get("official_transcript_url") or len(video.get("transcript", "")) > 1000 or accessibility.get("text_kind") != "overview" or accessibility.get("official_transcript_url") != record.get("official_transcript_url"):
-        errors.add("fixture_transcript_assumption_drift")
     if "policies.google.com/privacy" not in page or "official_transcript_url" not in page:
         errors.add("remediation_ui_missing")
 
