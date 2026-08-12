@@ -78,6 +78,7 @@ export default function RepresentativeLookupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataUnavailable, setDataUnavailable] = useState(false);
+  const [resolvedState, setResolvedState] = useState('');
   const [searched, setSearched] = useState(false);
 
   const doSearch = async (zipCode: string) => {
@@ -88,6 +89,7 @@ export default function RepresentativeLookupPage() {
     setLoading(true);
     setError(null);
     setDataUnavailable(false);
+    setResolvedState('');
     setSearched(true);
     setSubmittedZip(cleaned);
 
@@ -109,6 +111,7 @@ export default function RepresentativeLookupPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const rawReps: any[] = Array.isArray(data?.representatives) ? data.representatives : [];
+      setResolvedState(String(data?.state || ''));
       const adapted: Representative[] = rawReps.map((r) => ({
         person_id: String(r.person_id || ''),
         // /lookup returns `name`; the rest of the page expects `display_name`
@@ -121,6 +124,7 @@ export default function RepresentativeLookupPage() {
         is_active: r.is_active !== false,
       }));
       setReps(adapted);
+      setDataUnavailable(adapted.length === 0);
     } catch (err) {
       console.warn('[RepresentativeLookupPage] zip lookup failed:', err);
       const detail = err instanceof Error ? err.message : '';
@@ -371,7 +375,7 @@ export default function RepresentativeLookupPage() {
                 marginBottom: 10,
               }}
             >
-              Zip code lookup coming soon
+              Representative data is not yet available here
             </h2>
             <p
               style={{
@@ -383,11 +387,13 @@ export default function RepresentativeLookupPage() {
                 lineHeight: 1.6,
               }}
             >
-              We're building zip code-based representative lookup using census and redistricting data. In the meantime, you can browse all members on the People page.
+              Zip code {submittedZip} resolves to {resolvedState || 'a U.S. state'}, but WeThePeople does not yet have current representatives for that state. Use the official congressional lookups below rather than changing a valid ZIP code.
             </p>
             <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <Link
-                to="/politics/people"
+              <a
+                href={`https://ziplook.house.gov/htbin/findrep_house?ZIP=${encodeURIComponent(submittedZip)}`}
+                target="_blank"
+                rel="noreferrer"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -405,10 +411,12 @@ export default function RepresentativeLookupPage() {
                 }}
               >
                 <Users size={14} />
-                Browse all members
-              </Link>
-              <Link
-                to="/politics"
+                Official House lookup
+              </a>
+              <a
+                href={`https://www.senate.gov/senators/senators-contact.htm${resolvedState ? `?State=${encodeURIComponent(resolvedState)}` : ''}`}
+                target="_blank"
+                rel="noreferrer"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -424,8 +432,8 @@ export default function RepresentativeLookupPage() {
                   textDecoration: 'none',
                 }}
               >
-                Dashboard
-              </Link>
+                Official Senate lookup
+              </a>
             </div>
           </motion.div>
         )}
