@@ -104,6 +104,7 @@ export default function RepresentativeLookupPage() {
       // district-aware endpoint and adapt the shape.
       const res = await fetch(
         `${getApiBaseUrl()}/lookup/${encodeURIComponent(cleaned)}`,
+        { cache: 'no-store' },
       );
       if (res.status === 404) {
         setDataUnavailable(true);
