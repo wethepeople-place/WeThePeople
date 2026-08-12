@@ -499,6 +499,7 @@ class VideoDelivery(BaseModel):
     provider: Optional[str] = None
     provider_video_id: Optional[str] = None
     canonical_url: str
+    poster_url: Optional[str] = None
     source_label: Optional[str] = None
     development_only: bool = False
 
