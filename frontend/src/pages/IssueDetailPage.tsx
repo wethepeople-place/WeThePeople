@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ExternalLink, FileText, Landmark, Play, TrendingUp } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
+import IssueActionStrip from '../components/IssueActionStrip';
 
 type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; videos: IssueVideo[]; availability: { evidence: boolean; bills: boolean; videos: boolean } };
 
@@ -30,6 +31,12 @@ export default function IssueDetailPage() {
     return () => { active = false; };
   }, [slug]);
 
+  useEffect(() => {
+    if (!data || !window.location.hash) return;
+    const target = document.getElementById(window.location.hash.slice(1));
+    target?.scrollIntoView({ block: 'start' });
+  }, [data]);
+
   if (error) return <main className="min-h-screen bg-bg px-6 py-16 text-text-1"><div className="mx-auto max-w-3xl rounded-card border border-border bg-surface p-8"><h1 className="font-display text-3xl">Housing & Rent</h1><p className="mt-3 text-text-2">{error}. Load the reviewed local fixture, then try again.</p></div></main>;
   if (!data) return <main className="min-h-screen bg-bg p-16 text-center text-text-2">Loading sourced issue data…</main>;
 
@@ -38,17 +45,9 @@ export default function IssueDetailPage() {
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Issue brief</p>
       <h1 className="mt-3 font-display text-4xl sm:text-6xl">{data.summary.title}</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-text-2">{data.summary.summary || 'Official evidence and federal legislation connected to housing affordability and rent.'}</p>
-      <div className="mt-8 flex flex-wrap gap-3 text-sm text-text-2">
-        <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.evidence.length} evidence series</span>
-        <span className="rounded-pill border border-border bg-surface px-4 py-2">{data.bills.length} reviewed bills</span>
-        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/issues/${slug}/solutions`}>Citizen solutions</Link>
-        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/discuss?issue=${encodeURIComponent(slug)}`}>Public discussion</Link>
-        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to="/government">Government activity</Link>
-        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`}>Find your representatives</Link>
-        <Link className="rounded-pill border border-accent/50 bg-accent-dim px-4 py-2 text-accent-text" to={`/courts?issue=${encodeURIComponent(slug)}`}>Related court proceedings</Link>
-      </div>
+      <div className="mt-8 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.bills.length} /></div>
 
-      <section className="mt-14">
+      <section id="watch" className="mt-14 scroll-mt-24">
         <div className="flex items-center gap-3"><Play className="text-accent" /><h2 className="font-display text-3xl">Watch</h2></div>
         {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
           : data.videos.length === 0 ? <p className="mt-5 text-text-2">No reviewed videos are connected to this issue yet.</p>
@@ -59,7 +58,7 @@ export default function IssueDetailPage() {
             </Link>)}</div>}
       </section>
 
-      <section className="mt-14">
+      <section id="evidence" className="mt-14 scroll-mt-24">
         <div className="flex items-center gap-3"><TrendingUp className="text-accent" /><h2 className="font-display text-3xl">What the evidence shows</h2></div>
         {!data.availability.evidence && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Evidence is temporarily unavailable. Other issue connections remain accessible.</p>}
         {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No reviewed evidence series are connected yet.</p>}
@@ -76,7 +75,7 @@ export default function IssueDetailPage() {
         </div>
       </section>
 
-      <section className="mt-14">
+      <section id="legislation" className="mt-14 scroll-mt-24">
         <div className="flex items-center gap-3"><Landmark className="text-accent" /><h2 className="font-display text-3xl">Legislation to follow</h2></div>
         {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
         {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No reviewed bills are connected yet.</p>}

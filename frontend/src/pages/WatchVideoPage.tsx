@@ -3,6 +3,7 @@ import { Bookmark, ChevronDown, ExternalLink, Heart, MessageCircle, Pause, Play,
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
+import IssueActionStrip from '../components/IssueActionStrip';
 import ShareButton from '../components/ShareButton';
 import { useAuth } from '../contexts/AuthContext';
 import { getOfficialEmbedUrl, getProviderLabel, getProviderPrivacyUrl, getValidatedProvider } from '../features/watch/providers';
@@ -33,10 +34,12 @@ type Accessibility = {
 const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
 
 function CivicActions({ item }: { item: Video }) {
-  return <div className="mt-5 flex flex-wrap gap-3 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70 [&_button]:outline-none [&_button]:focus-visible:ring-4 [&_button]:focus-visible:ring-amber-300/70">
-    <Link className="rounded-full bg-amber-400 px-4 py-3 font-bold text-slate-950" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Evidence</Link>
-    <a className="rounded-full bg-white/90 px-4 py-3 font-bold text-slate-950" href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>
-    {item.bills.map((bill) => <Link key={bill.bill_id} className="rounded-full bg-white/90 px-4 py-3 font-bold text-slate-950" to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}
+  return <div className="mt-5 min-w-0">
+    <IssueActionStrip issueSlug={item.issue.slug} returnToVideoId={item.video_id} />
+    <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
+      <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>
+      {item.bills.map((bill) => <Link key={bill.bill_id} to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}
+    </div>
   </div>;
 }
 
@@ -75,7 +78,7 @@ function WatchStatus({ item, provider, position, total }: { item: Video; provide
     <span className="rounded-full bg-white/10 px-3 py-1.5 text-white">{provider}</span>
     <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">Reviewed source</span>
     <span className="ml-auto text-slate-400" aria-label={`Video ${position} of ${total}`}>{position} / {total}</span>
-    <span className="basis-full text-amber-300">Watch · {item.issue.title}</span>
+    <span className="basis-full text-amber-300">Watch · <Link className="underline decoration-amber-300/60 underline-offset-4 outline-none hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>{item.issue.title}</Link></span>
   </div>;
 }
 
@@ -129,7 +132,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange }: {
           <a className="mt-4 block text-sm font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
         </div>}
       </div>
-      <div className="py-3 lg:py-6">
+      <div className="min-w-0 py-3 lg:py-6">
         <WatchStatus item={item} provider={providerLabel} position={position} total={total} />
         <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
         <NarrativePanel item={item} />
