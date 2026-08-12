@@ -19,6 +19,8 @@ GET /lookup/{zip_code}
 
 import json
 import logging
+import os
+import re
 import threading
 import time
 import requests
@@ -52,6 +54,12 @@ log = logging.getLogger("lookup")
 # ── District lookup cache (zip -> results, TTL 1 hour) ──
 _district_cache: TTLCache = TTLCache(maxsize=500, ttl=3600)
 _district_lock = threading.Lock()
+_official_district_cache: TTLCache = TTLCache(maxsize=500, ttl=3600)
+_congress_member_cache: TTLCache = TTLCache(maxsize=100, ttl=3600)
+_official_lookup_lock = threading.Lock()
+
+_HOUSE_ZIP_URL = "https://ziplook.house.gov/htbin/findrep_house"
+_CONGRESS_API_URL = "https://api.congress.gov/v3"
 
 
 # ── ZIP override map ──
@@ -100,6 +108,94 @@ def _cached_district_lookup(zip_code: str) -> Optional[list]:
     except Exception as e:
         log.warning("whoismyrepresentative.com lookup failed for %s: %s", zip_code, e)
         return None
+
+
+def _official_house_districts(zip_code: str) -> list[tuple[str, int]]:
+    """Resolve a ZIP through the official House service without guessing."""
+    with _official_lookup_lock:
+        cached = _official_district_cache.get(zip_code)
+    if cached is not None:
+        return cached
+    try:
+        response = requests.get(_HOUSE_ZIP_URL, params={"ZIP": zip_code}, timeout=8)
+        response.raise_for_status()
+        match = re.search(r"\bdistricts\s*=\s*\[(.*?)\]", response.text, re.DOTALL)
+        if not match:
+            return []
+        districts = sorted({
+            (state, int(district))
+            for state, district in re.findall(r'["\']([A-Z]{2})(\d{2})["\']', match.group(1))
+        })
+        with _official_lookup_lock:
+            _official_district_cache[zip_code] = districts
+        return districts
+    except Exception as exc:
+        log.warning("Official House ZIP lookup failed for %s: %s", zip_code, exc)
+        return []
+
+
+def _current_congress_number(today: date | None = None) -> int:
+    year = (today or date.today()).year
+    return 119 + max(0, (year - 2025) // 2)
+
+
+def _live_congress_members(state: str, districts: set[int]) -> list[dict[str, Any]]:
+    """Fetch current senators and resolved House members from Congress.gov."""
+    api_key = os.getenv("API_KEY_CONGRESS") or os.getenv("CONGRESS_API_KEY", "")
+    if not api_key:
+        log.warning("Congress.gov member fallback is unavailable: API key is missing")
+        return []
+    congress = _current_congress_number()
+    cache_key = (congress, state, tuple(sorted(districts)))
+    with _official_lookup_lock:
+        cached = _congress_member_cache.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        response = requests.get(
+            f"{_CONGRESS_API_URL}/member/congress/{congress}/{state}",
+            params={"format": "json", "limit": 250, "currentMember": "true"},
+            headers={"X-Api-Key": api_key},
+            timeout=10,
+        )
+        response.raise_for_status()
+        items = response.json().get("members", [])
+    except Exception as exc:
+        log.warning("Congress.gov current-member lookup failed for %s: %s", state, exc)
+        return []
+
+    output = []
+    for item in items:
+        current_terms = [term for term in item.get("terms", {}).get("item", []) if not term.get("endYear")]
+        chamber = current_terms[-1].get("chamber", "") if current_terms else ""
+        district = item.get("district")
+        is_senator = chamber == "Senate"
+        if not is_senator and (district is None or int(district) not in districts):
+            continue
+        bioguide = str(item.get("bioguideId", ""))
+        if not bioguide:
+            continue
+        last, separator, first = str(item.get("name", "")).partition(",")
+        display_name = f"{first.strip()} {last.strip()}" if separator else last.strip()
+        party_name = str(item.get("partyName", ""))
+        output.append({
+            "person_id": bioguide.lower(),
+            "name": display_name,
+            "party": {"Democratic": "D", "Republican": "R", "Independent": "I"}.get(party_name, party_name),
+            "chamber": "senate" if is_senator else "house",
+            "state": state,
+            "district": None if is_senator else int(district),
+            "photo_url": item.get("depiction", {}).get("imageUrl"),
+            "bioguide_id": bioguide,
+            "profile_available": False,
+            "official_url": f"https://www.congress.gov/member/{bioguide}",
+            "source": {"publisher": "Congress.gov", "url": item.get("url")},
+            "red_flags": {"anomaly_count": 0, "late_disclosures": 0, "committee_stock_overlaps": 0, "top_anomaly": None},
+            "trades": [], "donors": [], "committees": [], "anomalies": [], "votes": [],
+        })
+    with _official_lookup_lock:
+        _congress_member_cache[cache_key] = output
+    return output
 
 
 def _name_similarity(a: str, b: str) -> float:
@@ -230,6 +326,23 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
             members = all_state_members
 
     if not members:
+        official_districts = _official_house_districts(cleaned)
+        resolved_districts = {district for district_state, district in official_districts if district_state == state}
+        live_members = _live_congress_members(state, resolved_districts) if resolved_districts else []
+        if live_members:
+            return {
+                "zip_code": cleaned,
+                "state": state,
+                "districts": sorted(resolved_districts),
+                "district_ambiguous": len(resolved_districts) > 1,
+                "representative_count": len(live_members),
+                "representatives": live_members,
+                "source": {
+                    "districts": {"publisher": "U.S. House of Representatives", "url": _HOUSE_ZIP_URL},
+                    "members": {"publisher": "Congress.gov", "url": f"{_CONGRESS_API_URL}/member/congress/{_current_congress_number()}/{state}"},
+                },
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
         return {
             "zip_code": cleaned,
             "state": state,
