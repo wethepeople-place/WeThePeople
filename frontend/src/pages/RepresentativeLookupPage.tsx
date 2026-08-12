@@ -16,6 +16,8 @@ interface Representative {
   district: string | null;
   photo_url: string | null;
   is_active: boolean;
+  profile_available?: boolean;
+  official_url?: string | null;
 }
 
 interface RepLookupResponse {
@@ -122,6 +124,8 @@ export default function RepresentativeLookupPage() {
         district: r.district ?? null,
         photo_url: r.photo_url ?? null,
         is_active: r.is_active !== false,
+        profile_available: r.profile_available !== false,
+        official_url: r.official_url ?? null,
       }));
       setReps(adapted);
       setDataUnavailable(adapted.length === 0);
@@ -654,22 +658,24 @@ function RepCard({ rep }: { rep: Representative }) {
   const isSenate = chamberLabel(rep.chamber) === 'Senate';
 
   return (
-    <Link
-      to={`/politics/people/${rep.person_id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
+    <div
+      style={{
+        borderRadius: 12,
+        border: '1px solid var(--color-border)',
+        background: 'var(--color-surface)',
+        padding: 20,
+        transition: 'all 200ms',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-border-hover)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
     >
       <div
         style={{
-          borderRadius: 12,
-          border: '1px solid var(--color-border)',
-          background: 'var(--color-surface)',
-          padding: 20,
-          transition: 'all 200ms',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-border-hover)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {rep.photo_url ? (
             <img
               src={rep.photo_url}
@@ -703,7 +709,7 @@ function RepCard({ rep }: { rep: Representative }) {
             </div>
           )}
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h3
+            {rep.profile_available === false && rep.official_url ? <a href={rep.official_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><h3
               style={{
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 16,
@@ -715,7 +721,9 @@ function RepCard({ rep }: { rep: Representative }) {
               }}
             >
               {rep.display_name}
-            </h3>
+            </h3></a> : <Link to={`/politics/people/${rep.person_id}`} style={{ textDecoration: 'none' }}><h3
+              style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >{rep.display_name}</h3></Link>}
             <p
               style={{
                 marginTop: 2,
@@ -727,7 +735,7 @@ function RepCard({ rep }: { rep: Representative }) {
               {rep.state}{rep.district ? `, District ${rep.district}` : ''}
             </p>
           </div>
-        </div>
+      </div>
 
         <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <span
@@ -825,7 +833,6 @@ function RepCard({ rep }: { rep: Representative }) {
         >
           <Heart size={13} /> Contribute to campaign
         </a>
-      </div>
-    </Link>
+    </div>
   );
 }
