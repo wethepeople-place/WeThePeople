@@ -21,11 +21,13 @@ describe('IssueDetailPage journey actions', () => {
     );
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    expect(screen.getByRole('link', { name: 'Citizen solutions' }).getAttribute('href')).toBe('/issues/housing-rent/solutions');
-    expect(screen.getByRole('link', { name: 'Public discussion' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
-    expect(screen.getByRole('link', { name: 'Find your representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
-    expect(screen.getByRole('link', { name: 'Government activity' }).getAttribute('href')).toBe('/government');
-    expect(screen.getByRole('link', { name: 'Related court proceedings' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
+    expect(screen.getByRole('link', { name: '0 evidence series' }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
+    expect(screen.getByRole('link', { name: '0 reviewed bills' }).getAttribute('href')).toBe('/issues/housing-rent#legislation');
+    expect(screen.getByRole('link', { name: 'Solutions' }).getAttribute('href')).toBe('/issues/housing-rent/solutions');
+    expect(screen.getByRole('link', { name: 'Discuss' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
+    expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
+    expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
     expect(screen.getByRole('link', { name: /Housing explained/ }).getAttribute('href')).toBe('/watch/housing-video');
   });
 
