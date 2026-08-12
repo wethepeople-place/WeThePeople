@@ -82,7 +82,7 @@ def validate_fixture(payload: dict[str, Any]) -> None:
     for item in bills:
         if item.get("source_url") not in source_urls:
             raise SliceValidationError("Every bill needs a declared source")
-        if item.get("phase") not in {"past", "current", "upcoming"}:
+        if item.get("phase") not in {"past", "current", "upcoming", "enacted"}:
             raise SliceValidationError("Every issue-bill link needs a reviewed phase")
         for relationship in item.get("people", []):
             if relationship.get("role") not in {"sponsor", "cosponsor"}:

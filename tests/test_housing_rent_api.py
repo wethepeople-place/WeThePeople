@@ -90,3 +90,14 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         assert source["url"].startswith("https://")
         assert source["publisher"]
         assert datetime.fromisoformat(source["retrieved_at"]).replace(tzinfo=timezone.utc)
+
+
+def test_issue_bill_api_accepts_enacted_phase():
+    client, Session = _client()
+    payload = _fixture()
+    payload["bills"][0]["phase"] = "enacted"
+    with Session() as session:
+        load_fixture(payload, session)
+    response = client.get("/issues/housing-rent/bills")
+    assert response.status_code == 200
+    assert "enacted" in {item["phase"] for item in response.json()["bills"]}
