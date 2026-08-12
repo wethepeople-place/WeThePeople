@@ -16,6 +16,7 @@ from models.database import Base, get_db
 from models.auth_models import User
 from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
 from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply
+from middleware.security import SecurityHeadersMiddleware
 from routers.videos import router
 from services.jwt_auth import get_current_user, get_optional_user
 from tests.test_housing_rent_loader import _fixture as housing_fixture
@@ -65,6 +66,17 @@ def test_watch_empty_missing_and_openapi(tmp_path):
     assert client.get("/videos/missing").status_code == 404
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     assert {"VideoItem", "VideosResponse"} <= set(schemas)
+
+
+def test_watch_reads_are_never_publicly_cached(tmp_path):
+    client, _ = _client(tmp_path)
+    client.app.add_middleware(SecurityHeadersMiddleware)
+    client.app.include_router(router, prefix="/v1")
+
+    for path in ("/videos", "/videos/missing", "/v1/videos", "/v1/videos/missing"):
+        response = client.get(path)
+        assert response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
+        assert response.headers["pragma"] == "no-cache"
 
 
 def test_watch_loader_and_api_are_bounded_idempotent_and_source_backed(tmp_path):

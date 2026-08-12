@@ -9,7 +9,7 @@ Adds defense-in-depth HTTP headers to every response:
   - Permissions-Policy: camera=(), microphone=(), geolocation=()
   - Strict-Transport-Security (HSTS): max-age=1 year, includeSubDomains
   - Content-Security-Policy (skipped for /docs and /redoc)
-  - Cache-Control: no-store for sensitive endpoints (auth, claims, chat, digest)
+  - Cache-Control: no-store for sensitive endpoints (auth, claims, chat, digest, personalized video state)
 
 Usage:
     from middleware.security import SecurityHeadersMiddleware
@@ -42,10 +42,12 @@ _SENSITIVE_PREFIXES = (
     "/claims",
     "/chat",
     "/digest",
+    "/videos",
     "/v1/auth",
     "/v1/claims",
     "/v1/chat",
     "/v1/digest",
+    "/v1/videos",
     "/health",
     "/metrics",
 )
