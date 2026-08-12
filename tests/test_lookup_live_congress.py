@@ -46,3 +46,40 @@ def test_live_congress_members_returns_senators_and_resolved_house_member(monkey
     }
     assert all(member["source"]["publisher"] == "Congress.gov" for member in members)
     assert all(member["profile_available"] is False for member in members)
+
+    lookup._congress_member_cache.clear()
+    senators = lookup._live_congress_members("MD", set())
+    assert {member["bioguide_id"] for member in senators} == {"V000128", "A000382"}
+    assert all(member["chamber"] == "senate" for member in senators)
+
+
+def test_zip_crossing_house_districts_still_returns_senators(monkeypatch):
+    class EmptyQuery:
+        def filter(self, *args):
+            return self
+
+        def order_by(self, *args):
+            return self
+
+        def all(self):
+            return []
+
+    class EmptyDB:
+        def query(self, *args):
+            return EmptyQuery()
+
+    senators = [
+        {"person_id": "a000382", "name": "Angela D. Alsobrooks", "chamber": "senate"},
+        {"person_id": "v000128", "name": "Chris Van Hollen", "chamber": "senate"},
+    ]
+    monkeypatch.setattr(lookup, "_zip_to_state", lambda zip_code: "MD")
+    monkeypatch.setattr(lookup, "_cached_district_lookup", lambda zip_code: None)
+    monkeypatch.setattr(lookup, "_official_house_districts", lambda zip_code: [])
+    monkeypatch.setattr(lookup, "_live_congress_members", lambda state, districts: senators)
+
+    response = lookup.zip_lookup("21208", EmptyDB())
+
+    assert response["districts"] == []
+    assert response["district_resolution_required"] is True
+    assert response["representative_count"] == 2
+    assert response["representatives"] == senators

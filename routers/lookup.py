@@ -328,13 +328,17 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
     if not members:
         official_districts = _official_house_districts(cleaned)
         resolved_districts = {district for district_state, district in official_districts if district_state == state}
-        live_members = _live_congress_members(state, resolved_districts) if resolved_districts else []
+        # A five-digit ZIP can span multiple House districts. In that case
+        # the official House service requires a street address, but the two
+        # statewide senators are still unambiguous and useful.
+        live_members = _live_congress_members(state, resolved_districts)
         if live_members:
             return {
                 "zip_code": cleaned,
                 "state": state,
                 "districts": sorted(resolved_districts),
                 "district_ambiguous": len(resolved_districts) > 1,
+                "district_resolution_required": not resolved_districts,
                 "representative_count": len(live_members),
                 "representatives": live_members,
                 "source": {
