@@ -19,7 +19,7 @@ export default function IssueActionStrip({ issueSlug, evidenceCount, billCount, 
     { label: 'Courts', to: `/courts?issue=${encodeURIComponent(issueSlug)}` },
   ];
 
-  return <nav aria-label="Issue actions" className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [&_a]:shrink-0 [&_a]:snap-start [&_a]:rounded-full [&_a]:border [&_a]:border-amber-300/45 [&_a]:bg-amber-300/10 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-amber-300 [&_a]:outline-none [&_a]:transition [&_a]:hover:bg-amber-300/20 [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
+  return <nav aria-label="Issue actions" className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 [&_a]:flex [&_a]:min-h-11 [&_a]:min-w-0 [&_a]:items-center [&_a]:justify-center [&_a]:rounded-full [&_a]:border [&_a]:border-amber-300/45 [&_a]:bg-amber-300/10 [&_a]:px-3 [&_a]:py-2.5 [&_a]:text-center [&_a]:text-sm [&_a]:font-bold [&_a]:leading-tight [&_a]:text-amber-300 [&_a]:outline-none [&_a]:transition [&_a]:hover:bg-amber-300/20 [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
     {actions.map((action) => <Link key={action.label} to={action.to} state={state}>{action.label}</Link>)}
   </nav>;
 }
