@@ -74,7 +74,7 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         "bill_count": 7,
     }
     assert evidence["total"] == 2
-    assert {item["key"] for item in evidence["series"]} == {"median_rent", "avg_wage"}
+    assert {item["key"] for item in evidence["series"]} == {"rent_cpi", "avg_wage"}
     assert bills["total"] == 7
     assert {item["bill_id"] for item in bills["bills"]} == {
         "hr1-119", "hr6644-119", "s968-119", "hr6124-119",
@@ -90,3 +90,14 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         assert source["url"].startswith("https://")
         assert source["publisher"]
         assert datetime.fromisoformat(source["retrieved_at"]).replace(tzinfo=timezone.utc)
+
+
+def test_issue_bill_api_accepts_enacted_phase():
+    client, Session = _client()
+    payload = _fixture()
+    payload["bills"][0]["phase"] = "enacted"
+    with Session() as session:
+        load_fixture(payload, session)
+    response = client.get("/issues/housing-rent/bills")
+    assert response.status_code == 200
+    assert "enacted" in {item["phase"] for item in response.json()["bills"]}

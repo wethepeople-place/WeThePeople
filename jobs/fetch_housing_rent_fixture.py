@@ -22,8 +22,17 @@ HUD_STATES = tuple(
     "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split()
 )
 BLS_WAGE_SERIES_ID = "CES0500000003"
+BLS_RENT_SERIES_ID = "CUSR0000SEHA"
 HUD_SOURCE_URL = "https://www.huduser.gov/portal/dataset/fmr-api.html"
 BLS_SOURCE_URL = "https://www.bls.gov/developers/"
+BLS_RENT_SOURCE_URL = "https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm"
+
+
+def _numeric(value: object) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class JsonTransport(Protocol):
@@ -99,13 +108,52 @@ def fetch_bls_wages(
         if period not in {f"M{month:02d}" for month in range(1, 13)}:
             continue
         year = int(point["year"])
-        if year in years:
-            by_year.setdefault(year, []).append(float(point["value"]))
+        value = _numeric(point.get("value"))
+        if year in years and value is not None:
+            by_year.setdefault(year, []).append(value)
     return [
         {
             "date": f"{year}-01-01",
             "value": round(statistics.mean(values), 2),
             "source_record_id": f"{BLS_WAGE_SERIES_ID}-{year}-ANNUAL-MEAN",
+        }
+        for year, values in sorted(by_year.items())
+        if values
+    ]
+
+
+def fetch_bls_rent_index(
+    transport: JsonTransport, years: Sequence[int], api_key: str | None = None
+) -> list[dict[str, Any]]:
+    """Return annual means for the U.S. city-average rent CPI index."""
+    body = {
+        "seriesid": [BLS_RENT_SERIES_ID],
+        "startyear": str(min(years)),
+        "endyear": str(max(years)),
+    }
+    if api_key:
+        body["registrationkey"] = api_key
+    payload = transport.post(
+        "https://api.bls.gov/publicAPI/v2/timeseries/data/", json=body
+    )
+    if payload.get("status") != "REQUEST_SUCCEEDED":
+        raise RuntimeError(f"BLS API error: {payload.get('message')}")
+    points = payload["Results"]["series"][0]["data"]
+    by_year: dict[int, list[float]] = {}
+    for point in points:
+        if str(point.get("period", "")) not in {
+            f"M{month:02d}" for month in range(1, 13)
+        }:
+            continue
+        year = int(point["year"])
+        value = _numeric(point.get("value"))
+        if year in years and value is not None:
+            by_year.setdefault(year, []).append(value)
+    return [
+        {
+            "date": f"{year}-01-01",
+            "value": round(statistics.mean(values), 3),
+            "source_record_id": f"{BLS_RENT_SERIES_ID}-{year}-ANNUAL-MEAN",
         }
         for year, values in sorted(by_year.items())
         if values
@@ -205,18 +253,16 @@ def fetch_congress_bills(
 
 def build_fixture(
     transport: JsonTransport,
-    hud_api_key: str,
     congress_api_key: str,
     years: Sequence[int],
     *,
     bls_api_key: str | None = None,
-    states: Sequence[str] = HUD_STATES,
     retrieved_at: datetime | None = None,
 ) -> dict[str, Any]:
     retrieved = (retrieved_at or datetime.now(timezone.utc)).isoformat()
     bills = fetch_congress_bills(transport, congress_api_key)
     sources = [
-        {"url": HUD_SOURCE_URL, "publisher": "HUD", "retrieved_at": retrieved},
+        {"url": BLS_RENT_SOURCE_URL, "publisher": "BLS", "retrieved_at": retrieved},
         {"url": BLS_SOURCE_URL, "publisher": "BLS", "retrieved_at": retrieved},
         *[
             {"url": bill["source_url"], "publisher": "Congress.gov", "retrieved_at": retrieved}
@@ -232,12 +278,15 @@ def build_fixture(
         "sources": sources,
         "evidence_series": [
             {
-                "key": "median_rent",
-                "title": "Median of area-level two-bedroom Fair Market Rents",
-                "unit": "USD per month",
-                "source_url": HUD_SOURCE_URL,
-                "methodology_note": "Calculated proxy; not an official national median gross rent.",
-                "observations": fetch_hud_fmr_proxy(transport, hud_api_key, years, states),
+                "key": "rent_cpi",
+                "title": "Rent of primary residence price index",
+                "unit": "CPI index, Dec. 1982=100",
+                "source_url": BLS_RENT_SOURCE_URL,
+                "methodology_note": (
+                    "Annual mean of monthly BLS CPI series CUSR0000SEHA; "
+                    "this measures rent price change, not rent dollars."
+                ),
+                "observations": fetch_bls_rent_index(transport, years, bls_api_key),
             },
             {
                 "key": "avg_wage",
@@ -258,13 +307,11 @@ def main() -> int:
     parser.add_argument("--start-year", type=int, default=2019)
     parser.add_argument("--end-year", type=int, default=datetime.now().year)
     args = parser.parse_args()
-    hud_key = os.getenv("HUD_API_KEY")
     congress_key = os.getenv("CONGRESS_API_KEY") or os.getenv("API_KEY_CONGRESS")
-    if not hud_key or not congress_key:
-        parser.error("HUD_API_KEY and CONGRESS_API_KEY are required to generate a complete fixture")
+    if not congress_key:
+        parser.error("CONGRESS_API_KEY is required to generate a complete fixture")
     payload = build_fixture(
         RequestsTransport(),
-        hud_key,
         congress_key,
         range(args.start_year, args.end_year + 1),
         bls_api_key=os.getenv("BLS_API_KEY"),

@@ -12,7 +12,7 @@ from models.issue_models import BillCommitteeReferral, EvidenceObservation, Issu
 
 def _fixture():
     retrieved_at = "2026-07-31T00:00:00Z"
-    hud_url = "https://www.huduser.gov/portal/dataset/fmr-api.html"
+    rent_url = "https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm"
     bls_url = "https://www.bls.gov/developers/"
     congress_base = "https://www.congress.gov/bill/119th-congress"
     congress_urls = {
@@ -20,7 +20,7 @@ def _fixture():
         for spec in CURATED_BILLS
     }
     sources = [
-        {"url": hud_url, "publisher": "HUD", "retrieved_at": retrieved_at},
+        {"url": rent_url, "publisher": "BLS", "retrieved_at": retrieved_at},
         {"url": bls_url, "publisher": "BLS", "retrieved_at": retrieved_at},
         *[
             {"url": url, "publisher": "Congress.gov", "retrieved_at": retrieved_at}
@@ -29,7 +29,7 @@ def _fixture():
     ]
     series = []
     for spec in EVIDENCE_SERIES:
-        source_url = hud_url if spec.key == "median_rent" else bls_url
+        source_url = rent_url if spec.key == "rent_cpi" else bls_url
         series.append(
             {
                 "key": spec.key,

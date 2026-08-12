@@ -1,9 +1,13 @@
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 from jobs.fetch_housing_rent_fixture import (
     BLS_WAGE_SERIES_ID,
+    BLS_RENT_SERIES_ID,
     build_fixture,
     fetch_bls_wages,
+    fetch_bls_rent_index,
     fetch_hud_fmr_proxy,
 )
 from jobs.housing_rent_contract import CURATED_BILLS
@@ -42,12 +46,14 @@ class FakeTransport:
 
     def post(self, url, *, json=None):
         self.post_calls.append((url, json))
+        series_id = json["seriesid"][0]
         return {
             "status": "REQUEST_SUCCEEDED",
             "Results": {
-                "series": [{"data": [
+                "series": [{"seriesID": series_id, "data": [
                     {"year": "2025", "period": "M01", "value": "30.00"},
                     {"year": "2025", "period": "M02", "value": "32.00"},
+                    {"year": "2025", "period": "M03", "value": "-"},
                     {"year": "2025", "period": "M13", "value": "99.00"},
                 ]}]
             },
@@ -72,14 +78,18 @@ def test_bls_adapter_averages_months_without_double_counting_m13():
     assert observations[0]["source_record_id"] == f"{BLS_WAGE_SERIES_ID}-2025-ANNUAL-MEAN"
 
 
+def test_bls_rent_adapter_averages_months_without_double_counting_m13():
+    observations = fetch_bls_rent_index(FakeTransport(), [2025])
+    assert observations[0]["value"] == 31.0
+    assert observations[0]["source_record_id"] == f"{BLS_RENT_SERIES_ID}-2025-ANNUAL-MEAN"
+
+
 def test_fixture_builder_is_bounded_and_loader_compatible():
     transport = FakeTransport()
     payload = build_fixture(
         transport,
-        "hud-secret",
         "congress-secret",
         [2025],
-        states=["MI", "CA"],
         retrieved_at=datetime(2026, 7, 31, tzinfo=timezone.utc),
     )
     validate_fixture(payload)
@@ -90,3 +100,22 @@ def test_fixture_builder_is_bounded_and_loader_compatible():
     }
     assert len([call for call in transport.get_calls if "api.congress.gov" in call[0]]) == 28
     assert all("api_key" in call[1] for call in transport.get_calls if "api.congress.gov" in call[0])
+
+
+def test_reviewed_evidence_fixture_is_loader_compatible_and_source_backed():
+    fixture_path = Path(__file__).parents[1] / "data" / "housing_rent_reviewed_evidence.json"
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    validate_fixture(payload)
+    assert {series["key"] for series in payload["evidence_series"]} == {
+        "rent_cpi",
+        "avg_wage",
+    }
+    assert all(
+        len(series["observations"]) == 4 for series in payload["evidence_series"]
+    )
+    assert all(
+        observation["source_record_id"]
+        for series in payload["evidence_series"]
+        for observation in series["observations"]
+    )

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, FileText, Landmark, TrendingUp } from 'lucide-react';
+import { ExternalLink, FileText, Landmark, Play, TrendingUp } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary } from '../api/issues';
+import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
 
-type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[] };
+type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; videos: IssueVideo[]; availability: { evidence: boolean; bills: boolean; videos: boolean } };
 
 const date = (value: string) => new Intl.DateTimeFormat('en-US', {
   year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
 }).format(new Date(value));
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
-const phaseLabel = { past: 'Resolved', current: 'In progress', upcoming: 'Upcoming' } as const;
+const phaseLabel = { past: 'Resolved', current: 'In progress', upcoming: 'Upcoming', enacted: 'Enacted' } as const;
 
 function Source({ source }: { source: { url: string; publisher: string; retrieved_at: string } }) {
   return <p className="mt-4 text-xs text-text-2">
@@ -49,7 +49,20 @@ export default function IssueDetailPage() {
       </div>
 
       <section className="mt-14">
+        <div className="flex items-center gap-3"><Play className="text-accent" /><h2 className="font-display text-3xl">Watch</h2></div>
+        {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
+          : data.videos.length === 0 ? <p className="mt-5 text-text-2">No reviewed videos are connected to this issue yet.</p>
+            : <div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.map((video) => <Link key={video.video_id} className="rounded-card border border-border bg-surface p-5 transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
+              <p className="text-xs font-bold uppercase tracking-wider text-accent-text">Reviewed video</p>
+              <h3 className="mt-2 text-lg font-semibold leading-6">{video.caption}</h3>
+              <p className="mt-3 text-sm text-text-2">{video.creator_label}</p>
+            </Link>)}</div>}
+      </section>
+
+      <section className="mt-14">
         <div className="flex items-center gap-3"><TrendingUp className="text-accent" /><h2 className="font-display text-3xl">What the evidence shows</h2></div>
+        {!data.availability.evidence && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Evidence is temporarily unavailable. Other issue connections remain accessible.</p>}
+        {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No reviewed evidence series are connected yet.</p>}
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           {data.evidence.map((series) => {
             const latest = series.observations.at(-1);
@@ -65,6 +78,8 @@ export default function IssueDetailPage() {
 
       <section className="mt-14">
         <div className="flex items-center gap-3"><Landmark className="text-accent" /><h2 className="font-display text-3xl">Legislation to follow</h2></div>
+        {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
+        {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No reviewed bills are connected yet.</p>}
         <div className="mt-6 space-y-4">
           {data.bills.map((bill) => <article key={bill.bill_id} className="rounded-card border border-border bg-surface p-5 sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row">

@@ -16,9 +16,13 @@ export type EvidenceSeries = {
 export type IssueBill = {
   bill_id: string; congress: number; bill_type: string; bill_number: number;
   title: string | null; policy_area: string | null;
-  phase: 'past' | 'current' | 'upcoming'; status_bucket: string | null;
+  phase: 'past' | 'current' | 'upcoming' | 'enacted'; status_bucket: string | null;
   status_reason: string | null; latest_action_text: string | null;
   latest_action_date: string | null; relevance_note: string | null; source: IssueSource;
+};
+export type IssueVideo = {
+  video_id: string; caption: string; creator_label: string;
+  issue: { slug: string; title: string };
 };
 
 async function read<T>(path: string): Promise<T> {
@@ -29,10 +33,17 @@ async function read<T>(path: string): Promise<T> {
 
 export async function fetchIssueDetail(slug: string) {
   const safeSlug = encodeURIComponent(slug);
-  const [summary, evidence, bills] = await Promise.all([
-    read<IssueSummary>(`/issues/${safeSlug}`),
-    read<{ issue_slug: string; total: number; series: EvidenceSeries[] }>(`/issues/${safeSlug}/evidence`),
-    read<{ issue_slug: string; total: number; bills: IssueBill[] }>(`/issues/${safeSlug}/bills`),
+  const summary = await read<IssueSummary>(`/issues/${safeSlug}`);
+  const [evidence, bills, feed] = await Promise.all([
+    read<{ issue_slug: string; total: number; series: EvidenceSeries[] }>(`/issues/${safeSlug}/evidence`).then((value) => ({ value, available: true })).catch(() => ({ value: { series: [] as EvidenceSeries[] }, available: false })),
+    read<{ issue_slug: string; total: number; bills: IssueBill[] }>(`/issues/${safeSlug}/bills`).then((value) => ({ value, available: true })).catch(() => ({ value: { bills: [] as IssueBill[] }, available: false })),
+    read<{ videos: IssueVideo[] }>('/videos?limit=25').then((value) => ({ value, available: true })).catch(() => ({ value: { videos: [] as IssueVideo[] }, available: false })),
   ]);
-  return { summary, evidence: evidence.series, bills: bills.bills };
+  return {
+    summary,
+    evidence: evidence.value.series,
+    bills: bills.value.bills,
+    videos: feed.value.videos.filter((video) => video.issue.slug === slug),
+    availability: { evidence: evidence.available, bills: bills.available, videos: feed.available },
+  };
 }

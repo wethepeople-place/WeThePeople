@@ -468,7 +468,7 @@ class IssueBillItem(BaseModel):
     bill_number: int
     title: Optional[str] = None
     policy_area: Optional[str] = None
-    phase: Literal["past", "current", "upcoming"]
+    phase: Literal["past", "current", "upcoming", "enacted"]
     status_bucket: Optional[str] = None
     status_reason: Optional[str] = None
     latest_action_text: Optional[str] = None
@@ -506,6 +506,7 @@ class VideoAccessibility(BaseModel):
     text_kind: Literal["overview", "transcript"]
     official_transcript_url: str
     official_transcript_label: str
+    overview_points: List[str] = Field(default_factory=list)
     development_only: bool = False
 
 class VideoItem(BaseModel):

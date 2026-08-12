@@ -30,9 +30,9 @@ class CuratedBillSpec:
 
 EVIDENCE_SERIES = (
     EvidenceSeriesSpec(
-        key="median_rent",
-        publisher="U.S. Department of Housing and Urban Development",
-        source_url="https://www.huduser.gov/portal/dataset/fmr-api.html",
+        key="rent_cpi",
+        publisher="U.S. Bureau of Labor Statistics",
+        source_url="https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm",
     ),
     EvidenceSeriesSpec(
         key="avg_wage",
