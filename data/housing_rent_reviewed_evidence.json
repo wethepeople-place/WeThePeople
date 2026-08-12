@@ -1,0 +1,1461 @@
+{
+  "issue": {
+    "slug": "housing-rent",
+    "title": "Housing & Rent",
+    "summary": "Official rent and wage evidence with curated federal legislation."
+  },
+  "sources": [
+    {
+      "url": "https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm",
+      "publisher": "BLS",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.bls.gov/developers/",
+      "publisher": "BLS",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/6644",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/senate-bill/968",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/6124",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/senate-bill/3207",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/2725",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    },
+    {
+      "url": "https://www.congress.gov/bill/119th-congress/senate-bill/1515",
+      "publisher": "Congress.gov",
+      "retrieved_at": "2026-08-12T06:27:06.092713+00:00"
+    }
+  ],
+  "evidence_series": [
+    {
+      "key": "rent_cpi",
+      "title": "Rent of primary residence price index",
+      "unit": "CPI index, Dec. 1982=100",
+      "source_url": "https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm",
+      "methodology_note": "Annual mean of monthly BLS CPI series CUSR0000SEHA; this measures rent price change, not rent dollars.",
+      "observations": [
+        {
+          "date": "2021-01-01",
+          "value": 349.136,
+          "source_record_id": "CUSR0000SEHA-2021-ANNUAL-MEAN"
+        },
+        {
+          "date": "2022-01-01",
+          "value": 370.2,
+          "source_record_id": "CUSR0000SEHA-2022-ANNUAL-MEAN"
+        },
+        {
+          "date": "2023-01-01",
+          "value": 399.644,
+          "source_record_id": "CUSR0000SEHA-2023-ANNUAL-MEAN"
+        },
+        {
+          "date": "2024-01-01",
+          "value": 420.061,
+          "source_record_id": "CUSR0000SEHA-2024-ANNUAL-MEAN"
+        }
+      ]
+    },
+    {
+      "key": "avg_wage",
+      "title": "Average hourly earnings, total private",
+      "unit": "USD per hour",
+      "source_url": "https://www.bls.gov/developers/",
+      "methodology_note": "Annual mean of monthly BLS CES0500000003 values; not median wages.",
+      "observations": [
+        {
+          "date": "2021-01-01",
+          "value": 30.61,
+          "source_record_id": "CES0500000003-2021-ANNUAL-MEAN"
+        },
+        {
+          "date": "2022-01-01",
+          "value": 32.26,
+          "source_record_id": "CES0500000003-2022-ANNUAL-MEAN"
+        },
+        {
+          "date": "2023-01-01",
+          "value": 33.7,
+          "source_record_id": "CES0500000003-2023-ANNUAL-MEAN"
+        },
+        {
+          "date": "2024-01-01",
+          "value": 35.06,
+          "source_record_id": "CES0500000003-2024-ANNUAL-MEAN"
+        }
+      ]
+    }
+  ],
+  "bills": [
+    {
+      "bill_id": "hr1-119",
+      "title": "An act to provide for reconciliation pursuant to title II of H. Con. Res. 14.",
+      "policy_area": "Economics and Public Finance",
+      "status_bucket": "enacted",
+      "status_reason": "Became Public Law No: 119-21.",
+      "latest_action_text": "Became Public Law No: 119-21.",
+      "latest_action_date": "2025-07-04T00:00:00Z",
+      "phase": "past",
+      "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/1",
+      "people": [
+        {
+          "bioguide_id": "A000375",
+          "role": "sponsor"
+        }
+      ],
+      "committee_referrals": []
+    },
+    {
+      "bill_id": "hr6644-119",
+      "title": "21st Century ROAD to Housing Act",
+      "policy_area": "Housing and Community Development",
+      "status_bucket": "enacted",
+      "status_reason": "Became Public Law No: 119-101.",
+      "latest_action_text": "Became Public Law No: 119-101.",
+      "latest_action_date": "2026-07-11T00:00:00Z",
+      "phase": "past",
+      "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/6644",
+      "people": [
+        {
+          "bioguide_id": "H001072",
+          "role": "sponsor"
+        },
+        {
+          "bioguide_id": "W000187",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000474",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001061",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000553",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000250",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000081",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000612",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000344",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001213",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001157",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001188",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001281",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001204",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000617",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000397",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000481",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000597",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000486",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000599",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000587",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000594",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000620",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "N000193",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000110",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000168",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001326",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000634",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000607",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001099",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001217",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001236",
+          "role": "cosponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "hsvr00",
+          "name": "Veterans' Affairs Committee",
+          "chamber": "house",
+          "official_url": "https://api.congress.gov/v3/committee/house/hsvr00?format=json",
+          "referred_at": "2025-12-11",
+          "action_date": "2025-12-11T00:00:00Z",
+          "action_text": "Referred to the Committee on Financial Services, and in addition to the Committee on Veterans' Affairs, for a period to be subsequently determined by the Speaker, in each case for consideration of such provisions as fall within the jurisdiction of the committee concerned.",
+          "action_code": "H11100",
+          "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/6644"
+        },
+        {
+          "thomas_id": "hsba00",
+          "name": "Financial Services Committee",
+          "chamber": "house",
+          "official_url": "https://api.congress.gov/v3/committee/house/hsba00?format=json",
+          "referred_at": "2025-12-11",
+          "action_date": "2025-12-11T00:00:00Z",
+          "action_text": "Referred to the Committee on Financial Services, and in addition to the Committee on Veterans' Affairs, for a period to be subsequently determined by the Speaker, in each case for consideration of such provisions as fall within the jurisdiction of the committee concerned.",
+          "action_code": "H11100",
+          "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/6644"
+        }
+      ]
+    },
+    {
+      "bill_id": "s968-119",
+      "title": "Rent Relief Act of 2025",
+      "policy_area": "Taxation",
+      "status_bucket": "introduced",
+      "status_reason": "Read twice and referred to the Committee on Finance.",
+      "latest_action_text": "Read twice and referred to the Committee on Finance.",
+      "latest_action_date": "2025-03-11T00:00:00Z",
+      "phase": "upcoming",
+      "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/968",
+      "people": [
+        {
+          "bioguide_id": "W000790",
+          "role": "sponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "ssfi00",
+          "name": "Finance Committee",
+          "chamber": "senate",
+          "official_url": "https://api.congress.gov/v3/committee/senate/ssfi00?format=json",
+          "referred_at": "2025-03-11",
+          "action_date": "2025-03-11T00:00:00Z",
+          "action_text": "Read twice and referred to the Committee on Finance.",
+          "action_code": null,
+          "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/968"
+        }
+      ]
+    },
+    {
+      "bill_id": "hr6124-119",
+      "title": "End Rent Fixing Act of 2025",
+      "policy_area": "Commerce",
+      "status_bucket": "introduced",
+      "status_reason": "Referred to the House Committee on the Judiciary.",
+      "latest_action_text": "Referred to the House Committee on the Judiciary.",
+      "latest_action_date": "2025-11-19T00:00:00Z",
+      "phase": "upcoming",
+      "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/6124",
+      "people": [
+        {
+          "bioguide_id": "B001318",
+          "role": "sponsor"
+        },
+        {
+          "bioguide_id": "G000586",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001278",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001131",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001119",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000530",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000585",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000604",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "J000288",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "J000298",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "N000147",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "O000173",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000617",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001226",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000481",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000472",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000602",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000476",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000557",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000635",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001066",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000296",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001231",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000483",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000631",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000822",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001094",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001196",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "J000309",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000488",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000788",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "A000381",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000808",
+          "role": "cosponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "hsju00",
+          "name": "Judiciary Committee",
+          "chamber": "house",
+          "official_url": "https://api.congress.gov/v3/committee/house/hsju00?format=json",
+          "referred_at": "2025-11-19",
+          "action_date": "2025-11-19T00:00:00Z",
+          "action_text": "Referred to the House Committee on the Judiciary.",
+          "action_code": "H11100",
+          "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/6124"
+        }
+      ]
+    },
+    {
+      "bill_id": "s3207-119",
+      "title": "End Rent Fixing Act of 2025",
+      "policy_area": "Commerce",
+      "status_bucket": "introduced",
+      "status_reason": "Read twice and referred to the Committee on the Judiciary.",
+      "latest_action_text": "Read twice and referred to the Committee on the Judiciary.",
+      "latest_action_date": "2025-11-19T00:00:00Z",
+      "phase": "upcoming",
+      "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/3207",
+      "people": [
+        {
+          "bioguide_id": "W000779",
+          "role": "sponsor"
+        },
+        {
+          "bioguide_id": "W000800",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000367",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001288",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001277",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000802",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000128",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000033",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001181",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001203",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000394",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000479",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000555",
+          "role": "cosponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "ssju00",
+          "name": "Judiciary Committee",
+          "chamber": "senate",
+          "official_url": "https://api.congress.gov/v3/committee/senate/ssju00?format=json",
+          "referred_at": "2025-11-19",
+          "action_date": "2025-11-19T00:00:00Z",
+          "action_text": "Read twice and referred to the Committee on the Judiciary.",
+          "action_code": null,
+          "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/3207"
+        }
+      ]
+    },
+    {
+      "bill_id": "hr2725-119",
+      "title": "Affordable Housing Credit Improvement Act of 2025",
+      "policy_area": "Taxation",
+      "status_bucket": "introduced",
+      "status_reason": "Referred to the House Committee on Ways and Means.",
+      "latest_action_text": "Referred to the House Committee on Ways and Means.",
+      "latest_action_date": "2025-04-08T00:00:00Z",
+      "phase": "upcoming",
+      "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/2725",
+      "people": [
+        {
+          "bioguide_id": "L000585",
+          "role": "sponsor"
+        },
+        {
+          "bioguide_id": "D000617",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000478",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001292",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000446",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000613",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001260",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000557",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000376",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000096",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000298",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001156",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001205",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001185",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001210",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001080",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000392",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001160",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000466",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000296",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001213",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001190",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M000317",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000585",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001126",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001066",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "Y000067",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001201",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001222",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000582",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000294",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "N000191",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001067",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001214",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000610",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001143",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001093",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001238",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000474",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000385",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000475",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001145",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000401",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "O000173",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000168",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000608",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001058",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000617",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001306",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001315",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001194",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000614",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000589",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001281",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000578",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000598",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001301",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000604",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000459",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000624",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000397",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001117",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000597",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000197",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001053",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000130",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000129",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001300",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001103",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000481",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000798",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001287",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C000059",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001059",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000603",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001085",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001282",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000454",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000599",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "Q000023",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000591",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000631",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000490",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000599",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000300",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001206",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001228",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000486",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "Z000018",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001121",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000250",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000620",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "I000056",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001225",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "N000193",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000136",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000600",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001215",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000558",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001061",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001091",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000530",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000804",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001223",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "J000301",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001163",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000399",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000488",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001108",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001229",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000395",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "A000380",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M000871",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001318",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001295",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001068",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000235",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001119",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001212",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001090",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001137",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000305",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000612",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000375",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001199",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M000312",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "O000175",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001193",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000616",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001205",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000594",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001220",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "N000189",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000230",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "O000086",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000607",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000480",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000592",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B000668",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "P000597",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001230",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001236",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000389",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000593",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "D000594",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001225",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001229",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001112",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001228",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001047",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001215",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "U000040",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000609",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000299",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000590",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000491",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001233",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000622",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001101",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000463",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001285",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "E000246",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001232",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000598",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000138",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000398",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001221",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "V000139",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001211",
+          "role": "cosponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "hswm00",
+          "name": "Ways and Means Committee",
+          "chamber": "house",
+          "official_url": "https://api.congress.gov/v3/committee/house/hswm00?format=json",
+          "referred_at": "2025-04-08",
+          "action_date": "2025-04-08T00:00:00Z",
+          "action_text": "Referred to the House Committee on Ways and Means.",
+          "action_code": "H11100",
+          "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/2725"
+        }
+      ]
+    },
+    {
+      "bill_id": "s1515-119",
+      "title": "Affordable Housing Credit Improvement Act of 2025",
+      "policy_area": "Taxation",
+      "status_bucket": "introduced",
+      "status_reason": "Read twice and referred to the Committee on Finance.",
+      "latest_action_text": "Read twice and referred to the Committee on Finance.",
+      "latest_action_date": "2025-04-29T00:00:00Z",
+      "phase": "upcoming",
+      "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/1515",
+      "people": [
+        {
+          "bioguide_id": "Y000064",
+          "role": "sponsor"
+        },
+        {
+          "bioguide_id": "C000127",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001243",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000779",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001075",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001267",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "T000476",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000805",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001198",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000802",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001236",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001076",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001047",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001113",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001096",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001203",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "C001035",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "L000570",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001079",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000790",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "J000312",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000800",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M000934",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001181",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001153",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "G000555",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000618",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S000148",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000605",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000367",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "W000437",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001111",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001104",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001042",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "S001198",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H000273",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "B001305",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "F000479",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "M001243",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "K000384",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "H001061",
+          "role": "cosponsor"
+        },
+        {
+          "bioguide_id": "R000608",
+          "role": "cosponsor"
+        }
+      ],
+      "committee_referrals": [
+        {
+          "thomas_id": "ssfi00",
+          "name": "Finance Committee",
+          "chamber": "senate",
+          "official_url": "https://api.congress.gov/v3/committee/senate/ssfi00?format=json",
+          "referred_at": "2025-04-29",
+          "action_date": "2025-04-29T00:00:00Z",
+          "action_text": "Read twice and referred to the Committee on Finance.",
+          "action_code": null,
+          "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/1515"
+        }
+      ]
+    }
+  ]
+}

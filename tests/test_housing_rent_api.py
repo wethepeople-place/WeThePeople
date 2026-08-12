@@ -74,7 +74,7 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         "bill_count": 7,
     }
     assert evidence["total"] == 2
-    assert {item["key"] for item in evidence["series"]} == {"median_rent", "avg_wage"}
+    assert {item["key"] for item in evidence["series"]} == {"rent_cpi", "avg_wage"}
     assert bills["total"] == 7
     assert {item["bill_id"] for item in bills["bills"]} == {
         "hr1-119", "hr6644-119", "s968-119", "hr6124-119",
