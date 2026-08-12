@@ -76,6 +76,11 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
             errors.add("fixture_delivery_mismatch")
         if accessibility.get("official_transcript_url") != item.get("official_transcript_url") or accessibility.get("text_kind") != "overview":
             errors.add("fixture_accessibility_mismatch")
+        overview_points = accessibility.get("overview_points")
+        if not isinstance(overview_points, list) or not 2 <= len(overview_points) <= 4 or any(
+            not isinstance(point, str) or not point.strip() or len(point) > 120 for point in overview_points
+        ):
+            errors.add("fixture_accessibility_mismatch")
 
     return ProductionMediaValidation(not errors, tuple(sorted(errors)))
 

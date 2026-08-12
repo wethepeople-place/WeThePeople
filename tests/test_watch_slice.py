@@ -164,6 +164,11 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     }
     assert payload["videos"][0]["accessibility"] == {
         "text_kind": "overview",
+        "overview_points": [
+            "Aims to increase the supply of available housing.",
+            "Includes provisions intended to improve housing affordability.",
+            "Effects on rents and home prices may take time.",
+        ],
         "official_transcript_url": "https://www.govinfo.gov/app/details/BILLS-119hr6644enr",
         "official_transcript_label": "Official enrolled H.R. 6644",
         "development_only": True,

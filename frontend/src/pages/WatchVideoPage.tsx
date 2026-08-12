@@ -25,7 +25,7 @@ type Delivery = {
 
 type Accessibility = {
   text_kind: 'overview' | 'transcript'; official_transcript_url: string;
-  official_transcript_label: string; development_only: boolean;
+  official_transcript_label: string; overview_points?: string[]; development_only: boolean;
 };
 
 const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
@@ -59,9 +59,12 @@ function ScrollCue({ last }: { last: boolean }) {
 function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean }) {
   if (!item.transcript && !item.accessibility?.official_transcript_url) return null;
   const label = item.accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript';
+  const overviewPoints = item.accessibility?.text_kind === 'overview' ? item.accessibility.overview_points || [] : [];
   return <details className={`mt-4 rounded-xl p-4 ${dark ? 'bg-black/70' : 'bg-white/10'}`} open>
     <summary className="cursor-pointer font-semibold">{label}</summary>
-    {item.transcript && <p className="mt-2 leading-7 text-slate-100">{item.transcript}</p>}
+    {overviewPoints.length > 0
+      ? <ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-slate-100">{overviewPoints.map((point) => <li key={point}>{point}</li>)}</ul>
+      : item.transcript && <p className="mt-2 leading-7 text-slate-100">{item.transcript}</p>}
     {item.accessibility?.official_transcript_url && <a className="mt-3 inline-block font-semibold text-amber-300 underline" href={item.accessibility.official_transcript_url} target="_blank" rel="noreferrer">{item.accessibility.official_transcript_label} <ExternalLink className="inline h-4 w-4" /></a>}
   </details>;
 }

@@ -100,3 +100,5 @@ def test_official_transcript_is_record_driven_and_editorial_text_is_labeled_over
     assert "accessibility?.text_kind === 'overview' ? 'Overview' : 'Transcript'" in PAGE
     assert "accessibility.official_transcript_url" in PAGE
     assert "accessibility.official_transcript_label" in PAGE
+    assert "overview_points" in PAGE
+    assert '<ul className="mt-3 list-disc' in PAGE

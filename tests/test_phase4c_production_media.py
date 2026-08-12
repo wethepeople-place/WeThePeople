@@ -28,6 +28,11 @@ def test_exact_production_allowlist_is_valid_and_returns_three_bounded_items():
     delivery, accessibility = production_metadata("housing-rent-road-act-explained", root=ROOT, now=now)
     assert delivery["mode"] == "official_embed" and delivery["development_only"] is False
     assert accessibility["official_transcript_label"] == "Official enrolled H.R. 6644" and accessibility["development_only"] is False
+    assert accessibility["overview_points"] == [
+        "Aims to increase the supply of available housing.",
+        "Includes provisions intended to improve housing affordability.",
+        "Effects on rents and home prices may take time.",
+    ]
     fallback, fallback_accessibility = production_metadata("housing-rent-road-act-explained", root=ROOT, now=now, embed_enabled=False)
     assert fallback["mode"] == "link_out" and fallback["canonical_url"].startswith("https://www.youtube.com/")
     assert fallback_accessibility["official_transcript_label"] == "Official enrolled H.R. 6644"
@@ -48,6 +53,13 @@ def test_expired_evidence_fails_closed(tmp_path):
     assert "production_evidence_expired" in report.error_codes
     fallback, accessibility = production_metadata("housing-rent-road-act-explained", root=tmp_path, now=datetime(2026, 11, 11, tzinfo=timezone.utc))
     assert fallback["mode"] == "link_out" and accessibility["text_kind"] == "overview"
+
+
+def test_overview_points_are_required_and_bounded(tmp_path):
+    fixture = json.loads((ROOT / "runtime_data/watch_census_production_pilot.json").read_text(encoding="utf-8"))
+    fixture["videos"][0]["accessibility"]["overview_points"] = ["One oversized point. " * 10]
+    report = validate_production_media(root=_root(tmp_path, fixture=fixture), now=datetime(2026, 8, 4, tzinfo=timezone.utc))
+    assert "fixture_accessibility_mismatch" in report.error_codes
 
 
 def test_source_or_item_identity_drift_fails_closed(tmp_path):

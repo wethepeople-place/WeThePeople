@@ -506,6 +506,7 @@ class VideoAccessibility(BaseModel):
     text_kind: Literal["overview", "transcript"]
     official_transcript_url: str
     official_transcript_label: str
+    overview_points: List[str] = Field(default_factory=list)
     development_only: bool = False
 
 class VideoItem(BaseModel):
