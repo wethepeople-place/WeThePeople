@@ -30,6 +30,11 @@ class CuratedBillSpec:
 
 EVIDENCE_SERIES = (
     EvidenceSeriesSpec(
+        key="hud_fmr_2br_proxy",
+        publisher="U.S. Department of Housing and Urban Development",
+        source_url="https://www.huduser.gov/portal/dataset/fmr-api.html",
+    ),
+    EvidenceSeriesSpec(
         key="rent_cpi",
         publisher="U.S. Bureau of Labor Statistics",
         source_url="https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm",

@@ -12,6 +12,27 @@ type PartyFilter = 'all' | 'D' | 'R' | 'I';
 type ChamberFilter = 'all' | 'house' | 'senate';
 type StateFilter = 'all' | string;
 
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
+  connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID',
+  illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
+  maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN',
+  mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV',
+  'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+  'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR',
+  pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD',
+  tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA',
+  'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY', 'district of columbia': 'DC',
+  'puerto rico': 'PR', 'virgin islands': 'VI', guam: 'GU', 'american samoa': 'AS',
+  'northern mariana islands': 'MP',
+};
+
+export function stateCodeFromQuery(value: string): string | null {
+  const normalized = value.trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
+  if (normalized.length === 2) return normalized.toUpperCase();
+  return STATE_NAME_TO_CODE[normalized] ?? null;
+}
+
 // ── Party config (design tokens + hex for alpha interpolation) ──
 
 const PARTY_TOKEN: Record<string, string> = {
@@ -410,6 +431,8 @@ export default function PeoplePage() {
 
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [datasetUpdatedAt, setDatasetUpdatedAt] = useState<string | null>(null);
   const [search, setSearch] = useState(initialQuery);
   const [partyFilter, setPartyFilter] = useState<PartyFilter>('all');
   const [chamberFilter, setChamberFilter] = useState<ChamberFilter>('all');
@@ -425,11 +448,15 @@ export default function PeoplePage() {
     apiClient
       .getPeople({ limit: 600 })
       .then((res) => {
-        if (!controller.signal.aborted) setPeople(res.people || []);
+        if (!controller.signal.aborted) {
+          setPeople(res.people || []);
+          setDatasetUpdatedAt(res.dataset_updated_at || null);
+        }
       })
       .catch((err) => {
         if (err?.name !== 'AbortError') {
           console.warn('[PeoplePage] fetch failed:', err);
+          setLoadError(true);
         }
       })
       .finally(() => {
@@ -489,10 +516,10 @@ export default function PeoplePage() {
     let result = people;
     if (search) {
       const trimmed = search.trim();
-      const upper = trimmed.toUpperCase();
-      // Two-letter exact state code → state-only filter, no name match.
-      if (trimmed.length === 2 && US_STATE_CODES.has(upper)) {
-        result = result.filter((p) => (p.state || '').toUpperCase() === upper);
+      const stateCode = stateCodeFromQuery(trimmed);
+      // Exact state code or full state name (with harmless punctuation) → state-only filter.
+      if (stateCode && US_STATE_CODES.has(stateCode)) {
+        result = result.filter((p) => (p.state || '').toUpperCase() === stateCode);
       } else {
         const q = trimmed.toLowerCase();
         result = result.filter(
@@ -586,6 +613,11 @@ export default function PeoplePage() {
           <p style={leadStyle}>
             {people.length.toLocaleString()} current members. Search by name, filter by party, chamber, or state — or enter a ZIP to see your representatives.
           </p>
+          {datasetUpdatedAt && (
+            <p style={{ ...leadStyle, fontFamily: 'var(--font-mono)', fontSize: '12px', marginTop: '8px' }}>
+              Roster refreshed {new Date(datasetUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          )}
 
           {/* Search */}
           <div style={{ position: 'relative', maxWidth: '520px', marginBottom: '24px' }}>
@@ -890,6 +922,28 @@ export default function PeoplePage() {
                   }}
                 />
               ))}
+            </div>
+          ) : loadError || people.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '80px 24px',
+                background: 'var(--color-surface)',
+                border: '1px solid rgba(235,229,213,0.08)',
+                borderRadius: '16px',
+                gap: '16px',
+              }}
+            >
+              <Users size={48} style={{ color: 'var(--color-text-3)' }} />
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '18px', color: 'var(--color-text-2)', margin: 0 }}>
+                Congressional roster data is not available yet
+              </p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--color-text-3)', margin: 0, textAlign: 'center' }}>
+                This directory will appear after the verified Congress roster import completes.
+              </p>
             </div>
           ) : filtered.length === 0 ? (
             <div

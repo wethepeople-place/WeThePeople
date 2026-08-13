@@ -363,6 +363,7 @@ def get_people(
             )
 
         total = query.count()
+        dataset_updated_at = db.query(func.max(TrackedMember.updated_at)).scalar()
         rows = (
             query.order_by(TrackedMember.display_name.asc(), TrackedMember.person_id.asc())
             .offset(offset).limit(limit).all()
@@ -386,6 +387,7 @@ def get_people(
             ],
             "limit": limit,
             "offset": offset,
+            "dataset_updated_at": dataset_updated_at.isoformat() if dataset_updated_at else None,
         }
     finally:
         db.close()
