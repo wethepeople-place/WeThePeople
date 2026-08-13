@@ -107,6 +107,13 @@ class JobDef:
 
 # Master job list — order matters for sequential execution within a tier
 JOB_REGISTRY: List[JobDef] = [
+    JobDef(
+        name="sync_congress_foundation",
+        script="jobs/sync_congress_foundation.py",
+        interval_hours=168,
+        timeout_sec=900,
+        description="Current Congress roster, committees, memberships, and source provenance (explicitly gated)",
+    ),
     # ── Daily (24h) ──────────────────────────────────────────────
     JobDef(
         name="sync_votes",

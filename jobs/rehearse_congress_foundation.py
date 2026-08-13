@@ -47,15 +47,19 @@ STATE_CODES = set(
 )
 
 
-def staging_sqlite_path(db_url: str) -> Path:
+def sqlite_path(db_url: str, *, require_staging: bool = True) -> Path:
     prefix = "sqlite:///"
     if not db_url.startswith(prefix):
-        raise ValueError("Congress rehearsal requires a SQLite staging database")
+        raise ValueError("Congress foundation import requires a SQLite database")
     raw = db_url[len(prefix):]
     path = Path(raw).expanduser().resolve()
-    if "staging" not in path.name.lower():
+    if require_staging and "staging" not in path.name.lower():
         raise ValueError("Congress rehearsal database filename must contain 'staging'")
     return path
+
+
+def staging_sqlite_path(db_url: str) -> Path:
+    return sqlite_path(db_url, require_staging=True)
 
 
 def validate_snapshots(root: Path) -> dict[str, int]:
@@ -118,8 +122,60 @@ def download_snapshots(root: Path, transport=requests) -> list[dict[str, Any]]:
     return sources
 
 
-def run(db_url: str, *, source_dir: Path | None = None) -> dict[str, Any]:
-    db_path = staging_sqlite_path(db_url)
+def reconcile_current_snapshot(session, root: Path, sources: list[dict[str, Any]]) -> dict[str, int]:
+    """Apply authoritative removals only after the complete snapshot passes validation."""
+    legislators = yaml.safe_load((root / SOURCE_FILES[0]).read_text(encoding="utf-8")) or []
+    memberships = yaml.safe_load((root / SOURCE_FILES[2]).read_text(encoding="utf-8")) or {}
+    current_bioguides = {
+        (person.get("id") or {}).get("bioguide")
+        for person in legislators
+        if (person.get("id") or {}).get("bioguide")
+    }
+    current_memberships = {
+        (committee_id, member.get("bioguide"))
+        for committee_id, rows in memberships.items()
+        for member in (rows or [])
+        if member.get("bioguide")
+    }
+
+    deactivated = (
+        session.query(TrackedMember)
+        .filter(TrackedMember.is_active == 1, TrackedMember.bioguide_id.notin_(current_bioguides))
+        .update({TrackedMember.is_active: 0}, synchronize_session=False)
+    )
+    stale_memberships = [
+        row for row in session.query(CommitteeMembership).all()
+        if (row.committee_thomas_id, row.bioguide_id) not in current_memberships
+    ]
+    for row in stale_memberships:
+        session.delete(row)
+
+    roster_source = next(source for source in sources if source["url"].endswith(SOURCE_FILES[0]))
+    provenance = json.dumps([{
+        "url": roster_source["url"],
+        "type": "public-identity-index",
+        "sha256": roster_source["sha256"],
+    }], separators=(",", ":"), sort_keys=True)
+    provenance_updates = (
+        session.query(TrackedMember)
+        .filter(TrackedMember.bioguide_id.in_(current_bioguides))
+        .update({TrackedMember.claim_sources_json: provenance}, synchronize_session=False)
+    )
+    session.commit()
+    return {
+        "deactivated_members": deactivated,
+        "removed_memberships": len(stale_memberships),
+        "provenance_updates": provenance_updates,
+    }
+
+
+def run(
+    db_url: str,
+    *,
+    source_dir: Path | None = None,
+    allow_non_staging: bool = False,
+) -> dict[str, Any]:
+    db_path = sqlite_path(db_url, require_staging=not allow_non_staging)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = tempfile.TemporaryDirectory(prefix="wtp-congress-") if source_dir is None else None
     root = source_dir or Path(temporary.name)
@@ -140,6 +196,7 @@ def run(db_url: str, *, source_dir: Path | None = None) -> dict[str, Any]:
             member_changes = bootstrap_tracked_members(session, str(root))
             committee_changes = import_committees(session, str(root))
             membership_changes = import_memberships(session, str(root))
+            reconciliation = reconcile_current_snapshot(session, root, sources)
             active_members = session.query(TrackedMember).filter(TrackedMember.is_active == 1).count()
             committee_count = session.query(Committee).count()
             membership_count = session.query(CommitteeMembership).count()
@@ -156,6 +213,7 @@ def run(db_url: str, *, source_dir: Path | None = None) -> dict[str, Any]:
             "member_changes": member_changes,
             "committee_changes": committee_changes,
             "membership_changes": membership_changes,
+            "reconciliation": reconciliation,
             "active_members": active_members,
             "committees": committee_count,
             "memberships": membership_count,
