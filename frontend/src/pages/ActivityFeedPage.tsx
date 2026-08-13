@@ -36,7 +36,6 @@ const pageShell: React.CSSProperties = {
 const contentWrap: React.CSSProperties = {
   maxWidth: 1100,
   margin: '0 auto',
-  padding: '40px 32px 80px',
 };
 
 const eyebrowStyle: React.CSSProperties = {
@@ -215,7 +214,7 @@ export default function ActivityFeedPage() {
 
   return (
     <div style={pageShell}>
-      <div style={contentWrap}>
+      <div className="activity-content-wrap" style={contentWrap}>
         {/* Header */}
         <motion.div
           ref={headerRef}
@@ -238,15 +237,9 @@ export default function ActivityFeedPage() {
         </motion.div>
 
         {/* Two-column layout: Timeline + Sidebar */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 320px',
-            gap: 40,
-          }}
-        >
+        <div className="activity-feed-grid" data-testid="activity-feed-grid">
           {/* Timeline */}
-          <div style={{ position: 'relative' }}>
+          <div className="activity-timeline" style={{ position: 'relative' }}>
             {/* Vertical timeline line */}
             {actions.length > 0 && <div
               style={{
@@ -324,6 +317,7 @@ export default function ActivityFeedPage() {
                     <div
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         borderRadius: 14,
                         border: '1px solid var(--color-border)',
                         background: 'var(--color-surface)',
@@ -509,6 +503,7 @@ export default function ActivityFeedPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div
+                className="activity-pagination"
                 style={{
                   marginTop: 32,
                   display: 'flex',
@@ -567,6 +562,7 @@ export default function ActivityFeedPage() {
 
           {/* Sidebar: Recent Votes */}
           <motion.div
+            className="activity-votes-sidebar"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}

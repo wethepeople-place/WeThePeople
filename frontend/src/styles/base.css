@@ -85,6 +85,39 @@ html, body, #root {
 .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+.activity-content-wrap {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 40px 32px 80px;
+}
+
+.activity-feed-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 40px;
+  min-width: 0;
+}
+
+.activity-timeline,
+.activity-votes-sidebar {
+  min-width: 0;
+}
+
+@media (max-width: 840px) {
+  .activity-content-wrap {
+    padding: 24px 16px 64px;
+  }
+
+  .activity-feed-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .activity-pagination {
+    flex-wrap: wrap;
+  }
+}
+
 /* ── Animations ────────────────────────────────────────────────── */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(12px); }
