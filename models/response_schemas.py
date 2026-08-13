@@ -257,6 +257,7 @@ class BillListItem(BaseModel):
     latest_action_text: Optional[str] = None
     latest_action_date: Optional[str] = None
     introduced_date: Optional[str] = None
+    source_retrieved_at: Optional[str] = None
     sponsors: List[BillSponsorItem] = []
 
 class BillsListResponse(BaseModel):
@@ -264,6 +265,8 @@ class BillsListResponse(BaseModel):
     limit: int
     offset: int
     bills: List[BillListItem]
+    source: str = "Congress.gov API"
+    dataset_updated_at: Optional[str] = None
 
 class BillDetailResponse(BaseModel):
     bill_id: str
@@ -278,6 +281,12 @@ class BillDetailResponse(BaseModel):
     introduced_date: Optional[str] = None
     congress_url: Optional[str] = None
     summary_text: Optional[str] = None
+    summary_source: str = "unavailable"
+    source: str = "Congress.gov API"
+    source_url: Optional[str] = None
+    source_retrieved_at: Optional[str] = None
+    source_content_sha256: Optional[str] = None
+    source_completeness: Dict[str, bool] = {}
     sponsors: List[BillSponsorItem] = []
     timeline: List[Dict[str, Any]] = []
 

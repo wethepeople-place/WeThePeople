@@ -33,14 +33,16 @@ const PIPELINE_STAGES = [
 ] as const;
 
 function statusToStageIndex(status: string | null): number {
-  if (!status) return 0;
+  if (!status) return -1;
   const map: Record<string, number> = {
     introduced: 0,
     in_committee: 1,
+    passed_committee: 1,
     passed_house: 2,
     passed_one: 2,
     passed_senate: 3,
     passed_both: 4,
+    president: 4,
     enacted: 5,
     became_law: 5,
     vetoed: 4,
@@ -398,8 +400,7 @@ export default function BillDetailPage() {
             marginBottom: 32,
           }}
         >
-          {bill.status_bucket && (
-            <span
+          <span
               style={{
                 display: 'inline-block',
                 padding: '5px 12px',
@@ -414,15 +415,12 @@ export default function BillDetailPage() {
                 border: `1px solid ${statusToken.hex}33`,
               }}
             >
-              {bill.status_bucket.replace(/_/g, ' ')}
+              {bill.status_bucket ? bill.status_bucket.replace(/_/g, ' ') : 'Not yet classified'}
             </span>
-          )}
 
           {metaItems.map((item, i) => (
             <React.Fragment key={i}>
-              {(i > 0 || bill.status_bucket) && (
-                <span style={{ color: 'var(--color-border-hover)', fontSize: 12, userSelect: 'none' }}>·</span>
-              )}
+              <span style={{ color: 'var(--color-border-hover)', fontSize: 12, userSelect: 'none' }}>·</span>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--color-text-2)' }}>
                 {item}
               </span>
@@ -514,7 +512,7 @@ export default function BillDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Summary Card */}
             <div style={sectionCard}>
-              <h2 style={sectionHeading}>Summary</h2>
+              <h2 style={sectionHeading}>{bill.summary_source === 'crs' ? 'Official CRS Summary' : 'Summary'}</h2>
               {bill.summary_text ? (
                 <p
                   style={{
@@ -534,7 +532,7 @@ export default function BillDetailPage() {
                     color: 'var(--color-text-3)',
                   }}
                 >
-                  No summary available.
+                  Congress.gov has not published a CRS summary for this bill yet.
                 </p>
               )}
 

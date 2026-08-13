@@ -38,6 +38,8 @@ interface BillsResponse {
   limit: number;
   offset: number;
   bills: BillEntry[];
+  source: string;
+  dataset_updated_at: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -46,6 +48,7 @@ interface BillsResponse {
 
 const STATUS_OPTIONS = [
   { key: 'all', label: 'All Statuses' },
+  { key: 'unclassified', label: 'Not Yet Classified' },
   { key: 'introduced', label: 'Introduced' },
   { key: 'in_committee', label: 'In Committee' },
   { key: 'passed_one', label: 'Passed One Chamber' },
@@ -90,6 +93,7 @@ const STATUS_TO_PROGRESS: Record<string, number> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  unclassified: 'Not Yet Classified',
   introduced: 'Introduced',
   in_committee: 'In Committee',
   passed_one: 'Passed One Chamber',
@@ -117,7 +121,7 @@ const PAGE_SIZE = 20;
 // ─────────────────────────────────────────────────────────────────────
 
 function normalizeStatus(status: string | null | undefined): string {
-  return (status || 'introduced').toLowerCase().replace(/\s+/g, '_');
+  return (status || 'unclassified').toLowerCase().replace(/\s+/g, '_');
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -129,7 +133,7 @@ function formatDate(dateStr: string | null | undefined): string {
 
 function progressFromStatus(status: string | null | undefined): number {
   const key = normalizeStatus(status);
-  return STATUS_TO_PROGRESS[key] ?? 1;
+  return STATUS_TO_PROGRESS[key] ?? 0;
 }
 
 function partyHex(party: string | null): string {
@@ -143,6 +147,7 @@ function partyHex(party: string | null): string {
 export default function LegislationTrackerPage() {
   const [bills, setBills] = useState<BillEntry[]>([]);
   const [total, setTotal] = useState(0);
+  const [datasetUpdatedAt, setDatasetUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
@@ -193,6 +198,7 @@ export default function LegislationTrackerPage() {
           setBills((prev) => [...prev, ...(data.bills || [])]);
         }
         setTotal(data.total || 0);
+        setDatasetUpdatedAt(data.dataset_updated_at || null);
       } catch (err: unknown) {
         if ((err as { name?: string })?.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : 'Failed to load bills');
@@ -225,6 +231,7 @@ export default function LegislationTrackerPage() {
 
   // Pipeline stage key → status_bucket mapping for client-side filtering
   const pipelineStageToBuckets: Record<string, string[]> = {
+    unclassified: ['unclassified'],
     introduced: ['introduced'],
     in_committee: ['in_committee'],
     passed_one: ['passed_one', 'passed_house', 'passed_senate'],
@@ -311,6 +318,9 @@ export default function LegislationTrackerPage() {
           >
             Bills and resolutions moving through Congress — filter by status, chamber, sponsor, or search by
             keyword.
+          </p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--color-text-3)', margin: '8px 0 0' }}>
+            Source: Congress.gov API{datasetUpdatedAt ? ` · Retrieved ${formatDate(datasetUpdatedAt)}` : ' · Full synchronization pending'}
           </p>
         </motion.div>
 

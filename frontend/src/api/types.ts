@@ -86,11 +86,17 @@ export interface BillResponse {
   policy_area: string | null;
   subjects_json: string[] | null;
   summary_text: string | null;
+  summary_source: 'crs' | 'unavailable';
   status_bucket: string | null;
   latest_action_text: string | null;
   latest_action_date: string | null;
   introduced_date: string | null;
   congress_url: string;
+  source: string;
+  source_url: string | null;
+  source_retrieved_at: string | null;
+  source_content_sha256: string | null;
+  source_completeness: Record<string, boolean>;
   timeline: Array<{
     action_date: string | null;
     action_text: string;
