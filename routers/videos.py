@@ -52,11 +52,19 @@ def _fixture_delivery(video_id: str) -> dict | None:
         if not isinstance(delivery, dict):
             return None
         canonical_url = delivery.get("canonical_url")
+        poster_url = delivery.get("poster_url")
         mode = delivery.get("mode")
         if mode not in {"official_embed", "hosted_video", "link_out"} or not isinstance(canonical_url, str) or not canonical_url.startswith("https://"):
             return None
         if mode == "official_embed" and not all(delivery.get(field) for field in ("provider", "provider_video_id", "source_label")):
             return {"mode": "link_out", "canonical_url": canonical_url, "development_only": bool(delivery.get("development_only"))}
+        if poster_url is not None and (
+            not isinstance(poster_url, str)
+            or not poster_url.startswith("/watch-thumbnails/")
+            or not poster_url.endswith((".jpg", ".webp"))
+            or ".." in poster_url
+        ):
+            delivery = {key: value for key, value in delivery.items() if key != "poster_url"}
         return delivery
     except (OSError, ValueError, StopIteration, TypeError):
         return None

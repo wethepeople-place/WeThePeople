@@ -39,6 +39,9 @@ def test_exact_production_allowlist_is_valid_and_returns_three_bounded_items():
     tiktok, _ = production_metadata("housing-rent-road-act-becomes-law", root=ROOT, now=now)
     facebook, _ = production_metadata("housing-rent-road-act-speaker", root=ROOT, now=now)
     assert tiktok["provider"] == "tiktok" and facebook["provider"] == "facebook"
+    assert delivery["poster_url"].startswith("/watch-thumbnails/")
+    assert tiktok["poster_url"].startswith("/watch-thumbnails/")
+    assert facebook["poster_url"].startswith("/watch-thumbnails/")
     assert production_metadata("not-allowlisted", root=ROOT, now=now) == (None, None)
 
 
@@ -60,6 +63,13 @@ def test_overview_points_are_required_and_bounded(tmp_path):
     fixture["videos"][0]["accessibility"]["overview_points"] = ["One oversized point. " * 10]
     report = validate_production_media(root=_root(tmp_path, fixture=fixture), now=datetime(2026, 8, 4, tzinfo=timezone.utc))
     assert "fixture_accessibility_mismatch" in report.error_codes
+
+
+def test_external_or_traversing_poster_paths_fail_closed(tmp_path):
+    fixture = json.loads((ROOT / "runtime_data/watch_census_production_pilot.json").read_text(encoding="utf-8"))
+    fixture["videos"][0]["delivery"]["poster_url"] = "https://i.ytimg.com/tracking.jpg"
+    report = validate_production_media(root=_root(tmp_path, fixture=fixture), now=datetime(2026, 8, 4, tzinfo=timezone.utc))
+    assert "poster_contract_invalid" in report.error_codes
 
 
 def test_source_or_item_identity_drift_fails_closed(tmp_path):

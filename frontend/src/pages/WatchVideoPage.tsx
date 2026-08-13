@@ -23,6 +23,7 @@ type Feed = { videos: Video[]; next_cursor: string | null; has_more: boolean };
 type Delivery = {
   mode: 'official_embed' | 'hosted_video' | 'link_out'; provider: string | null;
   provider_video_id: string | null; canonical_url: string; source_label: string | null;
+  poster_url?: string | null;
   development_only: boolean;
 };
 
@@ -105,6 +106,7 @@ function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean })
 function OfficialEmbedCard({ item, active, embed, position, total, onChange }: { item: Video; active: boolean; embed: Delivery; position: number; total: number; onChange: (next: Video) => void }) {
   const [consented, setConsented] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
   const provider = getValidatedProvider(embed);
   const embedUrl = getOfficialEmbedUrl(embed);
   const playerLoaded = active && consented;
@@ -123,13 +125,17 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange }: {
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onError={() => setFailed(true)}
-        /> : <div className="flex h-full max-w-2xl flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 p-8">
+        /> : <div className="relative flex h-full max-w-2xl flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-8">
+          {embed.poster_url && !posterFailed && <img src={embed.poster_url} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" onError={() => setPosterFailed(true)} />}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/60 to-black/90" />
+          <div className="relative z-[1] flex flex-col items-center">
           <p className="text-sm font-bold uppercase tracking-widest text-amber-300">{embed.source_label || providerLabel}</p>
           <h2 className="mt-3 line-clamp-3 text-2xl font-bold">{failed ? 'Inline player unavailable' : item.caption}</h2>
           {active && !failed && <button aria-label={`Play video from ${providerLabel}`} className="mt-7 grid h-20 w-20 place-content-center rounded-full bg-white text-slate-950 shadow-xl outline-none transition hover:scale-105 focus-visible:ring-4 focus-visible:ring-amber-300/70" onClick={() => setConsented(true)}><Play className="ml-1 h-9 w-9 fill-current" aria-hidden="true" /></button>}
           <p className="mt-5 text-sm text-slate-300">{privacyLine}. <a className="text-amber-300 underline" href={getProviderPrivacyUrl(provider)} target="_blank" rel="noreferrer">Privacy details</a></p>
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
           <a className="mt-4 block text-sm font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
+          </div>
         </div>}
       </div>
       <div className="min-w-0 py-3 lg:py-6">

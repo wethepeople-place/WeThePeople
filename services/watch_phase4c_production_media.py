@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PROVIDER_VIDEO_IDS = {
+    "youtube": re.compile(r"^[A-Za-z0-9_-]{11}$"),
+    "tiktok": re.compile(r"^\d{15,25}$"),
+    "facebook": re.compile(r"^\d{5,25}$"),
+}
 
 
 @dataclass(frozen=True)
@@ -58,7 +64,14 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
     for item in items:
         if not item.get("source_id") or item.get("delivery_mode") != "official_embed":
             errors.add("allowlist_identity_invalid")
-        if item.get("provider") not in {"youtube", "tiktok", "facebook"} or not item.get("provider_video_id") or item.get("mobile_delivery_mode") != "link_out":
+        provider = item.get("provider")
+        provider_video_id = item.get("provider_video_id")
+        if (
+            provider not in PROVIDER_VIDEO_IDS
+            or not isinstance(provider_video_id, str)
+            or not PROVIDER_VIDEO_IDS[provider].fullmatch(provider_video_id)
+            or item.get("mobile_delivery_mode") != "link_out"
+        ):
             errors.add("delivery_contract_invalid")
         if item.get("web_consent_required") is not True:
             errors.add("web_safeguard_missing")
@@ -74,6 +87,9 @@ def validate_production_media(*, root: Path = ROOT, now: datetime | None = None)
         accessibility = record.get("accessibility", {})
         if any(delivery.get(key) != item.get(key) for key in ("provider", "provider_video_id", "canonical_url")):
             errors.add("fixture_delivery_mismatch")
+        poster_url = delivery.get("poster_url")
+        if not isinstance(poster_url, str) or not re.fullmatch(r"/watch-thumbnails/[a-z0-9-]+\.(?:jpg|webp)", poster_url):
+            errors.add("poster_contract_invalid")
         if accessibility.get("official_transcript_url") != item.get("official_transcript_url") or accessibility.get("text_kind") != "overview":
             errors.add("fixture_accessibility_mismatch")
         overview_points = accessibility.get("overview_points")

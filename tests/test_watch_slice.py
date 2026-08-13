@@ -221,6 +221,7 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
         "provider": "youtube",
         "provider_video_id": "maODCSHgPww",
         "canonical_url": "https://www.youtube.com/watch?v=maODCSHgPww",
+        "poster_url": "/watch-thumbnails/housing-rent-road-act-explained.jpg",
         "source_label": "Money Instructor",
         "development_only": True,
     }
