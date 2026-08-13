@@ -189,6 +189,26 @@ def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), 
     return {"total": total, "videos": [_serialize(row, _interaction_state(db, row, user)) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
 
 
+@router.get("/saved", response_model=VideosResponse)
+def list_saved_videos(limit: int = Query(25, ge=1, le=25), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return only the authenticated viewer's private saved-video collection."""
+    total = db.query(VideoSave).filter(VideoSave.user_id == user.id).count()
+    rows = (
+        _query(db)
+        .join(VideoSave, VideoSave.video_id == Video.video_id)
+        .filter(VideoSave.user_id == user.id)
+        .order_by(VideoSave.created_at.desc(), Video.video_id.asc())
+        .limit(limit)
+        .all()
+    )
+    return {
+        "total": total,
+        "videos": [_serialize(row, _interaction_state(db, row, user)) for row in rows],
+        "next_cursor": None,
+        "has_more": total > len(rows),
+    }
+
+
 @router.get("/{video_id}", response_model=VideoItem)
 def get_video(video_id: str, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
     row = _query(db).filter(Video.video_id == video_id).first()
