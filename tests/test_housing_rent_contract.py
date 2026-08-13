@@ -12,7 +12,7 @@ from jobs.housing_rent_contract import (
 def test_slice_scope_is_exact_and_uses_canonical_identifiers():
     assert ISSUE_SLUG == "housing-rent"
     assert VALIDATION_ZIP == "49001"
-    assert {series.key for series in EVIDENCE_SERIES} == {"rent_cpi", "avg_wage"}
+    assert {series.key for series in EVIDENCE_SERIES} == {"hud_fmr_2br_proxy", "rent_cpi", "avg_wage"}
 
     expected_bill_ids = {
         "hr1-119",

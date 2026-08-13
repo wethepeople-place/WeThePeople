@@ -31,7 +31,7 @@ from utils.logging import get_logger, setup_logging
 setup_logging()
 logger = get_logger(__name__)
 
-CONGRESS_API_KEY = os.getenv("API_KEY_CONGRESS")
+CONGRESS_API_KEY = os.getenv("API_KEY_CONGRESS") or os.getenv("CONGRESS_API_KEY")
 BASE_URL = "https://api.congress.gov/v3"
 RATE_LIMIT_DELAY = 0.5  # seconds between API calls
 
@@ -295,7 +295,7 @@ def main():
     args = parser.parse_args()
 
     if not CONGRESS_API_KEY:
-        logger.error("API_KEY_CONGRESS not set")
+        logger.error("Congress.gov API key not set (API_KEY_CONGRESS or CONGRESS_API_KEY)")
         sys.exit(1)
 
     bioguide_map = build_bioguide_map()

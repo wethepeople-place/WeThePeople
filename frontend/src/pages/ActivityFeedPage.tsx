@@ -248,7 +248,7 @@ export default function ActivityFeedPage() {
           {/* Timeline */}
           <div style={{ position: 'relative' }}>
             {/* Vertical timeline line */}
-            <div
+            {actions.length > 0 && <div
               style={{
                 position: 'absolute',
                 left: 23,
@@ -257,9 +257,26 @@ export default function ActivityFeedPage() {
                 width: 1,
                 background: 'var(--color-border)',
               }}
-            />
+            />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {actions.length === 0 && (
+                <div style={{
+                  borderRadius: 14,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-surface)',
+                  padding: '48px 28px',
+                  textAlign: 'center',
+                }}>
+                  <Activity size={32} style={{ color: 'var(--color-text-3)', marginBottom: 14 }} />
+                  <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 800, margin: '0 0 8px' }}>
+                    Congressional activity data is not available yet
+                  </p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.6, color: 'var(--color-text-2)', margin: 0 }}>
+                    Verified legislative actions will appear after the Congress synchronization completes.
+                  </p>
+                </div>
+              )}
               {visibleActions.map((action, idx) => {
                 const token = actionTypeToken(action);
                 const date = formatDate(action.date);

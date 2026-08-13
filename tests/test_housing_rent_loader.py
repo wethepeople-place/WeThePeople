@@ -14,12 +14,14 @@ def _fixture():
     retrieved_at = "2026-07-31T00:00:00Z"
     rent_url = "https://www.bls.gov/cpi/factsheets/owners-equivalent-rent-and-rent.htm"
     bls_url = "https://www.bls.gov/developers/"
+    hud_url = "https://www.huduser.gov/portal/dataset/fmr-api.html"
     congress_base = "https://www.congress.gov/bill/119th-congress"
     congress_urls = {
         spec.bill_id: f"{congress_base}/{'house-bill' if spec.bill_type == 'hr' else 'senate-bill'}/{spec.bill_number}"
         for spec in CURATED_BILLS
     }
     sources = [
+        {"url": hud_url, "publisher": "HUD", "retrieved_at": retrieved_at},
         {"url": rent_url, "publisher": "BLS", "retrieved_at": retrieved_at},
         {"url": bls_url, "publisher": "BLS", "retrieved_at": retrieved_at},
         *[
@@ -29,7 +31,7 @@ def _fixture():
     ]
     series = []
     for spec in EVIDENCE_SERIES:
-        source_url = rent_url if spec.key == "rent_cpi" else bls_url
+        source_url = hud_url if spec.key == "hud_fmr_2br_proxy" else rent_url if spec.key == "rent_cpi" else bls_url
         series.append(
             {
                 "key": spec.key,
@@ -91,12 +93,12 @@ def test_loader_is_idempotent_and_preserves_normalized_provenance(tmp_path):
 
         assert first == second == {
             "issues": 1,
-            "evidence_series": 2,
-            "evidence_observations": 2,
+            "evidence_series": 3,
+            "evidence_observations": 3,
             "issue_bills": 7,
         }
-        assert session.query(SourceDocument).count() == 9
-        assert session.query(EvidenceObservation).count() == 2
+        assert session.query(SourceDocument).count() == 10
+        assert session.query(EvidenceObservation).count() == 3
         assert session.query(IssueBill).count() == 7
         assert session.query(MemberBillGroundTruth).count() == 1
         assert session.query(BillCommitteeReferral).count() == 1

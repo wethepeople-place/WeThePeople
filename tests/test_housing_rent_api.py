@@ -70,11 +70,11 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         "slug": "housing-rent",
         "title": "Housing & Rent",
         "summary": None,
-        "evidence_series_count": 2,
+        "evidence_series_count": 3,
         "bill_count": 7,
     }
-    assert evidence["total"] == 2
-    assert {item["key"] for item in evidence["series"]} == {"rent_cpi", "avg_wage"}
+    assert evidence["total"] == 3
+    assert {item["key"] for item in evidence["series"]} == {"hud_fmr_2br_proxy", "rent_cpi", "avg_wage"}
     assert bills["total"] == 7
     assert {item["bill_id"] for item in bills["bills"]} == {
         "hr1-119", "hr6644-119", "s968-119", "hr6124-119",

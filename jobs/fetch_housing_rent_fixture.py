@@ -8,11 +8,15 @@ import argparse
 import json
 import os
 import statistics
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol, Sequence
 
 import requests
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from jobs.housing_rent_contract import CURATED_BILLS, ISSUE_SLUG, classify_phase
 from utils.congress_urls import congress_bill_url
@@ -256,12 +260,14 @@ def build_fixture(
     congress_api_key: str,
     years: Sequence[int],
     *,
+    hud_api_key: str,
     bls_api_key: str | None = None,
     retrieved_at: datetime | None = None,
 ) -> dict[str, Any]:
     retrieved = (retrieved_at or datetime.now(timezone.utc)).isoformat()
     bills = fetch_congress_bills(transport, congress_api_key)
     sources = [
+        {"url": HUD_SOURCE_URL, "publisher": "HUD", "retrieved_at": retrieved},
         {"url": BLS_RENT_SOURCE_URL, "publisher": "BLS", "retrieved_at": retrieved},
         {"url": BLS_SOURCE_URL, "publisher": "BLS", "retrieved_at": retrieved},
         *[
@@ -277,6 +283,17 @@ def build_fixture(
         },
         "sources": sources,
         "evidence_series": [
+            {
+                "key": "hud_fmr_2br_proxy",
+                "title": "Typical two-bedroom Fair Market Rent proxy",
+                "unit": "USD per month",
+                "source_url": HUD_SOURCE_URL,
+                "methodology_note": (
+                    "Median of HUD-published area-level two-bedroom Fair Market Rents across all states and DC; "
+                    "a transparent national comparison proxy, not a HUD national rent estimate."
+                ),
+                "observations": fetch_hud_fmr_proxy(transport, hud_api_key, years),
+            },
             {
                 "key": "rent_cpi",
                 "title": "Rent of primary residence price index",
@@ -310,10 +327,14 @@ def main() -> int:
     congress_key = os.getenv("CONGRESS_API_KEY") or os.getenv("API_KEY_CONGRESS")
     if not congress_key:
         parser.error("CONGRESS_API_KEY is required to generate a complete fixture")
+    hud_key = os.getenv("HUD_API_KEY")
+    if not hud_key:
+        parser.error("HUD_API_KEY is required to generate a complete fixture")
     payload = build_fixture(
         RequestsTransport(),
         congress_key,
         range(args.start_year, args.end_year + 1),
+        hud_api_key=hud_key,
         bls_api_key=os.getenv("BLS_API_KEY"),
     )
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

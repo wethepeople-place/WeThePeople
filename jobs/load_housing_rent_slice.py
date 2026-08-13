@@ -64,8 +64,12 @@ def validate_fixture(payload: dict[str, Any]) -> None:
 
     series = payload.get("evidence_series") or []
     expected_series = {spec.key for spec in EVIDENCE_SERIES}
-    if {item.get("key") for item in series} != expected_series:
-        raise SliceValidationError("Fixture must contain exactly the two reviewed evidence series")
+    core_series = {"rent_cpi", "avg_wage"}
+    fixture_series = frozenset(item.get("key") for item in series)
+    if fixture_series not in {frozenset(core_series), frozenset(expected_series)}:
+        raise SliceValidationError(
+            "Fixture must contain the two reviewed BLS series, with HUD FMR included only when authorized data is available"
+        )
     for item in series:
         if item.get("source_url") not in source_urls or not item.get("observations"):
             raise SliceValidationError("Every evidence series needs a declared source and observations")

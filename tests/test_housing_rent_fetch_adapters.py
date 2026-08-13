@@ -90,11 +90,12 @@ def test_fixture_builder_is_bounded_and_loader_compatible():
         transport,
         "congress-secret",
         [2025],
+        hud_api_key="hud-secret",
         retrieved_at=datetime(2026, 7, 31, tzinfo=timezone.utc),
     )
     validate_fixture(payload)
     assert len(payload["bills"]) == 7
-    assert len(payload["evidence_series"]) == 2
+    assert len(payload["evidence_series"]) == 3
     assert {bill["bill_id"] for bill in payload["bills"]} == {
         spec.bill_id for spec in CURATED_BILLS
     }
@@ -107,10 +108,9 @@ def test_reviewed_evidence_fixture_is_loader_compatible_and_source_backed():
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
 
     validate_fixture(payload)
-    assert {series["key"] for series in payload["evidence_series"]} == {
-        "rent_cpi",
-        "avg_wage",
-    }
+    fixture_keys = {series["key"] for series in payload["evidence_series"]}
+    assert {"rent_cpi", "avg_wage"}.issubset(fixture_keys)
+    assert fixture_keys.issubset({"rent_cpi", "avg_wage", "hud_fmr_2br_proxy"})
     assert all(
         len(series["observations"]) == 4 for series in payload["evidence_series"]
     )
