@@ -11,6 +11,7 @@ export interface PeopleResponse {
   people: Person[];
   limit: number;
   offset: number;
+  dataset_updated_at?: string | null;
 }
 
 export interface Person {

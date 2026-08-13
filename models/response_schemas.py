@@ -59,6 +59,7 @@ class PeopleListResponse(BaseModel):
     people: List[PersonListItem]
     limit: int
     offset: int
+    dataset_updated_at: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

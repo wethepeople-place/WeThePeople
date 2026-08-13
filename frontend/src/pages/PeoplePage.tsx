@@ -432,6 +432,7 @@ export default function PeoplePage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [datasetUpdatedAt, setDatasetUpdatedAt] = useState<string | null>(null);
   const [search, setSearch] = useState(initialQuery);
   const [partyFilter, setPartyFilter] = useState<PartyFilter>('all');
   const [chamberFilter, setChamberFilter] = useState<ChamberFilter>('all');
@@ -447,7 +448,10 @@ export default function PeoplePage() {
     apiClient
       .getPeople({ limit: 600 })
       .then((res) => {
-        if (!controller.signal.aborted) setPeople(res.people || []);
+        if (!controller.signal.aborted) {
+          setPeople(res.people || []);
+          setDatasetUpdatedAt(res.dataset_updated_at || null);
+        }
       })
       .catch((err) => {
         if (err?.name !== 'AbortError') {
@@ -609,6 +613,11 @@ export default function PeoplePage() {
           <p style={leadStyle}>
             {people.length.toLocaleString()} current members. Search by name, filter by party, chamber, or state — or enter a ZIP to see your representatives.
           </p>
+          {datasetUpdatedAt && (
+            <p style={{ ...leadStyle, fontFamily: 'var(--font-mono)', fontSize: '12px', marginTop: '8px' }}>
+              Roster refreshed {new Date(datasetUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          )}
 
           {/* Search */}
           <div style={{ position: 'relative', maxWidth: '520px', marginBottom: '24px' }}>
