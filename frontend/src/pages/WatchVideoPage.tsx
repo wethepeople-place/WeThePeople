@@ -210,6 +210,9 @@ function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean
 
 export default function WatchVideoPage() {
   const { videoId } = useParams();
+  const initialVideoId = useRef(videoId || '');
+  const observerRouteId = useRef('');
+  const lastScrolledRouteId = useRef('');
   const navigate = useNavigate();
   const { authedFetch } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
@@ -225,29 +228,40 @@ export default function WatchVideoPage() {
       if (!feedResponse.ok) throw new Error('Watch could not load');
       const feed = await feedResponse.json() as Feed;
       let items = feed.videos;
-      if (videoId && !items.some((item) => item.video_id === videoId)) {
-        const exactResponse = await authedFetch(`${getApiBaseUrl()}/videos/${encodeURIComponent(videoId)}`, { signal: controller.signal });
+      const requestedId = initialVideoId.current;
+      if (requestedId && !items.some((item) => item.video_id === requestedId)) {
+        const exactResponse = await authedFetch(`${getApiBaseUrl()}/videos/${encodeURIComponent(requestedId)}`, { signal: controller.signal });
         if (exactResponse.status === 404) throw new Error('This civic video is unavailable.');
         if (!exactResponse.ok) throw new Error('Watch could not load');
         const exact = await exactResponse.json() as Video;
         items = [exact, ...items];
       }
       setVideos(items);
-      setActiveId(videoId || items[0]?.video_id || '');
+      setActiveId(requestedId || items[0]?.video_id || '');
       setLoaded(true);
     };
     void loadFeed().catch((e) => { if (e.name !== 'AbortError') { setError(e.message); setLoaded(true); } });
     return () => controller.abort();
-  }, [videoId, authedFetch]);
+  }, [authedFetch]);
   useEffect(() => {
     if (!videos.length) return;
-    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; setActiveId(id); navigate(`/watch/${id}`, { replace: true }); } }, { threshold: [0.6] });
+    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; navigate(`/watch/${id}`, { replace: true }); } }, { threshold: [0.6] });
     document.querySelectorAll('[data-video-id]').forEach((node) => observer.observe(node));
-    const requested = Array.from(document.querySelectorAll<HTMLElement>('[data-video-id]')).find((node) => node.dataset.videoId === videoId); requested?.scrollIntoView();
     return () => observer.disconnect();
-  }, [videos, videoId, navigate]);
+  }, [videos, navigate]);
+  useEffect(() => {
+    if (!loaded || !videoId || !videos.length) return;
+    if (observerRouteId.current === videoId) {
+      observerRouteId.current = '';
+      return;
+    }
+    if (lastScrolledRouteId.current === videoId) return;
+    const requested = Array.from(document.querySelectorAll<HTMLElement>('[data-video-id]')).find((node) => node.dataset.videoId === videoId);
+    requested?.scrollIntoView({ block: 'start' });
+    lastScrolledRouteId.current = videoId;
+  }, [loaded, videoId, videos]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
   if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
   if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-12 text-center text-white"><h1 className="text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
-  return <main className="h-screen snap-y snap-mandatory overflow-y-auto bg-[#070b14]" aria-label="Civic video feed">{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} position={index + 1} total={videos.length} />)}</main>;
+  return <main className="h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed">{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} position={index + 1} total={videos.length} />)}</main>;
 }
