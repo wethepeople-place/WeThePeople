@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, ChevronDown, LogOut, Star, Settings, ShieldCheck } from 'lucide-react';
+import { User, ChevronDown, LogOut, Star, Settings, ShieldCheck, Bookmark } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -65,6 +65,10 @@ export default function UserMenu() {
             <ShieldCheck size={14} />
             ACT moderation
           </Link>}
+          <Link to="/saved" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors">
+            <Bookmark size={14} />
+            Saved videos
+          </Link>
           <div className="border-t border-zinc-800" />
           <button onClick={() => { logout(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-3 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-red-400 transition-colors">
             <LogOut size={14} />

@@ -36,6 +36,7 @@ const SolutionDetailPage = React.lazy(() => import("./pages/SolutionDetailPage")
 const DiscussionsPage = React.lazy(() => import("./pages/DiscussionsPage"));
 const DiscussionDetailPage = React.lazy(() => import("./pages/DiscussionDetailPage"));
 const WatchVideoPage = React.lazy(() => import("./pages/WatchVideoPage"));
+const SavedVideosPage = React.lazy(() => import("./pages/SavedVideosPage"));
 const GovernmentPage = React.lazy(() => import("./pages/GovernmentPage"));
 const CourtsPage = React.lazy(() => import("./pages/CourtsPage"));
 const CourtCasePage = React.lazy(() => import("./pages/CourtCasePage"));
@@ -412,6 +413,7 @@ const App: React.FC = () => (
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/saved" element={<SavedVideosPage />} />
 
           {/* Legal / Info pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
