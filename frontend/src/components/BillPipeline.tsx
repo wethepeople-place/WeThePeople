@@ -25,6 +25,7 @@ interface BillPipelineProps {
 // ── Stage config ──
 
 const STAGES = [
+  { key: 'unclassified', label: 'Not classified', color: '#94A3B8', bgAlpha: 'rgba(148,163,184,0.15)' },
   { key: 'introduced', label: 'Introduced', color: '#6B7280', bgAlpha: 'rgba(107,114,128,0.15)' },
   { key: 'in_committee', label: 'Committee', color: '#F59E0B', bgAlpha: 'rgba(245,158,11,0.15)' },
   { key: 'passed_one', label: 'Floor Vote', color: '#3B82F6', bgAlpha: 'rgba(59,130,246,0.15)' },
@@ -35,7 +36,7 @@ const STAGES = [
 
 /** Map a status_bucket string to one of our pipeline stage keys. */
 function bucketToStageKey(status: string | null): string {
-  if (!status) return 'introduced';
+  if (!status) return 'unclassified';
   const normalized = status.toLowerCase().replace(/\s+/g, '_');
   const map: Record<string, string> = {
     introduced: 'introduced',
@@ -50,7 +51,7 @@ function bucketToStageKey(status: string | null): string {
     vetoed: 'president',
     failed: 'introduced',
   };
-  return map[normalized] || 'introduced';
+  return map[normalized] || 'unclassified';
 }
 
 // ── Component ──

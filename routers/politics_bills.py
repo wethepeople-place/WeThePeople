@@ -113,8 +113,10 @@ def list_bills(
 
         # Status filter — match status_bucket
         if status:
+            if status.lower() == "unclassified":
+                base = base.filter(Bill.status_bucket.is_(None))
             # Map friendly names to possible status_bucket values
-            STATUS_MAP = {
+            STATUS_MAP = {} if status.lower() == "unclassified" else {
                 "introduced": ["introduced"],
                 "in_committee": ["in_committee"],
                 "passed_one": ["passed_one", "passed_house", "passed_senate"],
@@ -125,7 +127,7 @@ def list_bills(
             allowed = STATUS_MAP.get(status.lower())
             if allowed:
                 base = base.filter(Bill.status_bucket.in_(allowed))
-            else:
+            elif status.lower() != "unclassified":
                 base = base.filter(func.lower(Bill.status_bucket) == status.lower())
 
         # Chamber filter — bill_type prefix
@@ -163,7 +165,7 @@ def list_bills(
         for gt, m in sponsors_raw:
             sponsors_by_bill.setdefault(gt.bill_id, []).append({
                 "bioguide_id": gt.bioguide_id,
-                "role": gt.role,
+                "role": _normalize_role(gt.role),
                 "person_id": m.person_id if m else None,
                 "display_name": m.display_name if m else gt.bioguide_id,
                 "party": m.party if m else None,
@@ -172,7 +174,11 @@ def list_bills(
             })
 
         bills_out = []
+        retrieved_values = []
         for b in rows:
+            provenance = _congress_provenance(b)
+            if provenance.get("retrieved_at"):
+                retrieved_values.append(provenance["retrieved_at"])
             bills_out.append({
                 "bill_id": b.bill_id,
                 "congress": b.congress,
@@ -184,6 +190,7 @@ def list_bills(
                 "latest_action_text": b.latest_action_text,
                 "latest_action_date": b.latest_action_date.isoformat() if b.latest_action_date else None,
                 "introduced_date": b.introduced_date.isoformat() if b.introduced_date else None,
+                "source_retrieved_at": provenance.get("retrieved_at"),
                 "sponsors": sponsors_by_bill.get(b.bill_id, []),
             })
 
@@ -192,6 +199,8 @@ def list_bills(
             "limit": limit,
             "offset": offset,
             "bills": bills_out,
+            "source": "Congress.gov API",
+            "dataset_updated_at": max(retrieved_values) if retrieved_values else None,
         }
     finally:
         db.close()
@@ -265,6 +274,10 @@ def _bill_summary_with_fallback(bill: Bill, db_session=None) -> Optional[str]:
     """
     if bill.summary_text and bill.summary_text.strip():
         return bill.summary_text
+
+    # Do not silently substitute generated prose for missing CRS analysis on
+    # an authoritative civic-data page.
+    return None
 
     # 2. Cached AI summary (free, fast).
     try:
@@ -356,6 +369,19 @@ def _sponsors_from_metadata(bill: Bill) -> list[dict]:
     return out
 
 
+def _congress_provenance(bill: Bill) -> dict:
+    raw = bill.metadata_json
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (ValueError, TypeError):
+            return {}
+    if not isinstance(raw, dict):
+        return {}
+    value = raw.get("congress_sync")
+    return value if isinstance(value, dict) else {}
+
+
 @router.get("/bills/{bill_id}", response_model=BillDetailResponse)
 def get_bill(bill_id: str):
     """Full bill detail."""
@@ -398,6 +424,8 @@ def get_bill(bill_id: str):
         if not sponsors_payload:
             sponsors_payload = _sponsors_from_metadata(bill)
 
+        provenance = _congress_provenance(bill)
+        source_url = f"https://www.congress.gov/bill/{_ordinal(bill.congress)}-congress/{_bill_type_label(bill.bill_type)}/{bill.bill_number}"
         return {
             "bill_id": bill.bill_id,
             "congress": bill.congress,
@@ -407,11 +435,17 @@ def get_bill(bill_id: str):
             "policy_area": bill.policy_area,
             "subjects_json": bill.subjects_json,
             "summary_text": _bill_summary_with_fallback(bill, db_session=db),
+            "summary_source": "crs" if bill.summary_text else "unavailable",
             "status_bucket": bill.status_bucket,
             "latest_action_text": bill.latest_action_text,
             "latest_action_date": bill.latest_action_date.isoformat() if bill.latest_action_date else None,
             "introduced_date": bill.introduced_date.isoformat() if bill.introduced_date else None,
-            "congress_url": f"https://www.congress.gov/bill/{_ordinal(bill.congress)}-congress/{_bill_type_label(bill.bill_type)}/{bill.bill_number}",
+            "congress_url": source_url,
+            "source": "Congress.gov API",
+            "source_url": source_url,
+            "source_retrieved_at": provenance.get("retrieved_at"),
+            "source_content_sha256": provenance.get("content_sha256"),
+            "source_completeness": provenance.get("completeness") or {},
             "timeline": [{
                 "action_date": a.action_date.isoformat() if a.action_date else None,
                 "action_text": a.action_text,

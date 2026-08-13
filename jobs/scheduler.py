@@ -114,6 +114,13 @@ JOB_REGISTRY: List[JobDef] = [
         timeout_sec=900,
         description="Current Congress roster, committees, memberships, and source provenance (explicitly gated)",
     ),
+    JobDef(
+        name="sync_congress_legislation",
+        script="jobs/sync_congress_legislation.py",
+        interval_hours=6,
+        timeout_sec=14400,
+        description="Incremental Congress.gov bill detail and provenance refresh (explicitly gated)",
+    ),
     # ── Daily (24h) ──────────────────────────────────────────────
     JobDef(
         name="sync_votes",
