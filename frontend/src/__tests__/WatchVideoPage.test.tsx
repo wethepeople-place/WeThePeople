@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import WatchVideoPage from '../pages/WatchVideoPage'
@@ -10,6 +10,9 @@ vi.mock('../contexts/AuthContext', () => ({
 
 
 describe('WatchVideoPage', () => {
+  let observerCallback: IntersectionObserverCallback | undefined
+  const scrollIntoView = vi.fn()
+
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -19,14 +22,17 @@ describe('WatchVideoPage', () => {
       configurable: true,
       value: vi.fn().mockReturnValue({ matches: false }),
     })
+    observerCallback = undefined
+    scrollIntoView.mockReset()
     vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback: IntersectionObserverCallback) { observerCallback = callback }
       observe() {}
       unobserve() {}
       disconnect() {}
     })
     Object.defineProperty(Element.prototype, 'scrollIntoView', {
       configurable: true,
-      value: vi.fn(),
+      value: scrollIntoView,
     })
   })
 
@@ -88,5 +94,32 @@ describe('WatchVideoPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Play video from YouTube' })).toBeTruthy())
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/watch-thumbnails/housing-rent-road-act-explained.jpg')
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
+  })
+
+  it('does not force-scroll again when visibility updates the video URL', async () => {
+    const videos = ['one', 'two'].map((video_id) => ({
+      video_id, creator_label: 'Reviewed source', caption: `Video ${video_id}`,
+      transcript: 'Reviewed overview.', media_url: `https://example.com/${video_id}`, published_at: '2026-08-11T00:00:00Z',
+      delivery: { mode: 'link_out', provider: null, provider_video_id: null, canonical_url: `https://example.com/${video_id}`, source_label: 'Official source', development_only: false },
+      accessibility: null, source: { url: `https://example.com/${video_id}`, publisher: 'Official source' },
+      issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: null,
+      like_count: 0, discussion_count: 0, liked: false, saved: false,
+    }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ total: 2, videos, next_cursor: null, has_more: false }) }))
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/watch/one']}>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(container.querySelectorAll('[data-video-id]')).toHaveLength(2))
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    const second = container.querySelector<HTMLElement>('[data-video-id="two"]')!
+    await act(async () => {
+      observerCallback?.([{ isIntersecting: true, intersectionRatio: 1, target: second } as unknown as IntersectionObserverEntry], {} as IntersectionObserver)
+    })
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
