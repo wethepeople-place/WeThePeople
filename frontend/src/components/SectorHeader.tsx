@@ -104,10 +104,9 @@ function SectorHeader({
 
   return (
     <nav
-      className="sticky top-[52px] z-50 flex items-center justify-between overflow-visible mb-8"
+      className="sticky top-[52px] z-50 mb-8 flex min-w-0 items-center justify-between overflow-visible px-4 sm:px-8"
       style={{
         height: 52,
-        padding: '0 32px',
         borderBottom: '1px solid var(--color-border)',
         backgroundColor: 'rgba(7, 9, 12, 0.88)',
         backdropFilter: 'blur(12px)',
@@ -262,7 +261,7 @@ function SectorHeader({
 
       {/* Right: underline-style nav tabs */}
       <div
-        className="flex items-center flex-nowrap shrink-0 overflow-x-auto scrollbar-hide"
+        className="scrollbar-hide ml-2 flex min-w-0 flex-1 items-center overflow-x-auto"
         style={{ gap: 4 }}
       >
         {links.map((link) => {
