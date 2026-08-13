@@ -42,11 +42,13 @@ _SENSITIVE_PREFIXES = (
     "/claims",
     "/chat",
     "/digest",
+    "/lookup",
     "/videos",
     "/v1/auth",
     "/v1/claims",
     "/v1/chat",
     "/v1/digest",
+    "/v1/lookup",
     "/v1/videos",
     "/health",
     "/metrics",
@@ -72,9 +74,6 @@ _CACHE_TIERS = (
     ("/openapi.json", "public, max-age=600, stale-while-revalidate=86400"),
     ("/docs", "public, max-age=600, stale-while-revalidate=86400"),
     ("/redoc", "public, max-age=600, stale-while-revalidate=86400"),
-    # ZIP / state / lookups change essentially never (district maps
-    # update once per redistricting cycle).
-    ("/lookup/", "public, max-age=3600, stale-while-revalidate=86400"),
     ("/states/", "public, max-age=600, stale-while-revalidate=3600"),
     ("/representatives", "public, max-age=600, stale-while-revalidate=3600"),
     # Dashboard + influence aggregates rebuild from sync jobs that run

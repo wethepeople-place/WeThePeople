@@ -81,6 +81,7 @@ export default function RepresentativeLookupPage() {
   const [error, setError] = useState<string | null>(null);
   const [dataUnavailable, setDataUnavailable] = useState(false);
   const [resolvedState, setResolvedState] = useState('');
+  const [districtResolutionRequired, setDistrictResolutionRequired] = useState(false);
   const [searched, setSearched] = useState(false);
 
   const doSearch = async (zipCode: string) => {
@@ -92,6 +93,7 @@ export default function RepresentativeLookupPage() {
     setError(null);
     setDataUnavailable(false);
     setResolvedState('');
+    setDistrictResolutionRequired(false);
     setSearched(true);
     setSubmittedZip(cleaned);
 
@@ -104,6 +106,7 @@ export default function RepresentativeLookupPage() {
       // district-aware endpoint and adapt the shape.
       const res = await fetch(
         `${getApiBaseUrl()}/lookup/${encodeURIComponent(cleaned)}`,
+        { cache: 'no-store' },
       );
       if (res.status === 404) {
         setDataUnavailable(true);
@@ -114,6 +117,7 @@ export default function RepresentativeLookupPage() {
       const data = await res.json();
       const rawReps: any[] = Array.isArray(data?.representatives) ? data.representatives : [];
       setResolvedState(String(data?.state || ''));
+      setDistrictResolutionRequired(data?.district_resolution_required === true);
       const adapted: Representative[] = rawReps.map((r) => ({
         person_id: String(r.person_id || ''),
         // /lookup returns `name`; the rest of the page expects `display_name`
@@ -498,6 +502,35 @@ export default function RepresentativeLookupPage() {
                 House district and instead returned the full state
                 delegation. The district-aware path returns 3 reps
                 (1 House + 2 senators); anything more is a fallback. */}
+            {districtResolutionRequired && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  borderRadius: 10,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-accent-dim)',
+                  padding: '12px 16px',
+                }}
+              >
+                <AlertCircle size={15} style={{ marginTop: 2, color: 'var(--color-accent-text)', flexShrink: 0 }} />
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--color-text-2)', lineHeight: 1.55 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--color-text-1)' }}>House address needed</span> — This ZIP crosses House district boundaries. Your two senators are shown below.{' '}
+                  <a
+                    href={`https://ziplook.house.gov/htbin/findrep_house?ZIP=${encodeURIComponent(submittedZip)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--color-accent-text)', fontWeight: 600 }}
+                  >
+                    Enter your street address in the official House lookup
+                  </a>{' '}
+                  to identify your House representative.
+                </p>
+              </div>
+            )}
+
             {reps.length > 3 && (
               <div
                 style={{
