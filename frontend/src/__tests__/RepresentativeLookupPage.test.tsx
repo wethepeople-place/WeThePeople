@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import RepresentativeLookupPage from '../pages/RepresentativeLookupPage';
 
 vi.mock('../components/SectorHeader', () => ({ PoliticsSectorHeader: () => null }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ isAuthenticated: false }) }));
 
 describe('RepresentativeLookupPage coverage state', () => {
   afterEach(() => vi.unstubAllGlobals());

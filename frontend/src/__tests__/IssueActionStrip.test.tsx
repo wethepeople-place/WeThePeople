@@ -16,6 +16,7 @@ describe('IssueActionStrip', () => {
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
+    expect(screen.getByRole('link', { name: 'ACT' }).getAttribute('href')).toBe('/act?target_type=video&target_id=housing-video');
     expect(container.querySelector('nav')?.className).toContain('grid-cols-2');
     expect(container.querySelector('nav')?.className).toContain('sm:grid-cols-4');
     expect(container.querySelector('nav')?.className).not.toContain('overflow-x-auto');

@@ -53,6 +53,7 @@ const ActivityFeedPage = React.lazy(() => import("./pages/ActivityFeedPage"));
 const LegislationTrackerPage = React.lazy(() => import("./pages/LegislationTrackerPage"));
 const CommitteesPage = React.lazy(() => import("./pages/CommitteesPage"));
 const RepresentativeLookupPage = React.lazy(() => import("./pages/RepresentativeLookupPage"));
+const ActHubPage = React.lazy(() => import("./pages/ActHubPage"));
 const ComingSoonPage = React.lazy(() => import("./pages/ComingSoonPage"));
 const FinanceDashboardPage = React.lazy(() => import("./pages/FinanceDashboardPage"));
 const InstitutionPage = React.lazy(() => import("./pages/InstitutionPage"));
@@ -254,6 +255,7 @@ const App: React.FC = () => (
           <Route path="/politics/legislation" element={<PoliticsLayout><LegislationTrackerPage /></PoliticsLayout>} />
           <Route path="/politics/committees" element={<PoliticsLayout><CommitteesPage /></PoliticsLayout>} />
           <Route path="/politics/find-rep" element={<PoliticsLayout><RepresentativeLookupPage /></PoliticsLayout>} />
+          <Route path="/act" element={<ActHubPage />} />
           <Route path="/politics/trades" element={<PoliticsLayout><CongressionalTradesPage /></PoliticsLayout>} />
           <Route path="/politics/lobbying" element={<PoliticsLayout><SectorLobbyingPage /></PoliticsLayout>} />
           <Route path="/politics/contracts" element={<PoliticsLayout><SectorContractsPage /></PoliticsLayout>} />

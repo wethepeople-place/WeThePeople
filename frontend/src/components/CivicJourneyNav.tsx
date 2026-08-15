@@ -7,6 +7,7 @@ const destinations = [
   { label: 'Government', to: '/government' },
   { label: 'Courts', to: '/courts' },
   { label: 'Discuss', to: '/discuss' },
+  { label: 'ACT', to: '/act' },
   { label: 'Solutions', to: '/issues/housing-rent/solutions' },
   { label: 'Your District', to: '/politics/find-rep' },
 ] as const;

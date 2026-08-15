@@ -218,6 +218,71 @@ export function createDiscussionReply(postId: number, body: string, parentReplyI
   });
 }
 
+export interface RepresentativeActOptions {
+  representative: { person_id: string; display_name: string; chamber: string; state: string; party: string };
+  contacts: Array<{
+    id: number; office_type: 'washington' | 'district' | 'state' | 'contact_form'; label: string;
+    phone: string | null; contact_url: string | null; address: string | null;
+    source: { publisher: string; url: string }; verification_status: 'verified';
+    retrieved_at: string; verified_at: string;
+  }>;
+  fallback: { label: string; phone: string; source: { publisher: string; url: string } };
+  message_policy: { auto_send: false; delivery_claimed: false; instructions: string };
+}
+
+export function fetchRepresentativeActOptions(personId: string) {
+  return apiFetch<RepresentativeActOptions>(`/act/representatives/${encodeURIComponent(personId)}`);
+}
+
+export function saveActReceipt(data: {
+  idempotency_key: string;
+  action_kind: 'call' | 'message' | 'follow' | 'event' | 'petition' | 'circle' | 'public_comment';
+  target_type: 'video' | 'discussion' | 'issue' | 'bill' | 'vote' | 'representative' | 'solution' | 'activity' | 'circle';
+  target_id: string;
+  representative_id?: string;
+  status: 'prepared' | 'opened' | 'user_confirmed_submitted' | 'response_received' | 'attended' | 'completed' | 'cancelled';
+  private_note?: string;
+  allow_aggregate?: boolean;
+}) {
+  return apiFetch<{ id: number; status: string; allow_aggregate: boolean }>(`/act/receipts/${encodeURIComponent(data.idempotency_key)}`, { method: 'PUT', body: data });
+}
+
+export interface PublicActionCircle {
+  id: number; name: string; objective: string; description: string;
+  target_type: string; target_id: string; geography: string | null;
+  location_precision: string; membership_mode: 'open' | 'approval';
+  conduct_rules: string; completion_condition: string;
+  moderation_status: 'published' | 'completed'; member_count: number;
+  viewer_membership_status: string | null; created_at: string;
+}
+
+export interface PublicCivicActivity {
+  id: number; circle_id: number | null; title: string; description: string;
+  host_type: 'official' | 'organization' | 'community'; format: 'in_person' | 'online' | 'hybrid';
+  starts_at: string; ends_at: string | null; timezone: string;
+  public_location: string | null; public_url: string | null;
+  accessibility: string | null; capacity: number | null;
+}
+
+export function fetchActionCircles(targetType?: string, targetId?: string) {
+  return apiFetch<{ items: PublicActionCircle[] }>('/act/circles', { params: {
+    ...(targetType ? { target_type: targetType } : {}),
+    ...(targetId ? { target_id: targetId } : {}),
+  } });
+}
+
+export function joinActionCircle(circleId: number) {
+  return apiFetch<{ status: 'active' | 'pending'; member_count_is_public: true; member_identity_is_public: false }>(`/act/circles/${circleId}/membership`, { method: 'PUT' });
+}
+
+export function fetchCivicActivities() {
+  return apiFetch<{ items: PublicCivicActivity[] }>('/act/activities');
+}
+
+export function rsvpCivicActivity(activityId: number) {
+  return apiFetch<{ status: 'going'; attendee_identity_is_public: false }>(`/act/activities/${activityId}/rsvp`, { method: 'PUT' });
+}
+
 // ── Badges ──
 
 export interface BadgeItem {
