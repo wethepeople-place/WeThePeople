@@ -11,7 +11,13 @@ from jobs.load_housing_rent_slice import load_fixture as load_housing
 from jobs.load_watch_fixture import load_fixture as load_watch
 from models.auth_models import User
 from models.database import Base, get_db
-from models.social_models import DiscussionBlock, DiscussionPost, DiscussionReport, DiscussionVideoLink
+from models.social_models import (
+    DiscussionAttachment,
+    DiscussionBlock,
+    DiscussionPost,
+    DiscussionReport,
+    DiscussionVideoLink,
+)
 from routers.discussions import router
 from services.jwt_auth import get_current_user, get_optional_user
 from tests.test_housing_rent_loader import _fixture as housing_fixture
@@ -87,6 +93,46 @@ def test_curated_thread_is_idempotent_paginated_and_source_backed():
     assert detail["reply_total"] == 0 and detail["replies"] == []
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     assert {"DiscussionFeedResponse", "DiscussionDetailResponse", "ReplyCreatedResponse"} <= set(schemas)
+
+
+def test_video_comments_endpoint_uses_the_shared_published_conversation():
+    _, client, Session = _environment()
+    _seed(Session)
+
+    response = client.get("/discussions/videos/housing-rent-why-rents-move")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["body"].startswith("What should Congress prioritize")
+    assert client.get("/discussions/videos/not-a-video").status_code == 404
+
+
+def test_video_comment_requires_auth_and_is_attached_for_moderation():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    endpoint = "/discussions/videos/housing-rent-why-rents-move/comments"
+
+    assert client.post(endpoint, json={"body": "Housing evidence matters."}).status_code == 401
+    _as_user(app, Session, alice_id)
+    created = client.post(endpoint, json={"body": "  Housing evidence matters.  "})
+    assert created.status_code == 201
+    assert created.json()["moderation_status"] == "pending"
+
+    with Session() as session:
+        post = session.get(DiscussionPost, created.json()["id"])
+        assert post.body == "Housing evidence matters."
+        assert post.moderation_status == "pending"
+        attachments = session.query(DiscussionAttachment).filter_by(post_id=post.id).all()
+        assert {
+            (item.attachment_type, item.video_id or item.issue_slug)
+            for item in attachments
+        } == {
+            ("issue", "housing-rent"),
+            ("video", "housing-rent-why-rents-move"),
+        }
+
+    assert client.get("/discussions/videos/housing-rent-why-rents-move").json()["total"] == 1
+    assert client.post("/discussions/videos/not-a-video/comments", json={"body": "No target"}).status_code == 404
 
 
 def test_hidden_content_is_not_public_and_invalid_fixture_writes_nothing():

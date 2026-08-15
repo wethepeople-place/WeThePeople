@@ -33,7 +33,8 @@ def test_web_watch_links_exact_records_with_return_identity():
     assert "returnToVideoId: item.video_id" in PAGE
     assert "`/issues/${item.issue.slug}`" in PAGE
     assert "`/politics/bill/${bill.bill_id}`" in PAGE
-    assert "`/discuss/${item.discussion_post_id}`" in PAGE
+    assert "onComments={() => openComments(item)}" in PAGE
+    assert "<VideoCommentsPanel" in PAGE
 
 
 def test_web_watch_labels_development_media_and_has_no_upload_surface():
@@ -76,7 +77,7 @@ def test_cross_provider_urls_are_validated_and_never_accept_arbitrary_html():
 
 
 def test_direct_watch_identity_fetch_and_github_pages_fallback_are_present():
-    assert "encodeURIComponent(videoId)" in PAGE
+    assert "encodeURIComponent(requestedId)" in PAGE
     assert "This civic video is unavailable." in PAGE
     assert "cp dist/index.html dist/404.html" in PAGES_WORKFLOW
     assert '"postbuild": "node scripts/generate-spa-routes.mjs"' in PACKAGE

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ExternalLink, Heart, MessageCircle, Pause, Play, Volume2, VolumeX } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
 import IssueActionStrip from '../components/IssueActionStrip';
 import ShareButton from '../components/ShareButton';
+import VideoCommentsPanel from '../components/VideoCommentsPanel';
 import { useAuth } from '../contexts/AuthContext';
 import { getOfficialEmbedUrl, getProviderLabel, getProviderPrivacyUrl, getValidatedProvider } from '../features/watch/providers';
 
@@ -44,7 +45,7 @@ function CivicActions({ item }: { item: Video }) {
   </div>;
 }
 
-function ActionRail({ item, onChange }: { item: Video; onChange: (next: Video) => void }) {
+function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (next: Video) => void; onComments: () => void }) {
   const { isAuthenticated, authedFetch } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'like' | 'save' | ''>('');
@@ -63,12 +64,11 @@ function ActionRail({ item, onChange }: { item: Video; onChange: (next: Video) =
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Action failed.'); }
     finally { setBusy(''); }
   };
-  const discussTo = item.discussion_post_id ? `/discuss/${item.discussion_post_id}` : `/discuss?video=${encodeURIComponent(item.video_id)}`;
   const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
   return <aside className="absolute bottom-5 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Video actions">
     <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-6 w-6 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
     <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-6 w-6 ${item.saved ? 'fill-amber-300 text-amber-300' : ''}`} aria-hidden="true" /><span>Save</span></button>
-    <Link className={buttonClass} aria-label={`Discuss this video, ${item.discussion_count} published contributions`} to={discussTo} state={{ returnToVideoId: item.video_id }}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></Link>
+    <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></button>
     <ShareButton rail url={`${window.location.origin}/watch/${item.video_id}`} title={item.caption} text={item.caption} />
     <span className="sr-only" role="status" aria-live="polite">{message}</span>
   </aside>;
@@ -103,20 +103,20 @@ function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean })
   </details>;
 }
 
-function OfficialEmbedCard({ item, active, embed, position, total, onChange }: { item: Video; active: boolean; embed: Delivery; position: number; total: number; onChange: (next: Video) => void }) {
+function OfficialEmbedCard({ item, active, embed, position, total, onChange, onComments }: { item: Video; active: boolean; embed: Delivery; position: number; total: number; onChange: (next: Video) => void; onComments: () => void }) {
   const [consented, setConsented] = useState(false);
   const [failed, setFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
   const provider = getValidatedProvider(embed);
   const embedUrl = getOfficialEmbedUrl(embed);
   const playerLoaded = active && consented;
-  if (!provider || !embedUrl) return <LinkOutCard item={item} delivery={embed} position={position} total={total} onChange={onChange} />;
+  if (!provider || !embedUrl) return <LinkOutCard item={item} delivery={embed} position={position} total={total} onChange={onChange} onComments={onComments} />;
   const providerLabel = getProviderLabel(provider);
   const privacyLine = `Playing connects to ${providerLabel}`;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-6 px-4 py-8 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:px-8">
       <div className="relative mx-auto grid aspect-[9/16] max-h-[72vh] w-full max-w-md place-content-center overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
-        <ActionRail item={item} onChange={onChange} />
+        <ActionRail item={item} onChange={onChange} onComments={onComments} />
         {playerLoaded && !failed ? <iframe
           className="absolute inset-0 h-full w-full"
           src={embedUrl}
@@ -149,10 +149,10 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange }: {
   </article>;
 }
 
-function LinkOutCard({ item, delivery, position, total, onChange }: { item: Video; delivery: Delivery; position: number; total: number; onChange: (next: Video) => void }) {
+function LinkOutCard({ item, delivery, position, total, onChange, onComments }: { item: Video; delivery: Delivery; position: number; total: number; onChange: (next: Video) => void; onComments: () => void }) {
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 pr-24 sm:px-8 sm:pr-28">
-      <ActionRail item={item} onChange={onChange} />
+      <ActionRail item={item} onChange={onChange} onComments={onComments} />
       <WatchStatus item={item} provider={delivery.source_label || 'Official source'} position={position} total={total} />
       <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">Development Watch fixture</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
@@ -165,7 +165,7 @@ function LinkOutCard({ item, delivery, position, total, onChange }: { item: Vide
   </article>;
 }
 
-function NativeVideoCard({ item, active, reducedMotion, onActive, position, total, onChange }: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void; position: number; total: number; onChange: (next: Video) => void }) {
+function NativeVideoCard({ item, active, reducedMotion, onActive, position, total, onChange, onComments }: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void; position: number; total: number; onChange: (next: Video) => void; onComments: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [manualPause, setManualPause] = useState(false);
@@ -177,7 +177,7 @@ function NativeVideoCard({ item, active, reducedMotion, onActive, position, tota
     else node.pause();
   }, [active, reducedMotion, manualPause]);
   return <article data-video-id={item.video_id} className="relative min-h-screen snap-start overflow-hidden bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
-    <ActionRail item={item} onChange={onChange} />
+    <ActionRail item={item} onChange={onChange} onComments={onComments} />
     {!unavailable ? <video ref={video} className="absolute inset-0 h-full w-full object-cover" src={item.media_url} muted={muted} loop playsInline preload={active ? 'auto' : 'metadata'} onError={() => setUnavailable(true)} onClick={onActive} /> :
       <div className="absolute inset-0 grid place-content-center p-8 text-center" role="alert"><h2 className="text-2xl font-bold">Video unavailable</h2><p className="mt-2 text-slate-300">The transcript and official evidence remain available.</p></div>}
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10" />
@@ -195,21 +195,22 @@ function NativeVideoCard({ item, active, reducedMotion, onActive, position, tota
   </article>;
 }
 
-function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void; onChange: (next: Video) => void; position: number; total: number }) {
+function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void; onChange: (next: Video) => void; onComments: () => void; position: number; total: number }) {
   const delivery = props.item.delivery;
   if (delivery?.mode === 'official_embed') {
     const authorized = (!delivery.development_only || DEVELOPMENT_EMBED_AUTHORIZED)
       && Boolean(getOfficialEmbedUrl(delivery));
     return authorized
-      ? <OfficialEmbedCard item={props.item} active={props.active} embed={delivery} position={props.position} total={props.total} onChange={props.onChange} />
-      : <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} />;
+      ? <OfficialEmbedCard item={props.item} active={props.active} embed={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />
+      : <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />;
   }
-  if (delivery?.mode === 'link_out') return <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} />;
+  if (delivery?.mode === 'link_out') return <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />;
   return <NativeVideoCard {...props} />;
 }
 
 export default function WatchVideoPage() {
   const { videoId } = useParams();
+  const location = useLocation();
   const initialVideoId = useRef(videoId || '');
   const observerRouteId = useRef('');
   const lastScrolledRouteId = useRef('');
@@ -219,8 +220,18 @@ export default function WatchVideoPage() {
   const [activeId, setActiveId] = useState(videoId || '');
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const [commentsVideoId, setCommentsVideoId] = useState(() => new URLSearchParams(location.search).get('comments') === '1' ? (videoId || '') : '');
+  const commentsTrigger = useRef<HTMLElement | null>(null);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const updateVideo = (next: Video) => setVideos((current) => current.map((item) => item.video_id === next.video_id ? next : item));
+  const openComments = (item: Video) => {
+    commentsTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setCommentsVideoId(item.video_id);
+  };
+  const closeComments = () => {
+    setCommentsVideoId('');
+    window.setTimeout(() => commentsTrigger.current?.focus(), 0);
+  };
   useEffect(() => {
     const controller = new AbortController();
     const loadFeed = async () => {
@@ -263,5 +274,6 @@ export default function WatchVideoPage() {
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
   if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
   if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-12 text-center text-white"><h1 className="text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
-  return <main className="h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed">{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} position={index + 1} total={videos.length} />)}</main>;
+  const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
+  return <><main className="h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed">{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }

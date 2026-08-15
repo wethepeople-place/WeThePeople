@@ -159,8 +159,9 @@ export function reviseSolution(solutionId: number, data: { title: string; summar
 }
 
 export interface PublicDiscussionDetail {
-  id: number; body: string; author: { display_name: string }; created_at: string;
-  replies: Array<{ id: number; body: string; author: { display_name: string }; created_at: string }>;
+  id: number; body: string; author: { id: number | null; display_name: string }; created_at: string;
+  reply_count: number; reply_total: number;
+  replies: Array<{ id: number; parent_reply_id: number | null; body: string; author: { id: number | null; display_name: string }; created_at: string }>;
   attachments: Array<{
     type: 'video' | 'issue' | 'bill' | 'politician' | 'solution' | 'source';
     reference_id: string;
@@ -200,6 +201,21 @@ export function fetchPublicDiscussion(postId: number) {
 
 export function createVideoDiscussion(data: { body: string; video_url: string; issue_slug?: string }) {
   return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
+}
+
+export function fetchVideoComments(videoId: string) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>(`/discussions/videos/${encodeURIComponent(videoId)}`);
+}
+
+export function createVideoComment(videoId: string, body: string) {
+  return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>(`/discussions/videos/${encodeURIComponent(videoId)}/comments`, { method: 'POST', body: { body } });
+}
+
+export function createDiscussionReply(postId: number, body: string, parentReplyId?: number) {
+  return apiFetch<{ id: number; post_id: number; moderation_status: 'published' }>(`/discussions/${postId}/replies`, {
+    method: 'POST',
+    body: { body, ...(parentReplyId ? { parent_reply_id: parentReplyId } : {}) },
+  });
 }
 
 // ── Badges ──
