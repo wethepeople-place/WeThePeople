@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import WatchVideoPage from '../pages/WatchVideoPage'
@@ -93,6 +93,38 @@ describe('WatchVideoPage', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Play video from YouTube' })).toBeTruthy())
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/watch-thumbnails/housing-rent-road-act-explained.jpg')
+    expect(container.querySelectorAll('iframe')).toHaveLength(0)
+  })
+
+  it('opens the shared video conversation without leaving Watch', async () => {
+    const video = {
+      video_id: 'housing-rent-road-act-explained', creator_label: 'Money Instructor',
+      caption: 'Senate Passes Housing Bill', transcript: 'Reviewed overview.',
+      media_url: 'https://www.youtube.com/watch?v=maODCSHgPww', published_at: '2026-08-11T00:00:00Z',
+      delivery: { mode: 'link_out', provider: 'youtube', provider_video_id: 'maODCSHgPww', canonical_url: 'https://www.youtube.com/watch?v=maODCSHgPww', source_label: 'Money Instructor', development_only: false },
+      accessibility: null, source: { url: 'https://www.youtube.com/watch?v=maODCSHgPww', publisher: 'Money Instructor' },
+      issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: null,
+      like_count: 0, discussion_count: 1, liked: false, saved: false,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => Promise.resolve({
+      ok: true,
+      json: async () => input.includes('/discussions/videos/')
+        ? { total: 1, limit: 20, offset: 0, items: [{ id: 9, body: 'Evidence first.', author: { id: null, display_name: 'Resident' }, reply_count: 0, attachments: [], created_at: '2026-08-11T00:00:00Z', moderation_status: 'published' }] }
+        : { total: 1, videos: [video], next_cursor: null, has_more: false },
+    })))
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/watch/housing-rent-road-act-explained']}>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    const trigger = await screen.findByRole('button', { name: /Open comments for this video/ })
+    fireEvent.click(trigger)
+    expect(await screen.findByRole('dialog', { name: /Comments for Senate Passes Housing Bill/ })).toBeTruthy()
+    expect(screen.getByText('Evidence first.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open full discussion' }).getAttribute('href')).toBe('/discuss/9')
+    expect(screen.getByRole('link', { name: 'Sign in to comment' }).getAttribute('href')).toContain('comments%3D1')
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
   })
 

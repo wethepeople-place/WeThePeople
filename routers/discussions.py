@@ -20,7 +20,7 @@ from models.social_models import (
     DiscussionReport,
     DiscussionVideoLink,
 )
-from models.issue_models import Issue
+from models.issue_models import Issue, Video, VideoIssue
 from routers.issues import _source
 from models.response_schemas import IssueSource
 from services.jwt_auth import get_current_user, get_optional_user
@@ -66,6 +66,18 @@ class DiscussionCreate(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("Post body must contain text")
+        return value
+
+
+class VideoCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=10000)
+
+    @field_validator("body")
+    @classmethod
+    def body_must_have_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Comment body must contain text")
         return value
 
 
@@ -281,6 +293,63 @@ def list_discussions(
         ).count()
         items.append(_post(row, reply_count))
     return {"total": total, "limit": limit, "offset": offset, "items": items}
+
+
+@router.get("/videos/{video_id}", response_model=DiscussionFeedResponse)
+def list_video_comments(
+    video_id: str,
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
+    """Return the canonical public conversation attached to one Watch video."""
+    if db.get(Video, video_id) is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return list_discussions(
+        issue_slug=None,
+        video_id=video_id,
+        limit=limit,
+        offset=offset,
+        user=user,
+        db=db,
+    )
+
+
+@router.post(
+    "/videos/{video_id}/comments",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DiscussionCreatedResponse,
+)
+def create_video_comment(
+    video_id: str,
+    body: VideoCommentCreate,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Attach a moderated top-level comment to the reviewed video identity."""
+    _rate_limit(request, user, "discussions:video-comment", POST_LIMIT, db)
+    if db.get(Video, video_id) is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    issue_slugs = [issue_slug for issue_slug, in db.query(VideoIssue.issue_slug).filter_by(video_id=video_id).all()]
+    post = DiscussionPost(
+        author_id=user.id,
+        author_label=user.display_name or "Community member",
+        body=body.body,
+        moderation_status="pending",
+    )
+    post.attachments.append(DiscussionAttachment(
+        attachment_type="video", video_id=video_id, label="Watch discussion"
+    ))
+    for issue_slug in sorted(issue_slugs):
+        post.attachments.append(DiscussionAttachment(
+            attachment_type="issue", issue_slug=issue_slug, label="Related issue"
+        ))
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return {"id": post.id, "moderation_status": "pending", "message": "Submitted for moderation"}
 
 
 @router.get("/{post_id}", response_model=DiscussionDetailResponse)
