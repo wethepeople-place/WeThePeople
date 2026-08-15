@@ -21,6 +21,7 @@ async function writeRoute(segments, html) {
 }
 
 await writeRoute(['watch'], indexHtml)
+await writeRoute(['saved'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
 
 for (const video of fixture.videos ?? []) {

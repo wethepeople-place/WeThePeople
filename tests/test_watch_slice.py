@@ -143,6 +143,7 @@ def test_watch_interactions_are_authenticated_idempotent_private_and_video_scope
         alice_id = alice.id
 
     assert client.put("/videos/housing-rent-why-rents-move/like", json={"active": True}).status_code == 401
+    assert client.get("/videos/saved").status_code == 401
 
     def current_user():
         with Session() as session:
@@ -161,6 +162,11 @@ def test_watch_interactions_are_authenticated_idempotent_private_and_video_scope
     assert item["liked"] is True and item["saved"] is True
     assert item["discussion_count"] == 2
     assert "save_count" not in item and "savers" not in item
+    private_collection = client.get("/videos/saved").json()
+    assert private_collection["total"] == 1
+    assert [video["video_id"] for video in private_collection["videos"]] == ["housing-rent-why-rents-move"]
+    assert private_collection["videos"][0]["saved"] is True
+    assert "save_count" not in private_collection["videos"][0]
     assert client.get("/videos/other-video").json()["like_count"] == 0
     with Session() as session:
         assert session.query(VideoLike).count() == 1
