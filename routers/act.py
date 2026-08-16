@@ -149,7 +149,7 @@ class ModerationDecision(BaseModel):
     status: str = Field(min_length=6, max_length=20)
     reason: str = Field(min_length=10, max_length=1000)
 
-    @field_validator("status", "reason")
+    @field_validator("status", "reason", mode="before")
     @classmethod
     def trim_decision(cls, value):
         return value.strip() if isinstance(value, str) else value
@@ -390,7 +390,7 @@ def _admin_circle(row: ActionCircle, db: Session) -> dict:
     organizer = db.get(User, row.organizer_id)
     return {
         "kind": "circle", "id": row.id, "moderation_status": row.moderation_status,
-        "organizer": {"id": row.organizer_id, "display_name": organizer.display_name or "Community member"},
+        "organizer": {"display_name": organizer.display_name or "Community member"},
         "name": row.name, "objective": row.objective, "description": row.description,
         "target_type": row.target_type, "target_id": row.target_id,
         "geography": row.geography, "location_precision": row.location_precision,
@@ -404,7 +404,7 @@ def _admin_activity(row: CivicActivity, db: Session) -> dict:
     organizer = db.get(User, row.organizer_id)
     return {
         "kind": "activity", "id": row.id, "moderation_status": row.moderation_status,
-        "organizer": {"id": row.organizer_id, "display_name": organizer.display_name or "Community member"},
+        "organizer": {"display_name": organizer.display_name or "Community member"},
         "circle_id": row.circle_id, "title": row.title, "description": row.description,
         "host_type": row.host_type, "format": row.format,
         "starts_at": row.starts_at.isoformat(), "ends_at": row.ends_at.isoformat() if row.ends_at else None,

@@ -7,7 +7,7 @@ import ActModerationPage from '../pages/ActModerationPage';
 vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 1, role: 'admin' }, loading: false }) }));
 
 const queue = { total: 1, counts: { circles: 1, activities: 0 }, items: [{
-  kind: 'circle', id: 4, moderation_status: 'pending', organizer: { id: 8, display_name: 'Resident' },
+  kind: 'circle', id: 4, moderation_status: 'pending', organizer: { display_name: 'Resident' },
   name: 'Housing evidence circle', objective: 'Ask for an official response.',
   description: 'Residents prepare sourced and respectful questions.', target_type: 'bill', target_id: 'hr6644-119',
   membership_mode: 'approval', conduct_rules: 'Use evidence and protect privacy.',

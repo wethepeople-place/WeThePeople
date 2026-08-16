@@ -231,8 +231,11 @@ def test_act_moderation_is_admin_only_transition_safe_and_audited():
     queue = client.get("/act/admin/moderation").json()
     assert queue["counts"] == {"circles": 1, "activities": 1}
     assert {item["organizer"]["display_name"] for item in queue["items"]} == {"Resident"}
+    assert all("id" not in item["organizer"] for item in queue["items"])
     assert all("members" not in item and "attendees" not in item for item in queue["items"])
 
+    blank_reason = client.patch(f"/act/admin/circles/{circle_id}", json={"status": "published", "reason": "          "})
+    assert blank_reason.status_code == 422
     blocked = client.patch(f"/act/admin/activities/{activity_id}", json={"status": "published", "reason": "Reviewed and safe to publish."})
     assert blocked.status_code == 409
     published_circle = client.patch(f"/act/admin/circles/{circle_id}", json={"status": "published", "reason": "Objective and conduct rules are specific and safe."})

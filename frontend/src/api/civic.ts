@@ -289,7 +289,7 @@ export function rsvpCivicActivity(activityId: number) {
 
 export type ActModerationItem = {
   kind: 'circle' | 'activity'; id: number; moderation_status: string;
-  organizer: { id: number; display_name: string }; created_at: string; updated_at: string;
+  organizer: { display_name: string }; created_at: string; updated_at: string;
   name?: string; title?: string; objective?: string; description: string;
   target_type?: string; target_id?: string; geography?: string | null;
   membership_mode?: string; conduct_rules?: string; completion_condition?: string;
