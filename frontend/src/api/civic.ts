@@ -187,12 +187,16 @@ export interface PublicDiscussionPost {
     type: 'video' | 'issue' | 'bill' | 'politician' | 'solution' | 'source';
     reference_id: string;
     label: string | null;
+    source?: { url: string; publisher: string } | null;
   }>;
   video_link?: DiscussionVideoLink | null;
+  reactions: Record<'like' | 'insightful' | 'disagree', number>;
+  viewer_reactions: Array<'like' | 'insightful' | 'disagree'>;
+  viewer_bookmarked: boolean;
 }
 
-export function fetchPublicDiscussions(issueSlug?: string, videoId?: string) {
-  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: { ...(issueSlug ? { issue_slug: issueSlug } : {}), ...(videoId ? { video_id: videoId } : {}) } });
+export function fetchPublicDiscussions(issueSlug?: string, videoId?: string, offset = 0, limit = 20) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: { ...(issueSlug ? { issue_slug: issueSlug } : {}), ...(videoId ? { video_id: videoId } : {}), offset, limit } });
 }
 
 export function fetchPublicDiscussion(postId: number) {
@@ -281,6 +285,20 @@ export function fetchCivicActivities() {
 
 export function rsvpCivicActivity(activityId: number) {
   return apiFetch<{ status: 'going'; attendee_identity_is_public: false }>(`/act/activities/${activityId}/rsvp`, { method: 'PUT' });
+}
+
+export type DiscussionReaction = 'like' | 'insightful' | 'disagree';
+
+export function setDiscussionReaction(postId: number, reaction: DiscussionReaction, enabled: boolean) {
+  return apiFetch<{ reaction: DiscussionReaction; enabled: boolean; reactions: PublicDiscussionPost['reactions'] }>(`/discussions/${postId}/reactions/${reaction}`, { method: enabled ? 'PUT' : 'DELETE' });
+}
+
+export function setDiscussionBookmark(postId: number, bookmarked: boolean) {
+  return apiFetch<{ bookmarked: boolean }>(`/discussions/${postId}/bookmark`, { method: bookmarked ? 'PUT' : 'DELETE' });
+}
+
+export function reportDiscussionPost(postId: number, reason: string, details?: string) {
+  return apiFetch<{ status: 'received' }>('/discussions/reports', { method: 'POST', body: { target_type: 'post', target_id: postId, reason, ...(details ? { details } : {}) } });
 }
 
 // ── Badges ──

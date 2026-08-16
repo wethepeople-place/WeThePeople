@@ -8,14 +8,17 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.auth_models import User
 from models.database import get_db
 from models.social_models import (
     DiscussionAttachment,
+    DiscussionBookmark,
     DiscussionBlock,
     DiscussionPost,
+    DiscussionReaction,
     DiscussionReply,
     DiscussionReport,
     DiscussionVideoLink,
@@ -32,6 +35,7 @@ REPLY_LIMIT = 10
 REPORT_LIMIT = 5
 BLOCK_LIMIT = 10
 POST_LIMIT = 5
+ENGAGEMENT_LIMIT = 30
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 
@@ -115,6 +119,9 @@ class DiscussionPostItem(BaseModel):
     updated_at: str
     attachments: list[DiscussionAttachmentItem]
     video_link: Optional[DiscussionVideoLinkItem]
+    reactions: dict[str, int]
+    viewer_reactions: list[Literal["like", "insightful", "disagree"]]
+    viewer_bookmarked: bool
 
 
 class DiscussionFeedResponse(BaseModel):
@@ -149,6 +156,16 @@ class ReplyCreatedResponse(BaseModel):
 
 class StatusResponse(BaseModel):
     status: str
+
+
+class ReactionResponse(BaseModel):
+    reaction: Literal["like", "insightful", "disagree"]
+    enabled: bool
+    reactions: dict[str, int]
+
+
+class BookmarkResponse(BaseModel):
+    bookmarked: bool
 
 
 def _rate_limit(request: Request, user: User, endpoint: str, maximum: int, db: Session) -> None:
@@ -187,7 +204,23 @@ def _attachment(row: DiscussionAttachment) -> dict:
     return payload
 
 
-def _post(row: DiscussionPost, published_reply_count: int) -> dict:
+def _engagement(row: DiscussionPost, db: Session, user: Optional[User]) -> dict:
+    counts = {"like": 0, "insightful": 0, "disagree": 0}
+    for reaction, count in db.query(DiscussionReaction.reaction, func.count(DiscussionReaction.id)).filter_by(
+        target_type="post", target_id=row.id
+    ).group_by(DiscussionReaction.reaction).all():
+        counts[reaction] = count
+    viewer_reactions: list[str] = []
+    viewer_bookmarked = False
+    if user:
+        viewer_reactions = [value for value, in db.query(DiscussionReaction.reaction).filter_by(
+            user_id=user.id, target_type="post", target_id=row.id
+        ).order_by(DiscussionReaction.reaction.asc()).all()]
+        viewer_bookmarked = db.query(DiscussionBookmark.id).filter_by(user_id=user.id, post_id=row.id).first() is not None
+    return {"reactions": counts, "viewer_reactions": viewer_reactions, "viewer_bookmarked": viewer_bookmarked}
+
+
+def _post(row: DiscussionPost, published_reply_count: int, db: Session, user: Optional[User]) -> dict:
     return {
         "id": row.id,
         "author": {"id": row.author_id, "display_name": row.author_label},
@@ -202,6 +235,7 @@ def _post(row: DiscussionPost, published_reply_count: int) -> dict:
             "provider_video_id": row.video_link.provider_video_id,
             "canonical_url": row.video_link.canonical_url,
         } if row.video_link else None),
+        **_engagement(row, db, user),
     }
 
 
@@ -291,7 +325,7 @@ def list_discussions(
         reply_count = db.query(DiscussionReply).filter_by(post_id=row.id, moderation_status="published").filter(
             (DiscussionReply.author_id.notin_(blocked)) if blocked else True
         ).count()
-        items.append(_post(row, reply_count))
+        items.append(_post(row, reply_count, db, user))
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
@@ -372,7 +406,7 @@ def get_discussion(
     total = replies_query.count()
     replies = replies_query.order_by(DiscussionReply.created_at.asc(), DiscussionReply.id.asc()).offset(reply_offset).limit(reply_limit).all()
     return {
-        **_post(row, total),
+        **_post(row, total, db, user),
         "replies": [{
             "id": reply.id,
             "parent_reply_id": reply.parent_reply_id,
@@ -418,6 +452,84 @@ def create_reply(
     db.commit()
     db.refresh(reply)
     return {"id": reply.id, "post_id": post_id, "moderation_status": reply.moderation_status}
+
+
+def _actionable_post(post_id: int, user: User, db: Session) -> DiscussionPost:
+    post = db.query(DiscussionPost).filter_by(id=post_id, moderation_status="published").first()
+    if post is None:
+        raise HTTPException(status_code=404, detail="Discussion not found")
+    if post.author_id is not None and db.query(DiscussionBlock).filter_by(blocker_id=post.author_id, blocked_id=user.id).first():
+        raise HTTPException(status_code=403, detail="This action is not permitted")
+    return post
+
+
+@router.put("/{post_id}/reactions/{reaction}", response_model=ReactionResponse)
+def add_reaction(
+    post_id: int,
+    reaction: Literal["like", "insightful", "disagree"],
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:engagement", ENGAGEMENT_LIMIT, db)
+    post = _actionable_post(post_id, user, db)
+    row = db.query(DiscussionReaction).filter_by(
+        user_id=user.id, target_type="post", target_id=post_id, reaction=reaction
+    ).first()
+    if row is None:
+        db.add(DiscussionReaction(user_id=user.id, target_type="post", target_id=post_id, reaction=reaction))
+        db.commit()
+    return {"reaction": reaction, "enabled": True, "reactions": _engagement(post, db, user)["reactions"]}
+
+
+@router.delete("/{post_id}/reactions/{reaction}", response_model=ReactionResponse)
+def remove_reaction(
+    post_id: int,
+    reaction: Literal["like", "insightful", "disagree"],
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:engagement", ENGAGEMENT_LIMIT, db)
+    post = _actionable_post(post_id, user, db)
+    row = db.query(DiscussionReaction).filter_by(
+        user_id=user.id, target_type="post", target_id=post_id, reaction=reaction
+    ).first()
+    if row:
+        db.delete(row)
+        db.commit()
+    return {"reaction": reaction, "enabled": False, "reactions": _engagement(post, db, user)["reactions"]}
+
+
+@router.put("/{post_id}/bookmark", response_model=BookmarkResponse)
+def add_bookmark(
+    post_id: int,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:engagement", ENGAGEMENT_LIMIT, db)
+    _actionable_post(post_id, user, db)
+    if db.query(DiscussionBookmark).filter_by(user_id=user.id, post_id=post_id).first() is None:
+        db.add(DiscussionBookmark(user_id=user.id, post_id=post_id))
+        db.commit()
+    return {"bookmarked": True}
+
+
+@router.delete("/{post_id}/bookmark", response_model=BookmarkResponse)
+def remove_bookmark(
+    post_id: int,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:engagement", ENGAGEMENT_LIMIT, db)
+    _actionable_post(post_id, user, db)
+    row = db.query(DiscussionBookmark).filter_by(user_id=user.id, post_id=post_id).first()
+    if row:
+        db.delete(row)
+        db.commit()
+    return {"bookmarked": False}
 
 
 @router.post("/reports", status_code=status.HTTP_201_CREATED, response_model=StatusResponse)
