@@ -287,6 +287,26 @@ export function rsvpCivicActivity(activityId: number) {
   return apiFetch<{ status: 'going'; attendee_identity_is_public: false }>(`/act/activities/${activityId}/rsvp`, { method: 'PUT' });
 }
 
+export type ActModerationItem = {
+  kind: 'circle' | 'activity'; id: number; moderation_status: string;
+  organizer: { id: number; display_name: string }; created_at: string; updated_at: string;
+  name?: string; title?: string; objective?: string; description: string;
+  target_type?: string; target_id?: string; geography?: string | null;
+  membership_mode?: string; conduct_rules?: string; completion_condition?: string;
+  circle_id?: number | null; host_type?: string; format?: string; starts_at?: string;
+  ends_at?: string | null; timezone?: string; public_location?: string | null;
+  public_url?: string | null; accessibility?: string | null; capacity?: number | null;
+};
+
+export function fetchActModerationQueue(status = 'pending') {
+  return apiFetch<{ total: number; counts: { circles: number; activities: number }; items: ActModerationItem[] }>('/act/admin/moderation', { params: { status } });
+}
+
+export function moderateActItem(item: ActModerationItem, status: string, reason: string) {
+  const collection = item.kind === 'circle' ? 'circles' : 'activities';
+  return apiFetch<ActModerationItem>(`/act/admin/${collection}/${item.id}`, { method: 'PATCH', body: { status, reason } });
+}
+
 export type DiscussionReaction = 'like' | 'insightful' | 'disagree';
 
 export function setDiscussionReaction(postId: number, reaction: DiscussionReaction, enabled: boolean) {

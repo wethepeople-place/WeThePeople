@@ -27,7 +27,9 @@ from models.database import Bill, TrackedMember, Vote, get_db
 from models.issue_models import Issue, Video
 from models.social_models import DiscussionPost
 from services.jwt_auth import get_current_user, get_optional_user
+from services.audit import log_from_request
 from services.rate_limit_store import check_rate_limit
+from services.rbac import require_role
 
 
 router = APIRouter(prefix="/act", tags=["act"])
@@ -141,6 +143,16 @@ class ActivityCreate(BaseModel):
     @classmethod
     def validate_public_url(cls, value):
         return _safe_public_url(value)
+
+
+class ModerationDecision(BaseModel):
+    status: str = Field(min_length=6, max_length=20)
+    reason: str = Field(min_length=10, max_length=1000)
+
+    @field_validator("status", "reason")
+    @classmethod
+    def trim_decision(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 def _contact(row: OfficialOfficeContact) -> dict:
@@ -372,3 +384,99 @@ def petition_gate():
         "actions": [],
         "message": "Petitions require verified ownership, complete terms, signer privacy controls, moderation, and an auditable delivery process. WeThePeople does not collect signatures until those gates are approved.",
     }
+
+
+def _admin_circle(row: ActionCircle, db: Session) -> dict:
+    organizer = db.get(User, row.organizer_id)
+    return {
+        "kind": "circle", "id": row.id, "moderation_status": row.moderation_status,
+        "organizer": {"id": row.organizer_id, "display_name": organizer.display_name or "Community member"},
+        "name": row.name, "objective": row.objective, "description": row.description,
+        "target_type": row.target_type, "target_id": row.target_id,
+        "geography": row.geography, "location_precision": row.location_precision,
+        "membership_mode": row.membership_mode, "conduct_rules": row.conduct_rules,
+        "completion_condition": row.completion_condition,
+        "created_at": row.created_at.isoformat(), "updated_at": row.updated_at.isoformat(),
+    }
+
+
+def _admin_activity(row: CivicActivity, db: Session) -> dict:
+    organizer = db.get(User, row.organizer_id)
+    return {
+        "kind": "activity", "id": row.id, "moderation_status": row.moderation_status,
+        "organizer": {"id": row.organizer_id, "display_name": organizer.display_name or "Community member"},
+        "circle_id": row.circle_id, "title": row.title, "description": row.description,
+        "host_type": row.host_type, "format": row.format,
+        "starts_at": row.starts_at.isoformat(), "ends_at": row.ends_at.isoformat() if row.ends_at else None,
+        "timezone": row.timezone, "public_location": row.public_location,
+        "public_url": row.public_url, "accessibility": row.accessibility, "capacity": row.capacity,
+        "created_at": row.created_at.isoformat(), "updated_at": row.updated_at.isoformat(),
+    }
+
+
+@router.get("/admin/moderation")
+def moderation_queue(
+    kind: Literal["all", "circle", "activity"] = "all",
+    moderation_status: Literal["pending", "published", "hidden", "archived", "cancelled", "completed"] = Query("pending", alias="status"),
+    limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),
+    admin: User = Depends(require_role("admin")), db: Session = Depends(get_db),
+):
+    items = []
+    circle_total = activity_total = 0
+    if kind in ("all", "circle") and moderation_status != "cancelled":
+        circle_query = db.query(ActionCircle).filter_by(moderation_status=moderation_status)
+        circle_total = circle_query.count()
+        items.extend(_admin_circle(row, db) for row in circle_query.order_by(ActionCircle.created_at.desc(), ActionCircle.id.desc()).limit(200).all())
+    if kind in ("all", "activity") and moderation_status != "archived":
+        activity_query = db.query(CivicActivity).filter_by(moderation_status=moderation_status)
+        activity_total = activity_query.count()
+        items.extend(_admin_activity(row, db) for row in activity_query.order_by(CivicActivity.created_at.desc(), CivicActivity.id.desc()).limit(200).all())
+    items.sort(key=lambda item: (item["created_at"], item["kind"], item["id"]), reverse=True)
+    return {"total": circle_total + activity_total, "counts": {"circles": circle_total, "activities": activity_total}, "limit": limit, "offset": offset, "items": items[offset:offset + limit]}
+
+
+CIRCLE_TRANSITIONS = {
+    "pending": {"published", "hidden"}, "published": {"hidden", "completed", "archived"},
+    "hidden": {"published", "archived"}, "completed": {"archived"}, "archived": set(),
+}
+ACTIVITY_TRANSITIONS = {
+    "pending": {"published", "hidden", "cancelled"}, "published": {"hidden", "cancelled", "completed"},
+    "hidden": {"published", "cancelled"}, "cancelled": set(), "completed": set(),
+}
+
+
+def _moderate(row, body: ModerationDecision, transitions: dict, kind: str, request: Request, admin: User, db: Session):
+    if body.status not in transitions.get(row.moderation_status, set()):
+        raise HTTPException(status_code=409, detail=f"Cannot change {kind} from {row.moderation_status} to {body.status}")
+    if kind == "activity" and body.status == "published":
+        if _utc(row.starts_at) <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=409, detail="Past activities cannot be published")
+        if row.circle_id:
+            circle = db.get(ActionCircle, row.circle_id)
+            if circle is None or circle.moderation_status != "published":
+                raise HTTPException(status_code=409, detail="Publish the linked Circle before publishing this activity")
+    previous = row.moderation_status
+    row.moderation_status = body.status
+    log_from_request(
+        db, request, action=f"act_{kind}_moderated", user_id=admin.id,
+        resource=f"act_{kind}", resource_id=str(row.id),
+        details={"from": previous, "to": body.status, "reason": body.reason},
+    )
+    db.refresh(row)
+    return _admin_circle(row, db) if kind == "circle" else _admin_activity(row, db)
+
+
+@router.patch("/admin/circles/{circle_id}")
+def moderate_circle(circle_id: int, body: ModerationDecision, request: Request, admin: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    row = db.get(ActionCircle, circle_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Circle not found")
+    return _moderate(row, body, CIRCLE_TRANSITIONS, "circle", request, admin, db)
+
+
+@router.patch("/admin/activities/{activity_id}")
+def moderate_activity(activity_id: int, body: ModerationDecision, request: Request, admin: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    row = db.get(CivicActivity, activity_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return _moderate(row, body, ACTIVITY_TRANSITIONS, "activity", request, admin, db)
