@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from models.database import Base  # noqa: E402
+import models.act_models  # noqa: E402,F401 -- register ACT tables in Base.metadata
 from alembic_canonical.defaults import compare_server_default  # noqa: E402
 
 config = context.config
