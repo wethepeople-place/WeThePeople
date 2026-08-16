@@ -154,7 +154,7 @@ function LinkOutCard({ item, delivery, position, total, onChange, onComments }: 
     <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 pr-24 sm:px-8 sm:pr-28">
       <ActionRail item={item} onChange={onChange} onComments={onComments} />
       <WatchStatus item={item} provider={delivery.source_label || 'Official source'} position={position} total={total} />
-      <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">Development Watch fixture</p>
+      <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">{delivery.development_only ? 'Development Watch fixture' : 'Reviewed production source'}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
       <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
       <a className="mt-5 w-fit rounded-full bg-white px-5 py-3 font-bold text-slate-950" href={delivery.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
