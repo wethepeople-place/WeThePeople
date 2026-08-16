@@ -13,8 +13,10 @@ from models.auth_models import User
 from models.database import Base, get_db
 from models.social_models import (
     DiscussionAttachment,
+    DiscussionBookmark,
     DiscussionBlock,
     DiscussionPost,
+    DiscussionReaction,
     DiscussionReport,
     DiscussionVideoLink,
 )
@@ -190,6 +192,39 @@ def test_reports_are_private_and_blocks_filter_the_authenticated_feed():
     with Session() as session:
         assert session.query(DiscussionReport).count() == 1
         assert session.query(DiscussionBlock).count() == 1
+
+
+def test_post_reactions_are_public_and_bookmarks_remain_private_and_idempotent():
+    app, client, Session = _environment()
+    alice_id, bob_id = _seed(Session)
+    post_id = client.get("/discussions").json()["items"][0]["id"]
+
+    assert client.put(f"/discussions/{post_id}/reactions/like").status_code == 401
+    assert client.put(f"/discussions/{post_id}/bookmark").status_code == 401
+    _as_user(app, Session, alice_id)
+    first = client.put(f"/discussions/{post_id}/reactions/like")
+    second = client.put(f"/discussions/{post_id}/reactions/like")
+    assert first.json()["reactions"]["like"] == second.json()["reactions"]["like"] == 1
+    assert client.put(f"/discussions/{post_id}/bookmark").json() == {"bookmarked": True}
+    assert client.put(f"/discussions/{post_id}/bookmark").json() == {"bookmarked": True}
+
+    viewer_feed = client.get("/discussions").json()["items"][0]
+    assert viewer_feed["viewer_reactions"] == ["like"]
+    assert viewer_feed["viewer_bookmarked"] is True
+    assert viewer_feed["reactions"] == {"like": 1, "insightful": 0, "disagree": 0}
+
+    _as_user(app, Session, bob_id)
+    public_feed = client.get("/discussions").json()["items"][0]
+    assert public_feed["reactions"]["like"] == 1
+    assert public_feed["viewer_reactions"] == []
+    assert public_feed["viewer_bookmarked"] is False
+
+    _as_user(app, Session, alice_id)
+    assert client.delete(f"/discussions/{post_id}/reactions/like").json()["reactions"]["like"] == 0
+    assert client.delete(f"/discussions/{post_id}/bookmark").json() == {"bookmarked": False}
+    with Session() as session:
+        assert session.query(DiscussionReaction).count() == 0
+        assert session.query(DiscussionBookmark).count() == 0
 
 
 def test_youtube_post_is_normalized_and_held_for_moderation():
