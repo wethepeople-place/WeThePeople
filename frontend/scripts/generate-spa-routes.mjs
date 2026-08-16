@@ -22,6 +22,7 @@ async function writeRoute(segments, html) {
 
 await writeRoute(['watch'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
+await writeRoute(['act'], indexHtml)
 
 for (const video of fixture.videos ?? []) {
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(video.video_id)) throw new Error(`Unsafe Watch route identity: ${video.video_id}`)

@@ -4,6 +4,7 @@ import { MapPin, Search, Users, AlertCircle, ArrowLeft, Heart } from 'lucide-rea
 import { motion } from 'framer-motion';
 import { getApiBaseUrl } from '../api/client';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
+import RepresentativeActPanel from '../components/RepresentativeActPanel';
 
 // ── Types ──
 
@@ -633,7 +634,7 @@ export default function RepresentativeLookupPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: idx * 0.06 }}
                 >
-                  <RepCard rep={rep} />
+                  <RepCard rep={rep} issueSlug={issueSlug} />
                 </motion.div>
               ))}
             </div>
@@ -685,7 +686,7 @@ export default function RepresentativeLookupPage() {
 
 // ── Rep Card ──
 
-function RepCard({ rep }: { rep: Representative }) {
+function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }) {
   const hex = partyHex(rep.party);
   const token = partyToken(rep.party);
   const isSenate = chamberLabel(rep.chamber) === 'Senate';
@@ -831,6 +832,8 @@ function RepCard({ rep }: { rep: Representative }) {
             </span>
           )}
         </div>
+
+        <RepresentativeActPanel personId={rep.person_id} displayName={rep.display_name} issueSlug={issueSlug} />
 
         {/* Contribute to campaign */}
         <a

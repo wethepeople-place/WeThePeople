@@ -15,6 +15,7 @@ it('connects every top-level civic journey destination', () => {
     Discuss: '/discuss',
     Solutions: '/issues/housing-rent/solutions',
     'Your District': '/politics/find-rep',
+    ACT: '/act',
   };
 
   for (const [label, href] of Object.entries(expected)) {
