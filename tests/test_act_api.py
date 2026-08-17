@@ -12,7 +12,7 @@ from models.act_models import (
     CivicActivity,
     OfficialOfficeContact,
 )
-from models.auth_models import User
+from models.auth_models import AuditLog, User
 from models.database import Base, Bill, TrackedMember, get_db
 from jobs.load_official_office_contacts import ContactFixtureError, load_fixture
 from routers.act import router
@@ -38,6 +38,7 @@ def _seed(Session):
     with Session() as session:
         user = User(email="resident@example.test", hashed_password="test", display_name="Resident")
         other = User(email="other@example.test", hashed_password="test", display_name="Other")
+        admin = User(email="admin@example.test", hashed_password="test", display_name="ACT Reviewer", role="admin")
         member = TrackedMember(
             person_id="rep-example", bioguide_id="E000001", display_name="Representative Example",
             chamber="house", state="MD", party="I", is_active=1,
@@ -47,7 +48,7 @@ def _seed(Session):
             chamber="house", state="VA", party="I", is_active=1,
         )
         bill = Bill(bill_id="hr6644-119", congress=119, bill_type="hr", bill_number=6644, title="Housing bill")
-        session.add_all((user, other, member, other_member, bill)); session.flush()
+        session.add_all((user, other, admin, member, other_member, bill)); session.flush()
         now = datetime.now(timezone.utc)
         session.add_all((
             OfficialOfficeContact(
@@ -198,3 +199,50 @@ def test_reviewed_contact_loader_is_idempotent_and_rejects_nonofficial_sources()
             assert False, "nonofficial source must fail"
         except ContactFixtureError:
             pass
+
+
+def test_act_moderation_is_admin_only_transition_safe_and_audited():
+    app, client, Session = _environment(); user_id, _ = _seed(Session)
+    future = datetime.now(timezone.utc) + timedelta(days=3)
+    with Session() as session:
+        circle = ActionCircle(
+            organizer_id=user_id, name="Housing evidence circle",
+            objective="Ask representatives to respond to sourced housing evidence.",
+            description="Residents prepare respectful questions tied to public legislative records.",
+            target_type="bill", target_id="hr6644-119", location_precision="none",
+            membership_mode="approval", conduct_rules="Use public evidence and never expose private contact details.",
+            completion_condition="A documented official response is received.", moderation_status="pending",
+        )
+        session.add(circle); session.flush()
+        activity = CivicActivity(
+            organizer_id=user_id, circle_id=circle.id, title="Housing evidence preparation",
+            description="Review public evidence before constituents contact their own offices.",
+            host_type="community", format="online", starts_at=future,
+            timezone="America/New_York", public_url="https://example.org/event", moderation_status="pending",
+        )
+        session.add(activity); session.commit(); circle_id, activity_id = circle.id, activity.id
+
+    assert client.get("/act/admin/moderation").status_code == 401
+    _as_user(app, Session, user_id)
+    assert client.get("/act/admin/moderation").status_code == 403
+    with Session() as session:
+        admin_id = session.query(User).filter_by(email="admin@example.test").one().id
+    _as_user(app, Session, admin_id)
+    queue = client.get("/act/admin/moderation").json()
+    assert queue["counts"] == {"circles": 1, "activities": 1}
+    assert {item["organizer"]["display_name"] for item in queue["items"]} == {"Resident"}
+    assert all("id" not in item["organizer"] for item in queue["items"])
+    assert all("members" not in item and "attendees" not in item for item in queue["items"])
+
+    blank_reason = client.patch(f"/act/admin/circles/{circle_id}", json={"status": "published", "reason": "          "})
+    assert blank_reason.status_code == 422
+    blocked = client.patch(f"/act/admin/activities/{activity_id}", json={"status": "published", "reason": "Reviewed and safe to publish."})
+    assert blocked.status_code == 409
+    published_circle = client.patch(f"/act/admin/circles/{circle_id}", json={"status": "published", "reason": "Objective and conduct rules are specific and safe."})
+    assert published_circle.status_code == 200
+    published_activity = client.patch(f"/act/admin/activities/{activity_id}", json={"status": "published", "reason": "Future public event with a safe HTTPS destination."})
+    assert published_activity.status_code == 200
+    assert client.patch(f"/act/admin/circles/{circle_id}", json={"status": "pending", "reason": "Invalid reverse transition attempt."}).status_code == 409
+    with Session() as session:
+        logs = session.query(AuditLog).filter(AuditLog.action.in_(("act_circle_moderated", "act_activity_moderated"))).all()
+        assert len(logs) == 2 and all(log.user_id == admin_id for log in logs)

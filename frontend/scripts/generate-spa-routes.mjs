@@ -23,6 +23,7 @@ async function writeRoute(segments, html) {
 await writeRoute(['watch'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
 await writeRoute(['act'], indexHtml)
+await writeRoute(['act', 'moderation'], indexHtml)
 await writeRoute(['discuss'], indexHtml)
 
 for (const video of fixture.videos ?? []) {
