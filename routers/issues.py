@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from models.database import Bill, SourceDocument, get_db
 from models.issue_models import EvidenceObservation, EvidenceSeries, Issue, IssueBill
 from models.response_schemas import (
+    IssueAgendaResponse,
     IssueBillsResponse,
     IssueEvidenceResponse,
     IssueSummaryResponse,
@@ -13,6 +14,63 @@ from models.response_schemas import (
 
 
 router = APIRouter(prefix="/issues", tags=["issues"])
+
+
+@router.get("", response_model=IssueAgendaResponse)
+def list_issue_agenda(db: Session = Depends(get_db)):
+    """Return the honest initial Agenda without implying community popularity."""
+    issues = db.query(Issue).all()
+    items = []
+    for issue in issues:
+        series = (
+            db.query(EvidenceSeries)
+            .options(selectinload(EvidenceSeries.observations))
+            .filter(EvidenceSeries.issue_slug == issue.slug)
+            .all()
+        )
+        observations = [observation for row in series for observation in row.observations]
+        latest = max(observations, key=lambda item: item.observation_date, default=None)
+        latest_series = next(
+            (row for row in series if latest is not None and row.id == latest.series_id),
+            None,
+        )
+        evidence_note = None
+        if latest is not None and latest_series is not None:
+            value = f"{latest.value:g}"
+            evidence_note = (
+                f"{latest_series.title}: {value} {latest_series.unit} "
+                f"({latest.observation_date.isoformat()})"
+            )
+        items.append({
+            "slug": issue.slug,
+            "title": issue.title,
+            "summary": issue.summary,
+            "evidence_note": evidence_note,
+            "evidence_series_count": len(series),
+            "bill_count": db.query(IssueBill).filter(IssueBill.issue_slug == issue.slug).count(),
+            "latest_evidence_date": latest.observation_date.isoformat() if latest else None,
+            "updated_at": issue.updated_at,
+            "community_score": None,
+        })
+
+    # This is coverage ordering, not a claim about public priorities. The API
+    # makes that distinction explicit so clients cannot relabel it silently.
+    items.sort(key=lambda item: (-item["evidence_series_count"], -item["bill_count"], item["title"]))
+    updated = max((item["updated_at"] for item in items if item["updated_at"]), default=None)
+    return {
+        "total": len(items),
+        "methodology": {
+            "kind": "initial_evidence_catalog",
+            "label": "Initial agenda",
+            "description": "Ordered by published source coverage, not community popularity.",
+            "community_ranked": False,
+            "updated_at": updated.isoformat() if updated else None,
+        },
+        "items": [
+            {"rank": index, **{key: value for key, value in item.items() if key != "updated_at"}}
+            for index, item in enumerate(items, start=1)
+        ],
+    }
 
 
 def _get_issue_or_404(slug: str, db: Session) -> Issue:
