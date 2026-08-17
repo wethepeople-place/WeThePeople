@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, ExternalLink, Gavel, MapPin, Megaphone, ShieldCheck, Users } from 'lucide-react';
+import { CalendarDays, ExternalLink, Gavel, MapPin, Megaphone, ShieldCheck, Users, Vote } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import {
@@ -45,9 +45,10 @@ export default function ActHubPage() {
     <div className="mx-auto max-w-6xl">
       <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Civic Conversation Loop</p>
       <h1 className="mt-2 text-4xl font-bold sm:text-5xl">ACT</h1>
-      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Turn evidence and discussion into a deliberate civic step. You remain in control: nothing is sent, joined, signed, or submitted automatically.</p>
+      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Start with the civic action that matters most: know when, where, and what you can vote on. Nothing is sent, joined, signed, or submitted automatically.</p>
       {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">ACT context: {targetType} · {targetId}</p>}
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <Link to="/elections" className="mt-8 flex items-center justify-between gap-5 rounded-2xl bg-amber-300 p-5 text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70"><div><p className="text-xs font-black uppercase tracking-widest">ACT first</p><h2 className="mt-1 text-2xl font-black">Plan your vote</h2><p className="mt-2 leading-6 text-slate-800">Find upcoming elections, your ballot, official voting locations, and registration links without saving your address.</p></div><Vote className="h-9 w-9 shrink-0" /></Link>
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
         <Link to="/politics/find-rep" className="rounded-2xl border border-white/10 bg-white/5 p-5 outline-none hover:bg-white/[.08] focus-visible:ring-4 focus-visible:ring-amber-300/60"><Megaphone className="h-6 w-6 text-amber-300" /><h2 className="mt-3 text-xl font-bold">Contact government</h2><p className="mt-2 leading-6 text-slate-300">Find the right representative, call a verified public office, or prepare an editable message.</p></Link>
         <a href="#circles" className="rounded-2xl border border-white/10 bg-white/5 p-5 outline-none hover:bg-white/[.08] focus-visible:ring-4 focus-visible:ring-amber-300/60"><Users className="h-6 w-6 text-amber-300" /><h2 className="mt-3 text-xl font-bold">Join an Action Circle</h2><p className="mt-2 leading-6 text-slate-300">Organize around one objective, jurisdiction, and completion condition.</p></a>
         <a href="#activities" className="rounded-2xl border border-white/10 bg-white/5 p-5 outline-none hover:bg-white/[.08] focus-visible:ring-4 focus-visible:ring-amber-300/60"><CalendarDays className="h-6 w-6 text-amber-300" /><h2 className="mt-3 text-xl font-bold">Participate</h2><p className="mt-2 leading-6 text-slate-300">Find moderated meetings, call days, hearings, and community activities.</p></a>

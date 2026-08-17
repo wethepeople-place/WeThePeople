@@ -3,7 +3,6 @@ import { Bookmark, ChevronDown, ExternalLink, Heart, MessageCircle, Pause, Play,
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
-import IssueActionStrip from '../components/IssueActionStrip';
 import ShareButton from '../components/ShareButton';
 import VideoCommentsPanel from '../components/VideoCommentsPanel';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,7 +36,10 @@ const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE
 
 function CivicActions({ item }: { item: Video }) {
   return <div className="mt-5 min-w-0">
-    <IssueActionStrip issueSlug={item.issue.slug} returnToVideoId={item.video_id} />
+    <div aria-label="Explore this video" className="flex flex-wrap gap-3">
+      <Link className="inline-flex min-h-12 items-center rounded-full bg-amber-300 px-5 font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Explore {item.issue.title}</Link>
+      <Link className="inline-flex min-h-12 items-center rounded-full border border-amber-300/50 px-5 font-bold text-amber-300 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}>Take action</Link>
+    </div>
     <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
       <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>
       {item.bills.map((bill) => <Link key={bill.bill_id} to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}

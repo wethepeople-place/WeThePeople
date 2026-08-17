@@ -173,7 +173,7 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
         </a>
 
         {/* Site switcher */}
-        <div role="tablist" className="min-w-0 flex-1 overflow-x-auto" style={{ display: 'flex', gap: 2 }}>
+        <div role="tablist" className="hidden min-w-0 flex-1 overflow-x-auto md:flex" style={{ gap: 2 }}>
           {SWITCHER_ORDER.map((key) => {
             const site = SITES[key];
             const isActive = active === key;
@@ -209,6 +209,8 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
             );
           })}
         </div>
+
+        <span className="ml-2 text-sm font-semibold text-[#EBE5D5] md:hidden">Civic</span>
 
         {/* Right cluster:
               - Active-site identifier badge (mark + display name +

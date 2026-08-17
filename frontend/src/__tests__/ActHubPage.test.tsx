@@ -17,6 +17,7 @@ describe('ActHubPage', () => {
   it('offers safe action paths and keeps legal enrollment disabled', async () => {
     render(<MemoryRouter><ActHubPage /></MemoryRouter>)
     expect(screen.getByRole('heading', { name: 'ACT' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Plan your vote/ }).getAttribute('href')).toBe('/elections')
     expect(screen.getByRole('link', { name: /Contact government/ }).getAttribute('href')).toBe('/politics/find-rep')
     expect(await screen.findByText('No moderated Circles are public yet')).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Legal pathways are not enabled' })).toBeTruthy()

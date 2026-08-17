@@ -296,6 +296,7 @@ def list_elections() -> List[Dict[str, Any]]:
 def lookup_voter_info(
     address: str,
     election_id: Optional[str] = None,
+    official_only: bool = True,
 ) -> Optional[Dict[str, Any]]:
     """
     Get voter information for an address and election.
@@ -312,7 +313,10 @@ def lookup_voter_info(
         Dict with pollingLocations, earlyVoteSites, contests, state info,
         or None on error
     """
-    params: Dict[str, str] = {"address": address}
+    params: Dict[str, str] = {
+        "address": address,
+        "officialOnly": "true" if official_only else "false",
+    }
 
     if election_id:
         params["electionId"] = election_id
@@ -323,9 +327,12 @@ def lookup_voter_info(
 
     contests = data.get("contests", [])
     polling = data.get("pollingLocations", [])
+    # A registered street address is sensitive civic data. Never place it in
+    # application logs; callers use the result transiently and do not persist
+    # the input.
     logger.info(
-        "Voter info for %s: %d contests, %d polling locations",
-        address[:50], len(contests), len(polling)
+        "Voter info lookup returned %d contests and %d polling locations",
+        len(contests), len(polling)
     )
     return data
 

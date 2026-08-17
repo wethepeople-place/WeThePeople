@@ -327,7 +327,7 @@ export default function ChatAgent() {
                 setOpen(true);
               }
             }}
-            className="fixed bottom-6 right-6 z-[9998] flex items-center justify-center w-14 h-14 rounded-full
+            className="fixed bottom-20 right-4 z-[9998] flex items-center justify-center w-14 h-14 rounded-full md:bottom-6 md:right-6
                        bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30
                        transition-colors cursor-grab active:cursor-grabbing"
             aria-label="Open chat assistant"
@@ -350,7 +350,7 @@ export default function ChatAgent() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-6 right-6 z-[9999] w-[400px] h-[520px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-48px)]
+            className="fixed bottom-20 right-4 z-[9999] w-[400px] h-[520px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-112px)] md:bottom-6 md:right-6 md:max-w-[calc(100vw-48px)] md:max-h-[calc(100vh-48px)]
                        flex flex-col bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
           >
             {/* Header */}
