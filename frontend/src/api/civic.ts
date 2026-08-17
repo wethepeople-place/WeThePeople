@@ -203,7 +203,7 @@ export function fetchPublicDiscussion(postId: number) {
   return apiFetch<PublicDiscussionDetail>(`/discussions/${postId}`);
 }
 
-export function createVideoDiscussion(data: { body: string; video_url: string; issue_slug?: string }) {
+export function createVideoDiscussion(data: { body: string; video_url?: string; issue_slug?: string }) {
   return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
 }
 
@@ -285,6 +285,46 @@ export function fetchCivicActivities() {
 
 export function rsvpCivicActivity(activityId: number) {
   return apiFetch<{ status: 'going'; attendee_identity_is_public: false }>(`/act/activities/${activityId}/rsvp`, { method: 'PUT' });
+}
+
+export type ElectionLocation = {
+  name: string | null;
+  address: Record<string, string>;
+  polling_hours: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+  sources: Array<{ name: string; official: boolean }>;
+};
+
+export type ElectionLookup = {
+  election: { id: string; name: string; election_day: string | null };
+  mail_only: boolean;
+  polling_locations: ElectionLocation[];
+  early_vote_sites: ElectionLocation[];
+  drop_off_locations: ElectionLocation[];
+  contests: Array<{
+    type: string | null; office: string; district: string | null;
+    candidates: Array<{ name: string; party: string | null; candidate_url: string | null }>;
+    referendum_url: string | null;
+    sources: Array<{ name: string; official: boolean }>;
+  }>;
+  election_authorities: Array<{
+    region: string; name: string; election_info_url: string | null;
+    registration_url: string | null; registration_status_url: string | null;
+    voting_location_url: string | null; ballot_info_url: string | null;
+  }>;
+  privacy: { address_retained: false; registration_status_collected: false; ballot_choices_collected: false };
+};
+
+export function fetchUpcomingElections() {
+  return apiFetch<{ items: Array<{ id: string; name: string; election_day: string | null; division_id: string | null }> }>('/elections');
+}
+
+export function lookupElectionInformation(address: string, electionId?: string) {
+  return apiFetch<ElectionLookup>('/elections/lookup', {
+    method: 'POST', body: { address, ...(electionId ? { election_id: electionId } : {}) },
+  });
 }
 
 export type ActModerationItem = {

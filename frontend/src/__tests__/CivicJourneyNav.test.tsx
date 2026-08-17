@@ -9,17 +9,17 @@ it('connects every top-level civic journey destination', () => {
   const expected = {
     Watch: '/watch',
     Agenda: '/civic',
-    Evidence: '/issues/housing-rent',
-    Government: '/government',
-    Courts: '/courts',
+    Issues: '/issues/housing-rent',
     Discuss: '/discuss',
+    Elections: '/elections',
     Solutions: '/issues/housing-rent/solutions',
-    'Your District': '/politics/find-rep',
+    Representatives: '/politics/find-rep',
     ACT: '/act',
   };
 
   for (const [label, href] of Object.entries(expected)) {
-    expect(screen.getByRole('link', { name: label }).getAttribute('href')).toBe(href);
+    expect(screen.getAllByRole('link', { name: label })[0].getAttribute('href')).toBe(href);
   }
-  expect(screen.getByRole('link', { name: 'Government' }).getAttribute('aria-current')).toBe('page');
+  expect(screen.getByRole('link', { name: 'Elections' }).getAttribute('href')).toBe('/elections');
+  expect(screen.getByRole('link', { name: 'Create a civic post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
 });

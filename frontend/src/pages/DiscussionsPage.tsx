@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { createVideoDiscussion, fetchPublicDiscussions, type PublicDiscussionPost } from '../api/civic';
@@ -11,6 +11,8 @@ export default function DiscussionsPage() {
   const [params] = useSearchParams();
   const issue = params.get('issue') || '';
   const videoId = params.get('video') || '';
+  const compose = params.get('compose') === '1';
+  const composer = useRef<HTMLElement>(null);
   const [items, setItems] = useState<PublicDiscussionPost[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,12 @@ export default function DiscussionsPage() {
     return () => { active = false; };
   }, [issue, videoId]);
 
+  useEffect(() => {
+    if (!compose) return;
+    composer.current?.scrollIntoView({ block: 'start' });
+    composer.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+  }, [compose, isAuthenticated]);
+
   const loadMore = async () => {
     setLoadingMore(true); setError('');
     try {
@@ -44,7 +52,7 @@ export default function DiscussionsPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
     try {
-      const result = await createVideoDiscussion({ body, video_url: videoUrl, ...(issue ? { issue_slug: issue } : {}) });
+      const result = await createVideoDiscussion({ body, ...(videoUrl ? { video_url: videoUrl } : {}), ...(issue ? { issue_slug: issue } : {}) });
       setBody(''); setVideoUrl(''); setNotice(`${result.message}. It will appear here after review.`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to submit post.'); }
     finally { setSubmitting(false); }
@@ -63,14 +71,15 @@ export default function DiscussionsPage() {
 
       <div className="mt-7 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
-          <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-labelledby="share-video-heading">
-            <h2 id="share-video-heading" className="text-xl font-semibold">Start a sourced conversation</h2>
-            <p className="mt-2 text-sm leading-6 text-text-2">Share a YouTube link and explain why it matters. New posts are reviewed before appearing publicly.</p>
+          <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-labelledby="share-video-heading">
+            <h2 id="share-video-heading" className="text-xl font-semibold">Create a civic post</h2>
+            <p className="mt-2 text-sm leading-6 text-text-2">Post a focused civic question or observation. Add a YouTube source when it helps. New posts are reviewed before appearing publicly.</p>
             {isAuthenticated ? <form className="mt-5 space-y-4" onSubmit={submit}>
-              <label className="block text-sm font-semibold">YouTube link<input className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" required placeholder="https://www.youtube.com/watch?v=..." value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></label>
               <label className="block text-sm font-semibold">What should people examine?<textarea className="mt-2 min-h-28 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" required maxLength={10000} placeholder="Point to evidence, ask a focused question, or explain the civic tradeoff." value={body} onChange={(event) => setBody(event.target.value)} /></label>
+              <label className="block text-sm font-semibold">YouTube source <span className="font-normal text-text-3">(optional)</span><input className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" placeholder="https://www.youtube.com/watch?v=..." value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></label>
+              <p className="text-xs leading-5 text-text-3">Photo and native video uploads are coming after privacy stripping, security scanning, moderation, and deletion controls are complete.</p>
               <button disabled={submitting} className="min-h-11 rounded-full bg-accent px-5 py-3 font-bold text-white disabled:opacity-60">{submitting ? 'Submitting…' : 'Submit for review'}</button>
-            </form> : <p className="mt-4"><Link className="font-semibold text-accent-text underline" to={`/login?next=${encodeURIComponent('/discuss')}`}>Sign in to start a conversation</Link></p>}
+            </form> : <p className="mt-4"><Link className="font-semibold text-accent-text underline" to={`/login?next=${encodeURIComponent(compose ? '/discuss?compose=1#composer' : '/discuss')}`}>Sign in to start a conversation</Link></p>}
             {notice && <p role="status" className="mt-4 text-sm text-accent-text">{notice}</p>}
           </section>
 

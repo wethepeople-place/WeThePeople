@@ -177,6 +177,7 @@ from routers.discussions import router as discussions_router
 from routers.act import router as act_router
 from routers.solutions import router as solutions_router
 from routers.courts import router as courts_router
+from routers.elections import router as elections_router
 from routers.bulk import router as bulk_export_router, bulk_router
 from routers.tips import router as tips_router
 from routers.events import router as events_router
@@ -225,6 +226,7 @@ app.include_router(discussions_router)
 app.include_router(act_router)
 app.include_router(solutions_router)
 app.include_router(courts_router)
+app.include_router(elections_router)
 app.include_router(bulk_export_router)  # /export/{table}.csv
 app.include_router(bulk_router)         # /bulk/snapshot, /bulk/manifest
 
@@ -271,6 +273,7 @@ v1.include_router(discussions_router)
 v1.include_router(act_router)
 v1.include_router(solutions_router)
 v1.include_router(courts_router)
+v1.include_router(elections_router)
 v1.include_router(bulk_export_router)
 v1.include_router(bulk_router)
 

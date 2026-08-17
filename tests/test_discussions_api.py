@@ -257,6 +257,19 @@ def test_youtube_post_is_normalized_and_held_for_moderation():
     }
 
 
+def test_text_only_post_is_allowed_and_held_for_moderation():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    _as_user(app, Session, alice_id)
+    created = client.post("/discussions", json={"body": "  What evidence should we examine next?  "})
+    assert created.status_code == 201
+    with Session() as session:
+        post = session.get(DiscussionPost, created.json()["id"])
+        assert post.body == "What evidence should we examine next?"
+        assert post.moderation_status == "pending"
+        assert post.video_link is None
+
+
 def test_video_post_rejects_untrusted_or_malformed_links():
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)

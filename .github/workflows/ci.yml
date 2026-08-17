@@ -44,6 +44,7 @@ jobs:
           tests/test_act_api.py
           tests/test_act_web_contract.py
           tests/test_act_moderation_web_contract.py
+          tests/test_elections_api.py
           tests/test_solutions_api.py
           tests/test_solution_fixture.py
           tests/test_phase7_migration_contract.py
