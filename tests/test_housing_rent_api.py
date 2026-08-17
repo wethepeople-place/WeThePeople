@@ -128,7 +128,7 @@ def test_issue_agenda_uses_reviewed_coverage_without_popularity_claims():
     assert payload["methodology"]["community_ranked"] is False
     assert payload["items"][0]["rank"] == 1
     assert payload["items"][0]["slug"] == "housing-rent"
-    assert payload["items"][0]["evidence_series_count"] == 2
+    assert payload["items"][0]["evidence_series_count"] == 3
     assert payload["items"][0]["bill_count"] == 7
     assert payload["items"][0]["community_score"] is None
     assert payload["items"][0]["evidence_note"]
