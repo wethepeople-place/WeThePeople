@@ -21,4 +21,5 @@ it('connects every top-level civic journey destination', () => {
     expect(screen.getAllByRole('link', { name: label })[0].getAttribute('href')).toBe(href);
   }
   expect(screen.getByRole('link', { name: 'Elections' }).getAttribute('href')).toBe('/elections');
+  expect(screen.getByRole('link', { name: 'Create a civic post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
 });

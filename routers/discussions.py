@@ -61,7 +61,7 @@ class ReportCreate(BaseModel):
 
 class DiscussionCreate(BaseModel):
     body: str = Field(min_length=1, max_length=10000)
-    video_url: str = Field(min_length=1, max_length=1000)
+    video_url: Optional[str] = Field(default=None, min_length=1, max_length=1000)
     issue_slug: Optional[str] = Field(default=None, min_length=1, max_length=100)
 
     @field_validator("body")
@@ -276,7 +276,7 @@ def create_discussion(
     db: Session = Depends(get_db),
 ):
     _rate_limit(request, user, "discussions:create", POST_LIMIT, db)
-    video_id, canonical_url = _youtube_link(body.video_url)
+    video_link = _youtube_link(body.video_url) if body.video_url else None
     if body.issue_slug and db.get(Issue, body.issue_slug) is None:
         raise HTTPException(status_code=422, detail="Choose a reviewed WTP issue")
     post = DiscussionPost(
@@ -285,9 +285,11 @@ def create_discussion(
         body=body.body,
         moderation_status="pending",
     )
-    post.video_link = DiscussionVideoLink(
-        provider="youtube", provider_video_id=video_id, canonical_url=canonical_url
-    )
+    if video_link:
+        video_id, canonical_url = video_link
+        post.video_link = DiscussionVideoLink(
+            provider="youtube", provider_video_id=video_id, canonical_url=canonical_url
+        )
     if body.issue_slug:
         post.attachments.append(DiscussionAttachment(
             attachment_type="issue", issue_slug=body.issue_slug, label="Related issue"
