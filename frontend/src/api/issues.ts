@@ -5,6 +5,19 @@ export type IssueSummary = {
   slug: string; title: string; summary: string | null;
   evidence_series_count: number; bill_count: number;
 };
+export type AgendaIssue = {
+  rank: number; slug: string; title: string; summary: string | null;
+  evidence_note: string | null; evidence_series_count: number; bill_count: number;
+  latest_evidence_date: string | null; community_score: null;
+};
+export type IssueAgenda = {
+  total: number;
+  methodology: {
+    kind: 'initial_evidence_catalog'; label: string; description: string;
+    community_ranked: false; updated_at: string | null;
+  };
+  items: AgendaIssue[];
+};
 export type EvidenceObservation = {
   date: string; value: number; source_record_id: string | null; source: IssueSource;
 };
@@ -29,6 +42,10 @@ async function read<T>(path: string): Promise<T> {
   const response = await fetch(`${getApiBaseUrl()}${path}`);
   if (!response.ok) throw new Error(response.status === 404 ? 'Issue not found' : 'Issue data is unavailable');
   return response.json() as Promise<T>;
+}
+
+export function fetchIssueAgenda() {
+  return read<IssueAgenda>('/issues');
 }
 
 export async function fetchIssueDetail(slug: string) {

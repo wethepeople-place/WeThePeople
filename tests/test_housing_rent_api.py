@@ -33,6 +33,20 @@ def test_issue_api_empty_state_and_missing_issue():
     client, Session = _client()
     assert client.get("/issues/housing-rent").status_code == 404
 
+    agenda = client.get("/issues")
+    assert agenda.status_code == 200
+    assert agenda.json() == {
+        "total": 0,
+        "methodology": {
+            "kind": "initial_evidence_catalog",
+            "label": "Initial agenda",
+            "description": "Ordered by published source coverage, not community popularity.",
+            "community_ranked": False,
+            "updated_at": None,
+        },
+        "items": [],
+    }
+
     with Session() as session:
         from models.issue_models import Issue
 
@@ -101,3 +115,20 @@ def test_issue_bill_api_accepts_enacted_phase():
     response = client.get("/issues/housing-rent/bills")
     assert response.status_code == 200
     assert "enacted" in {item["phase"] for item in response.json()["bills"]}
+
+
+def test_issue_agenda_uses_reviewed_coverage_without_popularity_claims():
+    client, Session = _client()
+    with Session() as session:
+        load_fixture(_fixture(), session)
+
+    response = client.get("/issues")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["methodology"]["community_ranked"] is False
+    assert payload["items"][0]["rank"] == 1
+    assert payload["items"][0]["slug"] == "housing-rent"
+    assert payload["items"][0]["evidence_series_count"] == 3
+    assert payload["items"][0]["bill_count"] == 7
+    assert payload["items"][0]["community_score"] is None
+    assert payload["items"][0]["evidence_note"]

@@ -448,6 +448,29 @@ class IssueSummaryResponse(BaseModel):
     evidence_series_count: int
     bill_count: int
 
+class IssueAgendaMethodology(BaseModel):
+    kind: Literal["initial_evidence_catalog"]
+    label: str
+    description: str
+    community_ranked: Literal[False]
+    updated_at: Optional[str] = None
+
+class IssueAgendaItem(BaseModel):
+    rank: int
+    slug: str
+    title: str
+    summary: Optional[str] = None
+    evidence_note: Optional[str] = None
+    evidence_series_count: int
+    bill_count: int
+    latest_evidence_date: Optional[str] = None
+    community_score: Literal[None] = None
+
+class IssueAgendaResponse(BaseModel):
+    total: int
+    methodology: IssueAgendaMethodology
+    items: List[IssueAgendaItem]
+
 class IssueGeography(BaseModel):
     type: str
     id: str
