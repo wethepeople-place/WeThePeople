@@ -19,10 +19,12 @@ it('performs a private election lookup and renders the official civic answer', a
     },
   })));
   render(<MemoryRouter><ElectionsPage /></MemoryRouter>);
-  fireEvent.change(screen.getByLabelText('Registered residential address'), { target: { value: '123 Private Road' } });
+  const addressInput = screen.getByLabelText('Registered residential address') as HTMLInputElement;
+  fireEvent.change(addressInput, { target: { value: '123 Private Road' } });
   fireEvent.click(screen.getByRole('button', { name: 'Find my election' }));
   expect(await screen.findByRole('heading', { name: 'General Election' })).toBeTruthy();
   expect(screen.getByText('Community Center')).toBeTruthy();
   expect(screen.getByText('Alex Example')).toBeTruthy();
+  expect(addressInput.value).toBe('');
   await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/elections/lookup'), expect.objectContaining({ method: 'POST' })));
 });

@@ -41,6 +41,7 @@ def test_lookup_is_official_only_and_never_echoes_registered_address(monkeypatch
     response = client.post("/elections/lookup", json={"address": " 123 Private Home Road ", "election_id": "9000"})
     assert response.status_code == 200
     payload = response.json()
+    assert response.headers["cache-control"] == "no-store"
     assert observed == {"address": "123 Private Home Road", "election_id": "9000", "official_only": True}
     assert "123 Private Home Road" not in str(payload)
     assert payload["privacy"] == {

@@ -24,7 +24,10 @@ export default function ElectionsPage() {
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true); setNotice(''); setResult(null);
-    try { setResult(await lookupElectionInformation(address)); }
+    try {
+      setResult(await lookupElectionInformation(address));
+      setAddress('');
+    }
     catch (reason) { setNotice(reason instanceof Error ? reason.message : 'Election information could not be loaded.'); }
     finally { setLoading(false); }
   };

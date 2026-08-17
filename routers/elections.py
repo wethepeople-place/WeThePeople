@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from connectors.google_civic import CivicApiRateLimitError, list_elections, lookup_voter_info
@@ -95,8 +95,9 @@ def upcoming_elections():
 
 
 @router.post("/lookup")
-def voter_information(body: ElectionLookupRequest, request: Request):
+def voter_information(body: ElectionLookupRequest, request: Request, response: Response):
     # Deliberately do not log, persist, echo, or attach the address to tracing.
+    response.headers["Cache-Control"] = "no-store"
     try:
         data = lookup_voter_info(body.address, body.election_id, official_only=True)
     except CivicApiRateLimitError as exc:

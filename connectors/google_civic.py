@@ -70,25 +70,26 @@ def _civic_get(endpoint: str, params: Optional[Dict[str, str]] = None) -> Option
             logger.warning("Google Civic API rate limited (429)")
             raise CivicApiRateLimitError("Google Civic API rate limited (429)")
         elif response.status_code == 400:
-            error_data = response.json() if response.text else {}
-            error_msg = error_data.get("error", {}).get("message", response.text[:200])
-            logger.error("Google Civic API 400 Bad Request: %s", error_msg)
+            # Error payloads can repeat query parameters. Civic requests may
+            # contain a home address and every request contains the API key,
+            # so never place upstream response text in application logs.
+            logger.error("Google Civic API rejected endpoint %s (400)", endpoint)
             return None
         elif response.status_code == 404:
-            error_data = {}
-            try:
-                error_data = response.json()
-            except Exception:
-                pass
-            error_msg = error_data.get("error", {}).get("message", "not found")
-            logger.info("Google Civic API 404: %s", error_msg)
+            logger.info("Google Civic API found no result for endpoint %s (404)", endpoint)
             return None
 
         response.raise_for_status()
         return response.json()
 
-    except requests.RequestException as e:
-        logger.error("Google Civic API request failed: %s", e)
+    except requests.RequestException as exc:
+        # requests exceptions commonly include the prepared URL. Logging the
+        # exception would disclose both address= and key= query parameters.
+        logger.error(
+            "Google Civic API request failed for endpoint %s (%s)",
+            endpoint,
+            type(exc).__name__,
+        )
         return None
 
 
