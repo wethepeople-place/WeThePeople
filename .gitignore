@@ -15,6 +15,8 @@ venv/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
@@ -107,6 +109,7 @@ data/
 data/*
 !data/watch_housing_rent.json
 !data/discuss_housing_rent.json
+!data/discussion_demo_synthetic.json
 !data/solution_housing_rent.json
 !frontend/src/data/
 !mobile/src/data/

@@ -209,6 +209,22 @@ python jobs/sync_state_data_all.py           # State legislators + bills (50 sta
 python jobs/sync_donations.py --sector defense  # FEC PAC sweeps per sector
 ```
 
+### Local discussion demo
+
+Use a disposable SQLite database to preview a populated Watch/Discuss journey. The loader refuses production targets, non-SQLite databases, filenames without `demo` or `synthetic`, and fixtures without visible Demo labels.
+
+```powershell
+$env:WTP_DB_URL = 'sqlite:///./runtime_data/discussion-demo.db'
+$env:WTP_DATA_CLASSIFICATION = 'synthetic'
+$env:WTP_TARGET_ENV = 'local'
+python -m models.database
+python -m jobs.load_housing_rent_slice data/housing_rent_reviewed_evidence.json
+python -m jobs.load_watch_fixture runtime_data/watch_census_production_pilot.json --replace-reviewed-catalog
+python -m jobs.load_discussion_demo load
+```
+
+Remove only the synthetic users and conversations with `python -m jobs.load_discussion_demo clear`. This dataset is for local visual testing only; it must never be published or used as public activity.
+
 ### Backfills
 
 ```bash

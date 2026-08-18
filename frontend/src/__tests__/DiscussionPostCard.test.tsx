@@ -22,7 +22,7 @@ describe('DiscussionPostCard', () => {
 
   it('connects the same conversation to Watch and civic records', () => {
     render(<MemoryRouter initialEntries={['/discuss']}><DiscussionPostCard item={item} isAuthenticated={false} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: 'Watch video with this conversation' }).getAttribute('href')).toBe('/watch/housing-video?comments=1');
+    expect(screen.getByRole('link', { name: 'Watch with conversation, 4 replies' }).getAttribute('href')).toBe('/watch/housing-video?comments=1');
     expect(screen.getByRole('link', { name: 'Reviewed housing video' }).getAttribute('href')).toBe('/watch/housing-video?comments=1');
     expect(screen.getByRole('link', { name: 'H.R. 6644' }).getAttribute('href')).toBe('/politics/bill/hr6644-119');
     expect(screen.getByRole('link', { name: /Congress.gov source/ }).getAttribute('href')).toContain('congress.gov');
