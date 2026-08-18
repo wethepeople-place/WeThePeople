@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import IssueDetailPage from '../pages/IssueDetailPage';
@@ -29,6 +29,10 @@ describe('IssueDetailPage journey actions', () => {
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
     expect(screen.getByRole('link', { name: /Housing explained/ }).getAttribute('href')).toBe('/watch/housing-video');
+    const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
+    expect(within(issueNavigation).getByRole('link', { name: /Official data/ }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
+    expect(within(issueNavigation).getByRole('link', { name: /Elections/ }).getAttribute('href')).toBe('/elections?issue=housing-rent');
+    expect(screen.getByRole('link', { name: /Take action on this issue/ }).getAttribute('href')).toBe('/act?target_type=issue&target_id=housing-rent');
   });
 
   it('keeps the hub visible when a supporting section fails', async () => {

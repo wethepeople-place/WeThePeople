@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, FileText, Landmark, Play, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronRight, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
 import IssueActionStrip from '../components/IssueActionStrip';
@@ -11,6 +11,23 @@ const date = (value: string) => new Intl.DateTimeFormat('en-US', {
 }).format(new Date(value));
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 const phaseLabel = { past: 'Resolved', current: 'In progress', upcoming: 'Upcoming', enacted: 'Enacted' } as const;
+
+function Sparkline({ series }: { series: EvidenceSeries | undefined }) {
+  const values = series?.observations.map((item) => item.value) || [];
+  if (values.length < 2) return <div className="grid h-16 place-items-center rounded-xl bg-slate-50 text-xs font-semibold text-slate-500">Trend appears when two reviewed observations are available</div>;
+  const min = Math.min(...values);
+  const range = Math.max(...values) - min || 1;
+  const points = values.map((value, index) => `${(index / (values.length - 1)) * 300},${58 - ((value - min) / range) * 48}`).join(' ');
+  return <svg viewBox="0 0 300 64" className="h-16 w-full" role="img" aria-label={`${series?.title} trend`}><polyline points={points} fill="none" stroke="#245b87" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function HubRow({ icon: Icon, label, detail, to }: { icon: typeof Play; label: string; detail: string; to: string }) {
+  return <Link to={to} className="group flex min-h-16 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200">
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#245b87] text-white"><Icon className="h-4.5 w-4.5" aria-hidden="true" /></span>
+    <span className="min-w-0 flex-1"><span className="block font-black leading-5 text-slate-950">{label}</span><span className="block text-xs leading-4 text-slate-500">{detail}</span></span>
+    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#245b87]" aria-hidden="true" />
+  </Link>;
+}
 
 function Source({ source }: { source: { url: string; publisher: string; retrieved_at: string } }) {
   return <p className="mt-4 text-xs text-text-2">
@@ -37,18 +54,56 @@ export default function IssueDetailPage() {
     target?.scrollIntoView({ block: 'start' });
   }, [data]);
 
-  if (error) return <main className="min-h-screen bg-bg px-6 py-16 text-text-1"><div className="mx-auto max-w-3xl rounded-card border border-border bg-surface p-8"><h1 className="font-display text-3xl">Housing & Rent</h1><p className="mt-3 text-text-2">{error}. Load the reviewed local fixture, then try again.</p></div></main>;
+  if (error) return <main className="min-h-screen bg-bg px-6 py-16 text-text-1"><div className="mx-auto max-w-3xl rounded-card border border-border bg-surface p-8"><h1 className="font-display text-3xl">Issue hub</h1><p className="mt-3 text-text-2">{error}. Please try again.</p></div></main>;
   if (!data) return <main className="min-h-screen bg-bg p-16 text-center text-text-2">Loading sourced issue data…</main>;
 
-  return <main className="min-h-screen bg-bg px-5 py-12 text-text-1 sm:px-8">
-    <div className="mx-auto max-w-6xl">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Issue brief</p>
-      <h1 className="mt-3 font-display text-4xl sm:text-6xl">{data.summary.title}</h1>
-      <p className="mt-5 max-w-3xl text-lg leading-8 text-text-2">{data.summary.summary || 'Official evidence and federal legislation connected to housing affordability and rent.'}</p>
-      <div className="mt-8 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.bills.length} /></div>
+  const leadSeries = data.evidence.find((series) => series.observations.length > 1) || data.evidence[0];
+  const firstVideo = data.videos[0];
+
+  return <main id="main-content" className="min-h-screen bg-[#edede9] pb-32 text-slate-950 md:pb-20">
+    <header className="bg-[#245b87] px-5 py-5 text-white md:py-8">
+      <div className="mx-auto max-w-3xl">
+        <Link to="/civic" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-sky-50"><ArrowLeft className="h-4 w-4" />Agenda</Link>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[.16em] text-sky-100">Issue hub</p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight md:text-5xl">{data.summary.title}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-50 md:text-base">{data.summary.summary || 'Reviewed public evidence, legislation, solutions, and ways to participate.'}</p>
+      </div>
+    </header>
+
+    <div className="mx-auto max-w-3xl px-3 py-3 sm:px-6 md:py-7">
+      <section aria-labelledby="issue-snapshot" className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">Reviewed snapshot</p><h2 id="issue-snapshot" className="mt-1 font-black">{leadSeries?.title || 'Official evidence'}</h2></div><span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[.65rem] font-black uppercase tracking-wide text-emerald-800">Sourced data</span></div>
+        <div className="mt-3"><Sparkline series={leadSeries} /></div>
+        {leadSeries ? <p className="mt-2 text-xs text-slate-500">{leadSeries.observations.length} reviewed observations · {leadSeries.source.publisher}</p> : <p className="mt-2 text-xs text-slate-500">No reviewed observations are connected yet.</p>}
+      </section>
+
+      <section aria-label="Issue coverage" className="mt-2 grid grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white py-3 text-center">
+        <div><p className="text-lg font-black text-[#245b87]">{data.evidence.length}</p><p className="text-[.7rem] text-slate-500">evidence series</p></div>
+        <div><p className="text-lg font-black text-[#245b87]">{data.bills.length}</p><p className="text-[.7rem] text-slate-500">reviewed bills</p></div>
+        <div><p className="text-lg font-black text-[#245b87]">{data.videos.length}</p><p className="text-[.7rem] text-slate-500">reviewed videos</p></div>
+      </section>
+
+      <div className="mt-2"><Link to={`/issues/${slug}/solutions`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><Lightbulb className="h-5 w-5" />Explore and propose solutions</Link></div>
+
+      <nav aria-label="Explore this issue" className="mt-3 space-y-2">
+        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videos.length} reviewed ${data.videos.length === 1 ? 'video' : 'videos'} with civic context` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
+        <HubRow icon={BarChart3} label="Official data" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
+        <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
+        <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
+        <HubRow icon={Landmark} label="Legislation" detail={`${data.bills.length} reviewed ${data.bills.length === 1 ? 'bill' : 'bills'} to follow`} to={`/issues/${slug}#legislation`} />
+        <HubRow icon={Flag} label="Elections" detail="Make a private voting plan" to={`/elections?issue=${encodeURIComponent(slug)}`} />
+        <HubRow icon={MessageCircle} label="Discuss" detail="Join the evidence-linked conversation" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
+      </nav>
+
+      <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}`} className="mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-4 font-black text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-200"><Scale className="h-5 w-5" />Take action on this issue</Link>
+
+      <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+        <summary className="cursor-pointer font-black text-[#245b87]">All issue links</summary>
+        <div className="mt-4 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.bills.length} /></div>
+      </details>
 
       <section id="watch" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Play className="text-accent" /><h2 className="font-display text-3xl">Watch</h2></div>
+        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 className="text-2xl font-black">Reviewed videos</h2></div>
         {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
           : data.videos.length === 0 ? <p className="mt-5 text-text-2">No reviewed videos are connected to this issue yet.</p>
             : <div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.map((video) => <Link key={video.video_id} className="rounded-card border border-border bg-surface p-5 transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
@@ -59,7 +114,7 @@ export default function IssueDetailPage() {
       </section>
 
       <section id="evidence" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><TrendingUp className="text-accent" /><h2 className="font-display text-3xl">What the evidence shows</h2></div>
+        <div className="flex items-center gap-3"><TrendingUp className="text-[#245b87]" /><h2 className="text-2xl font-black">What the evidence shows</h2></div>
         {!data.availability.evidence && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Evidence is temporarily unavailable. Other issue connections remain accessible.</p>}
         {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No reviewed evidence series are connected yet.</p>}
         <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -76,7 +131,7 @@ export default function IssueDetailPage() {
       </section>
 
       <section id="legislation" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Landmark className="text-accent" /><h2 className="font-display text-3xl">Legislation to follow</h2></div>
+        <div className="flex items-center gap-3"><Landmark className="text-[#245b87]" /><h2 className="text-2xl font-black">Legislation to follow</h2></div>
         {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
         {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No reviewed bills are connected yet.</p>}
         <div className="mt-6 space-y-4">
