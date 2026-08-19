@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronUp, MessageCircle, Send, X } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronUp, MessageCircle, Send, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -117,6 +117,10 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
         <div><h2 className="text-xl font-bold">Comments <span className="text-slate-400">{items.reduce((sum, item) => sum + 1 + item.reply_count, 0)}</span></h2><p className="mt-1 line-clamp-1 text-xs text-slate-400">{videoCaption}</p></div>
         <button autoFocus type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-content-center rounded-full bg-white/10 outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-label="Close comments"><X className="h-5 w-5" /></button>
       </header>
+      <Link className="flex min-h-11 items-center justify-between border-b border-white/10 bg-white/[0.03] px-5 text-sm font-semibold text-amber-300 outline-none hover:bg-white/[0.06] hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-amber-300/70" to={`/discuss?video=${encodeURIComponent(videoId)}`}>
+        View this video's full conversation
+        <ArrowUpRight className="h-4 w-4" />
+      </Link>
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {loading && <p className="p-6 text-slate-400">Loading comments…</p>}
         {error && <p role="alert" className="m-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-200">{error}</p>}

@@ -123,6 +123,7 @@ describe('WatchVideoPage', () => {
     fireEvent.click(trigger)
     expect(await screen.findByRole('dialog', { name: /Comments for Senate Passes Housing Bill/ })).toBeTruthy()
     expect(screen.getByText('Evidence first.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: "View this video's full conversation" }).getAttribute('href')).toBe('/discuss?video=housing-rent-road-act-explained')
     expect(screen.getByRole('link', { name: 'Open full discussion' }).getAttribute('href')).toBe('/discuss/9')
     expect(screen.getByRole('link', { name: 'Sign in to comment' }).getAttribute('href')).toContain('comments%3D1')
     expect(container.querySelectorAll('iframe')).toHaveLength(0)

@@ -1,0 +1,95 @@
+{
+  "classification": "synthetic",
+  "dataset": "wtp-discussion-demo-v1",
+  "users": [
+    {"handle": "maya", "display_name": "Maya Chen (Demo)"},
+    {"handle": "jordan", "display_name": "Jordan Brooks (Demo)"},
+    {"handle": "luis", "display_name": "Luis Rivera (Demo)"},
+    {"handle": "aisha", "display_name": "Aisha Patel (Demo)"},
+    {"handle": "sam", "display_name": "Sam Greene (Demo)"},
+    {"handle": "renee", "display_name": "Renee Foster (Demo)"}
+  ],
+  "posts": [
+    {
+      "author": "maya",
+      "video_id": "housing-rent-road-act-explained",
+      "issue_slug": "housing-rent",
+      "body": "The bill talks about increasing housing supply, but which provisions could affect renters soonest—and which may take years? [Demo discussion]",
+      "likes": ["jordan", "aisha", "sam"],
+      "replies": [
+        {"author": "jordan", "body": "Permitting changes seem long-term. Financing and preservation programs may reach existing renters sooner."},
+        {"author": "aisha", "body": "I would like the timeline tied to the enacted sections instead of treating every provision as immediate."},
+        {"author": "sam", "body": "That distinction would make the Watch explanation much more useful."}
+      ]
+    },
+    {
+      "author": "luis",
+      "video_id": "housing-rent-road-act-becomes-law",
+      "issue_slug": "housing-rent",
+      "body": "Becoming law is only the start. What implementation milestones should the public watch over the next year? [Demo discussion]",
+      "likes": ["maya", "renee"],
+      "replies": [
+        {"author": "renee", "body": "Agency rulemaking dates and funding notices would be concrete milestones."},
+        {"author": "maya", "body": "A timeline connected to official notices would help separate progress from announcements."}
+      ]
+    },
+    {
+      "author": "aisha",
+      "video_id": "housing-rent-road-act-speaker",
+      "issue_slug": "housing-rent",
+      "body": "The vote was bipartisan, but agreement on passage does not tell us whether the policy will lower costs. Which outcomes should WTP track? [Demo discussion]",
+      "likes": ["luis", "sam", "renee"],
+      "replies": [
+        {"author": "luis", "body": "New units, preservation of affordable units, and rent burden should be separate measures."},
+        {"author": "sam", "body": "And the measurements need geography and time windows so national averages do not hide local differences."}
+      ]
+    },
+    {
+      "author": "jordan",
+      "video_id": "housing-rent-road-act-explained",
+      "issue_slug": "housing-rent",
+      "body": "The wage series is rising, but rent pressure can still worsen when costs grow faster locally. Can the evidence view compare rates of change? [Demo discussion]",
+      "likes": ["maya", "aisha"],
+      "replies": [
+        {"author": "maya", "body": "A normalized index could show direction without pretending the two series use the same units."}
+      ]
+    },
+    {
+      "author": "renee",
+      "issue_slug": "housing-rent",
+      "body": "I want to contact my representatives about housing supply and tenant stability. Could ACT generate talking points from the exact evidence I select? [Demo discussion]",
+      "likes": ["luis", "jordan"],
+      "replies": [
+        {"author": "jordan", "body": "That would be stronger if the message remained editable and WTP never sent it automatically."}
+      ]
+    },
+    {
+      "author": "sam",
+      "issue_slug": "housing-rent",
+      "body": "A useful solutions debate should show assumptions, affected level of government, expected timeline, and strongest counterargument. [Demo discussion]",
+      "likes": ["aisha", "maya", "renee"],
+      "replies": [
+        {"author": "aisha", "body": "I would also separate evidence supporting the mechanism from evidence that the proposal worked elsewhere."}
+      ]
+    },
+    {
+      "author": "maya",
+      "issue_slug": "housing-rent",
+      "body": "What evidence would change your mind about zoning reform near transit? I am more interested in falsifiable claims than slogans. [Demo discussion]",
+      "likes": ["sam"],
+      "replies": [
+        {"author": "sam", "body": "I would look for completion rates, displacement safeguards, and rent outcomes several years after adoption."}
+      ]
+    },
+    {
+      "author": "luis",
+      "video_id": "housing-rent-road-act-becomes-law",
+      "issue_slug": "housing-rent",
+      "body": "This video is a useful starting point, but the official enrolled bill should remain one tap away from every policy claim. [Demo discussion]",
+      "likes": ["maya", "jordan", "aisha", "renee"],
+      "replies": [
+        {"author": "renee", "body": "Agreed. The video explains the event; the official text is the authoritative record."}
+      ]
+    }
+  ]
+}
