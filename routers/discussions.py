@@ -37,6 +37,7 @@ BLOCK_LIMIT = 10
 POST_LIMIT = 5
 ENGAGEMENT_LIMIT = 30
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+DEMO_EMAIL_PREFIX = "demo.discussion."
 
 
 class ReplyCreate(BaseModel):
@@ -100,6 +101,7 @@ class DiscussionCreatedResponse(BaseModel):
 class DiscussionAuthor(BaseModel):
     id: Optional[int]
     display_name: str
+    is_demo: bool = False
 
 
 class DiscussionAttachmentItem(BaseModel):
@@ -221,9 +223,10 @@ def _engagement(row: DiscussionPost, db: Session, user: Optional[User]) -> dict:
 
 
 def _post(row: DiscussionPost, published_reply_count: int, db: Session, user: Optional[User]) -> dict:
+    is_demo = bool(row.author and row.author.email.startswith(DEMO_EMAIL_PREFIX))
     return {
         "id": row.id,
-        "author": {"id": row.author_id, "display_name": row.author_label},
+        "author": {"id": row.author_id, "display_name": row.author_label, "is_demo": is_demo},
         "body": row.body,
         "moderation_status": row.moderation_status,
         "reply_count": published_reply_count,
@@ -263,6 +266,7 @@ def _youtube_link(raw_url: str) -> tuple[str, str]:
 
 def _base_query(db: Session):
     return db.query(DiscussionPost).options(
+        joinedload(DiscussionPost.author),
         selectinload(DiscussionPost.attachments).joinedload(DiscussionAttachment.source),
         joinedload(DiscussionPost.video_link),
     ).filter(DiscussionPost.moderation_status == "published")
@@ -412,7 +416,11 @@ def get_discussion(
         "replies": [{
             "id": reply.id,
             "parent_reply_id": reply.parent_reply_id,
-            "author": {"id": reply.author_id, "display_name": reply.author.display_name or "Community member"},
+            "author": {
+                "id": reply.author_id,
+                "display_name": reply.author.display_name or "Community member",
+                "is_demo": reply.author.email.startswith(DEMO_EMAIL_PREFIX),
+            },
             "body": reply.body,
             "moderation_status": reply.moderation_status,
             "created_at": reply.created_at.isoformat(),
