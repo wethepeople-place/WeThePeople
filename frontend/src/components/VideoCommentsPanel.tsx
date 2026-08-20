@@ -52,7 +52,7 @@ function ReplyThread({ post, onReplyCreated }: { post: PublicDiscussionPost; onR
     <div className="flex gap-3">
       <div aria-hidden="true" className="grid h-9 w-9 shrink-0 place-content-center rounded-full bg-amber-300 font-bold text-slate-950">{post.author.display_name.slice(0, 1).toUpperCase()}</div>
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-white">{post.author.display_name}</p>
+        <p className="font-semibold text-white">{post.author.display_name}{post.author.is_demo && <span className="ml-2 rounded-full border border-amber-300/50 px-2 py-0.5 text-[10px] uppercase tracking-wide text-amber-200">Demo data</span>}</p>
         <p className="mt-1 whitespace-pre-wrap leading-6 text-slate-200">{post.body}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sm font-semibold text-slate-300 outline-none hover:text-white focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-expanded={expanded} onClick={() => void toggle()}>

@@ -199,9 +199,9 @@ export function reviseSolution(solutionId: number, data: { title: string; summar
 }
 
 export interface PublicDiscussionDetail {
-  id: number; body: string; author: { id: number | null; display_name: string }; created_at: string;
+  id: number; body: string; author: { id: number | null; display_name: string; is_demo?: boolean }; created_at: string;
   reply_count: number; reply_total: number;
-  replies: Array<{ id: number; parent_reply_id: number | null; body: string; author: { id: number | null; display_name: string }; created_at: string }>;
+  replies: Array<{ id: number; parent_reply_id: number | null; body: string; author: { id: number | null; display_name: string; is_demo?: boolean }; created_at: string }>;
   attachments: Array<{
     type: 'video' | 'issue' | 'bill' | 'politician' | 'solution' | 'source';
     reference_id: string;
@@ -218,7 +218,7 @@ export interface DiscussionVideoLink {
 export interface PublicDiscussionPost {
   id: number;
   body: string;
-  author: { id: number | null; display_name: string };
+  author: { id: number | null; display_name: string; is_demo?: boolean };
   moderation_status: 'published';
   reply_count: number;
   created_at: string;

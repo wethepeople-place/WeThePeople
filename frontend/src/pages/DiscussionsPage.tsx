@@ -23,6 +23,7 @@ export default function DiscussionsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
   const { isAuthenticated } = useAuth();
+  const hasDemoItems = items.some((item) => item.author.is_demo);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +89,7 @@ export default function DiscussionsPage() {
           {!loading && !error && items.length === 0 && <div className="mt-6 rounded-2xl border border-dashed border-border bg-surface p-8 text-center"><h2 className="text-xl font-semibold">No published discussions yet</h2><p className="mt-2 text-text-2">{videoId ? 'No reviewed conversation is connected to this video yet. Nothing is created or published automatically.' : 'Reviewed, source-linked conversations will appear here in newest-first order.'}</p><Link className="mt-5 inline-block font-semibold text-accent-text underline" to={videoId ? `/watch/${videoId}` : '/watch'}>{videoId ? 'Return to this video' : 'Explore Watch'}</Link></div>}
 
           {!loading && !error && items.length > 0 && <div className="mt-6 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Newest first</p><h2 className="mt-1 text-2xl font-semibold">{videoId ? 'Video conversation' : issue ? 'Issue conversation' : 'Latest discussions'}</h2></div><p className="shrink-0 text-sm text-text-3">{total} {total === 1 ? 'thread' : 'threads'}</p></div>}
+          {!loading && !error && hasDemoItems && <aside role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-300/10 p-4 text-sm leading-6 text-text-2"><strong className="text-text-1">Visual demo:</strong> Latin placeholder posts, numbered test users, replies, and reactions are shown here to test the Watch ↔ Discuss journey. They are not real civic participation.</aside>}
           <section aria-label="Latest civic discussions" className="mt-4 space-y-4 sm:space-y-5">{items.map((item) => <DiscussionPostCard key={item.id} item={item} isAuthenticated={isAuthenticated} />)}</section>
           {items.length < total && <div className="mt-6 text-center"><button type="button" disabled={loadingMore} onClick={() => void loadMore()} className="min-h-11 rounded-full border border-border bg-surface px-6 font-bold text-text-1 disabled:opacity-60">{loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}</button></div>}
         </div>
