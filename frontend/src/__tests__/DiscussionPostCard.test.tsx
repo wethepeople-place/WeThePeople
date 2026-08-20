@@ -28,6 +28,12 @@ describe('DiscussionPostCard', () => {
     expect(screen.getByRole('link', { name: /Congress.gov source/ }).getAttribute('href')).toContain('congress.gov');
     expect(screen.getByRole('link', { name: '4 replies' }).getAttribute('href')).toBe('/discuss/42');
     expect(screen.getByRole('link', { name: 'Sign in to save privately' }).getAttribute('href')).toContain('next=%2Fdiscuss');
+    expect(screen.queryByText('Demo data')).toBeNull();
+  });
+
+  it('shows a demo badge only from the server-issued flag', () => {
+    render(<MemoryRouter><DiscussionPostCard item={{ ...item, author: { ...item.author, display_name: 'Ordinary name', is_demo: true } }} isAuthenticated={false} /></MemoryRouter>);
+    expect(screen.getByText('Demo data')).toBeTruthy();
   });
 
   it('updates reactions, private saves, and private reports honestly', async () => {

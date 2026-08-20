@@ -44,4 +44,19 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('link', { name: '1 reply' }).getAttribute('href')).toBe('/discuss/7');
     expect(screen.getByRole('link', { name: 'Sign in to like' }).textContent).toContain('2');
   });
+
+  it('labels server-identified synthetic records as a visual demo', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ total: 1, limit: 20, offset: 0, items: [{
+        id: 8, body: 'Lorem ipsum. [Demo discussion]',
+        author: { id: 9, display_name: 'Test User 01 (Demo)', is_demo: true },
+        moderation_status: 'published', reply_count: 2, created_at: '2026-08-18T18:00:00Z', updated_at: '2026-08-18T18:00:00Z',
+        attachments: [], reactions: { like: 1, insightful: 0, disagree: 0 }, viewer_reactions: [], viewer_bookmarked: false,
+      }] }),
+    } as Response);
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole('note').textContent).toContain('not real civic participation'));
+    expect(screen.getByText('Demo data')).toBeTruthy();
+  });
 });
