@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import type { BillResponse, ActionSearchResult } from '../api/types';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
 import FollowButton from '../components/FollowButton';
+import ForecastCard from '../components/ForecastCard';
 
 // ── Status token map (design system aligned) ──
 
@@ -426,6 +427,10 @@ export default function BillDetailPage() {
               </span>
             </React.Fragment>
           ))}
+        </div>
+
+        <div style={{ marginBottom: 32 }}>
+          <ForecastCard billId={bill.bill_id} />
         </div>
 
         {/* Progress Pipeline */}

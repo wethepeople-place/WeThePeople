@@ -1,11 +1,14 @@
-"""Privacy-safe, read-only election information endpoints."""
+"""Privacy-safe election information endpoints."""
 
+import hashlib
+from datetime import datetime, time, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from connectors.google_civic import CivicApiRateLimitError, list_elections, lookup_voter_info
+from services.forecast_tokens import sign_election_contest
 
 
 router = APIRouter(prefix="/elections", tags=["elections"])
@@ -45,15 +48,21 @@ def _location(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _contest(item: dict[str, Any]) -> dict[str, Any]:
+def _contest(item: dict[str, Any], election: dict[str, Any], source_url: str) -> dict[str, Any]:
     candidates = []
+    forecast_options = []
     for candidate in item.get("candidates") or []:
+        name = str(candidate.get("name") or "Candidate")
+        party = candidate.get("party") or None
+        key = hashlib.sha256(f"{name}|{party or ''}".casefold().encode()).hexdigest()[:20]
         candidates.append({
-            "name": candidate.get("name"),
-            "party": candidate.get("party") or None,
+            "name": name,
+            "party": party,
             "candidate_url": candidate.get("candidateUrl") or None,
+            "forecast_key": key,
         })
-    return {
+        forecast_options.append({"key": key, "label": name, "party": party})
+    result = {
         "type": item.get("type") or None,
         "office": item.get("office") or item.get("referendumTitle") or "Ballot question",
         "district": (item.get("district") or {}).get("name") or None,
@@ -61,6 +70,16 @@ def _contest(item: dict[str, Any]) -> dict[str, Any]:
         "referendum_url": item.get("referendumUrl") or None,
         "sources": [_source(source) for source in item.get("sources") or []],
     }
+    election_day = election.get("electionDay")
+    if forecast_options and election.get("id") and election_day:
+        closes_at = datetime.combine(datetime.fromisoformat(election_day).date(), time.min, tzinfo=timezone.utc)
+        result["forecast_token"] = sign_election_contest({
+            "election_id": str(election["id"]), "office": result["office"], "district": result["district"],
+            "options": forecast_options, "closes_at": closes_at.isoformat(), "source_url": source_url,
+        })
+    else:
+        result["forecast_token"] = None
+    return result
 
 
 def _authority(region: dict[str, Any]) -> dict[str, Any]:
@@ -113,6 +132,10 @@ def voter_information(body: ElectionLookupRequest, request: Request, response: R
             authorities.append(_authority(local))
 
     election = data.get("election") or {}
+    official_result_source = next(
+        (office.get("election_info_url") for office in authorities if office.get("election_info_url")),
+        "https://www.usa.gov/election-results",
+    )
     return {
         "election": {
             "id": str(election.get("id") or ""),
@@ -123,7 +146,7 @@ def voter_information(body: ElectionLookupRequest, request: Request, response: R
         "polling_locations": [_location(item) for item in data.get("pollingLocations") or []],
         "early_vote_sites": [_location(item) for item in data.get("earlyVoteSites") or []],
         "drop_off_locations": [_location(item) for item in data.get("dropOffLocations") or []],
-        "contests": [_contest(item) for item in data.get("contests") or []],
+        "contests": [_contest(item, election, official_result_source) for item in data.get("contests") or []],
         "election_authorities": authorities,
         "privacy": {
             "address_retained": False,
