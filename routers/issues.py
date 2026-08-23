@@ -1,8 +1,11 @@
 """Read-only, source-first issue endpoints."""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from jobs.load_agenda_priorities import AGENDA_FIXTURE_PATH, validate_fixture
 from models.database import Bill, SourceDocument, get_db
 from models.issue_models import EvidenceObservation, EvidenceSeries, Issue, IssueBill
 from models.response_schemas import (
@@ -18,10 +21,19 @@ router = APIRouter(prefix="/issues", tags=["issues"])
 
 @router.get("", response_model=IssueAgendaResponse)
 def list_issue_agenda(db: Session = Depends(get_db)):
-    """Return the honest initial Agenda without implying community popularity."""
-    issues = db.query(Issue).all()
+    """Return the reviewed public-priorities Agenda without implying WTP popularity."""
+    payload = json.loads(AGENDA_FIXTURE_PATH.read_text(encoding="utf-8"))
+    validate_fixture(payload)
+    methodology = payload["methodology"]
+    priority_items = payload["items"]
+    priorities = {item["slug"]: item for item in priority_items}
+    issues = db.query(Issue).filter(Issue.slug.in_(priorities)).all()
+    issue_by_slug = {issue.slug: issue for issue in issues}
     items = []
-    for issue in issues:
+    for priority in priority_items:
+        issue = issue_by_slug.get(priority["slug"])
+        if issue is None:
+            continue
         series = (
             db.query(EvidenceSeries)
             .options(selectinload(EvidenceSeries.observations))
@@ -42,6 +54,7 @@ def list_issue_agenda(db: Session = Depends(get_db)):
                 f"({latest.observation_date.isoformat()})"
             )
         items.append({
+            "rank": priority["rank"],
             "slug": issue.slug,
             "title": issue.title,
             "summary": issue.summary,
@@ -49,27 +62,29 @@ def list_issue_agenda(db: Session = Depends(get_db)):
             "evidence_series_count": len(series),
             "bill_count": db.query(IssueBill).filter(IssueBill.issue_slug == issue.slug).count(),
             "latest_evidence_date": latest.observation_date.isoformat() if latest else None,
-            "updated_at": issue.updated_at,
+            "priority_share": priority["priority_share"],
+            "priority_note": f"{priority['priority_share']}% named this as a 2026 government priority",
             "community_score": None,
         })
 
-    # This is coverage ordering, not a claim about public priorities. The API
-    # makes that distinction explicit so clients cannot relabel it silently.
-    items.sort(key=lambda item: (-item["evidence_series_count"], -item["bill_count"], item["title"]))
-    updated = max((item["updated_at"] for item in items if item["updated_at"]), default=None)
     return {
         "total": len(items),
         "methodology": {
-            "kind": "initial_evidence_catalog",
-            "label": "Initial agenda",
-            "description": "Ordered by published source coverage, not community popularity.",
+            "kind": "public_priorities_poll",
+            "label": methodology["label"],
+            "description": methodology["description"],
             "community_ranked": False,
-            "updated_at": updated.isoformat() if updated else None,
+            "sample_size": methodology["sample_size"],
+            "survey_start": methodology["survey_start"],
+            "survey_end": methodology["survey_end"],
+            "margin_of_error_points": methodology["margin_of_error_points"],
+            "source_url": methodology["source_url"],
+            "publisher": methodology["publisher"],
+            "question": methodology["question"],
+            "tie_break": methodology["tie_break"],
+            "updated_at": methodology["survey_end"],
         },
-        "items": [
-            {"rank": index, **{key: value for key, value in item.items() if key != "updated_at"}}
-            for index, item in enumerate(items, start=1)
-        ],
+        "items": items,
     }
 
 

@@ -111,6 +111,7 @@ data/*
 !data/discuss_housing_rent.json
 !data/discussion_demo_synthetic.json
 !data/solution_housing_rent.json
+!data/agenda_2026_apnorc.json
 !frontend/src/data/
 !mobile/src/data/
 audit/

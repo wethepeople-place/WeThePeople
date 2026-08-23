@@ -449,10 +449,18 @@ class IssueSummaryResponse(BaseModel):
     bill_count: int
 
 class IssueAgendaMethodology(BaseModel):
-    kind: Literal["initial_evidence_catalog"]
+    kind: Literal["public_priorities_poll"]
     label: str
     description: str
     community_ranked: Literal[False]
+    sample_size: int
+    survey_start: str
+    survey_end: str
+    margin_of_error_points: float
+    source_url: str
+    publisher: str
+    question: str
+    tie_break: str
     updated_at: Optional[str] = None
 
 class IssueAgendaItem(BaseModel):
@@ -464,6 +472,8 @@ class IssueAgendaItem(BaseModel):
     evidence_series_count: int
     bill_count: int
     latest_evidence_date: Optional[str] = None
+    priority_share: int
+    priority_note: str
     community_score: Literal[None] = None
 
 class IssueAgendaResponse(BaseModel):
