@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import IssueDetailPage from '../pages/IssueDetailPage';
@@ -44,5 +44,21 @@ describe('IssueDetailPage journey actions', () => {
     render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
     expect(screen.getByText('Evidence is temporarily unavailable. Other issue connections remain accessible.')).toBeTruthy();
+  });
+
+  it('scrolls to legislation when its same-page hub link is selected', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', bills: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ videos: [] }) }));
+
+    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
+    const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
+    fireEvent.click(within(issueNavigation).getByRole('link', { name: /Legislation/ }));
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' }));
   });
 });

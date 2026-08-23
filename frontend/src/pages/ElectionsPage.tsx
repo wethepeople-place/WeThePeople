@@ -24,6 +24,11 @@ export default function ElectionsPage() {
 
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (/^\s*\d{5}(?:-\d{4})?\s*$/.test(address)) {
+      setResult(null);
+      setNotice('Enter your full registered residential address, including street, city, state, and ZIP. A ZIP code alone cannot identify your ballot.');
+      return;
+    }
     setLoading(true); setNotice(''); setResult(null);
     try {
       setResult(await lookupElectionInformation(address));
@@ -45,12 +50,13 @@ export default function ElectionsPage() {
     </header>
     <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Private address lookup</h2><p className="mt-1 text-sm leading-6 text-slate-600">Your address is sent to the civic-information provider to identify the correct ballot. WTP does not retain it, your registration status, or your choices.</p></div></div>
+        <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Private full-address lookup</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the complete registered residential address where you vote. A ZIP code alone cannot identify the correct ballot. Your address is sent to the civic-information provider for this lookup only; WTP does not retain it, your registration status, or your choices.</p></div></div>
         <form onSubmit={lookup} className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <label className="sr-only" htmlFor="election-address">Registered residential address</label>
-          <input id="election-address" required minLength={5} maxLength={200} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Registered residential address" className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" />
+          <label className="sr-only" htmlFor="election-address">Full registered residential address</label>
+          <input id="election-address" required minLength={5} maxLength={200} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street address, city, state, ZIP" aria-describedby="election-address-help" className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" />
           <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-5 font-bold disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button>
         </form>
+        <p id="election-address-help" className="mt-2 text-xs text-slate-500">Example format: 123 Main Street, Baltimore, MD 21201</p>
         {notice && <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">{notice} Verify with your state or local election office.</p>}
       </section>
 
