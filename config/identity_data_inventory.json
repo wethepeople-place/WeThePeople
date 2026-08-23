@@ -7,6 +7,8 @@
     "api_key_records": {"identity_columns": ["user_id"], "classification": "secret_credential", "erasure": "revoke_and_anonymize"},
     "audit_logs": {"identity_columns": ["user_id"], "classification": "private_security", "erasure": "strip_pii_retain_event"},
     "act_receipts": {"identity_columns": ["user_id"], "classification": "private_action_history", "erasure": "delete"},
+    "forecast_markets": {"identity_columns": ["resolved_by_user_id"], "classification": "public_civic_record", "erasure": "retain_with_anonymous_resolver"},
+    "forecast_predictions": {"identity_columns": ["user_id"], "classification": "private_ballot", "erasure": "delete"},
     "action_circles": {"identity_columns": ["organizer_id"], "classification": "public_content", "erasure": "retain_with_anonymous_organizer"},
     "action_circle_memberships": {"identity_columns": ["user_id"], "classification": "private_social_graph", "erasure": "delete"},
     "email_verification_tokens": {"identity_columns": ["user_id"], "classification": "secret_credential", "erasure": "delete"},

@@ -108,6 +108,37 @@ export function castVote(targetType: string, targetId: number, value: 1 | -1) {
   return apiFetch<{ action: string; value?: number }>('/civic/vote', { method: 'POST', body: { target_type: targetType, target_id: targetId, value } });
 }
 
+// ── Civic forecasts (non-monetary) ──
+
+export interface ForecastMarket {
+  id: number;
+  market_type: 'bill' | 'election';
+  subject_id: string;
+  question: string;
+  options: Array<{ key: string; label: string; party?: string | null; responses: number | null; share: number | null }>;
+  status: 'open' | 'locked' | 'resolved' | 'void';
+  closes_at: string;
+  source_url: string;
+  response_count: number | null;
+  privacy_threshold: number;
+  current_user_choice: string | null;
+  resolved_option: string | null;
+  resolution_source_url: string | null;
+  rules: string;
+}
+
+export function fetchBillForecast(billId: string) {
+  return apiFetch<ForecastMarket>(`/forecasts/bills/${encodeURIComponent(billId)}`);
+}
+
+export function setBillForecast(billId: string, optionKey: string) {
+  return apiFetch<ForecastMarket>(`/forecasts/bills/${encodeURIComponent(billId)}`, { method: 'PUT', body: { option_key: optionKey } });
+}
+
+export function setElectionForecast(contestToken: string, optionKey: string) {
+  return apiFetch<ForecastMarket>('/forecasts/elections', { method: 'PUT', body: { contest_token: contestToken, option_key: optionKey } });
+}
+
 export interface CitizenSolution {
   id: number;
   creator_user_id: number;
@@ -305,7 +336,8 @@ export type ElectionLookup = {
   drop_off_locations: ElectionLocation[];
   contests: Array<{
     type: string | null; office: string; district: string | null;
-    candidates: Array<{ name: string; party: string | null; candidate_url: string | null }>;
+    candidates: Array<{ name: string; party: string | null; candidate_url: string | null; forecast_key: string }>;
+    forecast_token: string | null;
     referendum_url: string | null;
     sources: Array<{ name: string; official: boolean }>;
   }>;
