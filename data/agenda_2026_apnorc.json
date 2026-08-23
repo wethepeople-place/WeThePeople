@@ -1,0 +1,39 @@
+{
+  "methodology": {
+    "kind": "public_priorities_poll",
+    "label": "2026 public priorities",
+    "description": "Ranked by the share of U.S. adults who named each issue as a government priority for 2026.",
+    "question": "Thinking about the problems facing the United States and the world today, which problems would you like the government to be working on in the year 2026? Please list up to five problems.",
+    "survey_start": "2025-12-04",
+    "survey_end": "2025-12-08",
+    "sample_size": 1146,
+    "margin_of_error_points": 4.0,
+    "source_url": "https://apnorc.org/projects/2026-the-publics-priorities-and-expectations/",
+    "topline_url": "https://apnorc.org/wp-content/uploads/2026/01/AP-NORC-December-2025-Topline-with-MIP-FINAL-4.pdf",
+    "publisher": "AP-NORC Center for Public Affairs Research",
+    "retrieved_at": "2026-08-23T00:00:00Z",
+    "tie_break": "Ties follow the order of named substantive categories in the published topline; residual 'other' categories and person-specific codes are excluded."
+  },
+  "items": [
+    {"rank": 1, "slug": "immigration", "title": "Immigration", "priority_share": 44, "summary": "Immigration, border policy, DACA, family separation, and ICE."},
+    {"rank": 2, "slug": "economy", "title": "The Economy", "priority_share": 22, "summary": "General concerns about economic conditions and economic policy."},
+    {"rank": 3, "slug": "health-care-reform", "title": "Health Care Reform", "priority_share": 21, "summary": "Reforming health coverage, access, and the health care system."},
+    {"rank": 4, "slug": "cost-of-living", "title": "Cost of Living", "priority_share": 18, "summary": "Household affordability and Americans' personal financial situation."},
+    {"rank": 5, "slug": "inflation", "title": "Inflation", "priority_share": 17, "summary": "Rising prices and their effect on household purchasing power."},
+    {"rank": 6, "slug": "housing-rent", "title": "Housing & Rent", "priority_share": 17, "summary": "Housing costs, rents, home prices, mortgages, and foreclosure."},
+    {"rank": 7, "slug": "education-student-debt", "title": "Education & Student Debt", "priority_share": 16, "summary": "Education policy, school quality, college affordability, and student debt."},
+    {"rank": 8, "slug": "jobs-unemployment", "title": "Jobs & Unemployment", "priority_share": 14, "summary": "Job availability, unemployment, and labor-market opportunity."},
+    {"rank": 9, "slug": "poverty-hunger-homelessness", "title": "Poverty, Hunger & Homelessness", "priority_share": 14, "summary": "Material hardship, food access, poverty, and homelessness."},
+    {"rank": 10, "slug": "taxes", "title": "Taxes & Tax Reform", "priority_share": 13, "summary": "Federal tax policy, tax burdens, and tax-system reform."},
+    {"rank": 11, "slug": "climate-environment", "title": "Environment & Climate", "priority_share": 12, "summary": "Climate change, environmental protection, and environmental policy."},
+    {"rank": 12, "slug": "crime-violence", "title": "Crime & Violence", "priority_share": 12, "summary": "Crime, violence, hate crime, and public safety."},
+    {"rank": 13, "slug": "health-care-costs", "title": "Health Care Costs", "priority_share": 12, "summary": "The affordability of care, insurance, medicine, and medical bills."},
+    {"rank": 14, "slug": "food-costs-security", "title": "Food Costs & Food Security", "priority_share": 12, "summary": "Food prices, grocery affordability, and reliable access to food."},
+    {"rank": 15, "slug": "federal-budget-debt", "title": "Federal Budget & Debt", "priority_share": 8, "summary": "The federal deficit, debt, government spending, and the budget."},
+    {"rank": 16, "slug": "welfare-entitlements", "title": "Welfare & Entitlement Reform", "priority_share": 8, "summary": "Public-benefit programs, eligibility, and entitlement reform."},
+    {"rank": 17, "slug": "wages", "title": "Wages & Minimum Wage", "priority_share": 8, "summary": "Pay levels, wage growth, and minimum-wage policy."},
+    {"rank": 18, "slug": "government-corruption", "title": "Government Corruption & Fraud", "priority_share": 8, "summary": "Public corruption, fraud, accountability, and government ethics."},
+    {"rank": 19, "slug": "social-security", "title": "Social Security", "priority_share": 7, "summary": "The stability, financing, and future of Social Security."},
+    {"rank": 20, "slug": "trade-tariffs", "title": "Trade & Tariffs", "priority_share": 7, "summary": "Trade agreements, tariffs, and U.S. trade policy."}
+  ]
+}

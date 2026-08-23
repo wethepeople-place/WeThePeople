@@ -8,13 +8,16 @@ export type IssueSummary = {
 export type AgendaIssue = {
   rank: number; slug: string; title: string; summary: string | null;
   evidence_note: string | null; evidence_series_count: number; bill_count: number;
-  latest_evidence_date: string | null; community_score: null;
+  latest_evidence_date: string | null; priority_share: number; priority_note: string;
+  community_score: null;
 };
 export type IssueAgenda = {
   total: number;
   methodology: {
-    kind: 'initial_evidence_catalog'; label: string; description: string;
-    community_ranked: false; updated_at: string | null;
+    kind: 'public_priorities_poll'; label: string; description: string;
+    community_ranked: false; sample_size: number; survey_start: string; survey_end: string;
+    margin_of_error_points: number; source_url: string; publisher: string;
+    question: string; tie_break: string; updated_at: string | null;
   };
   items: AgendaIssue[];
 };

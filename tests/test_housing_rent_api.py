@@ -6,7 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from jobs.load_agenda_priorities import AGENDA_FIXTURE_PATH, load_fixture as load_agenda
 from jobs.load_housing_rent_slice import load_fixture
+import json
 from models.database import Base, get_db
 from routers.issues import router
 from tests.test_housing_rent_loader import _fixture
@@ -35,17 +37,11 @@ def test_issue_api_empty_state_and_missing_issue():
 
     agenda = client.get("/issues")
     assert agenda.status_code == 200
-    assert agenda.json() == {
-        "total": 0,
-        "methodology": {
-            "kind": "initial_evidence_catalog",
-            "label": "Initial agenda",
-            "description": "Ordered by published source coverage, not community popularity.",
-            "community_ranked": False,
-            "updated_at": None,
-        },
-        "items": [],
-    }
+    assert agenda.json()["total"] == 0
+    assert agenda.json()["items"] == []
+    assert agenda.json()["methodology"]["kind"] == "public_priorities_poll"
+    assert agenda.json()["methodology"]["sample_size"] == 1146
+    assert agenda.json()["methodology"]["community_ranked"] is False
 
     with Session() as session:
         from models.issue_models import Issue
@@ -117,18 +113,26 @@ def test_issue_bill_api_accepts_enacted_phase():
     assert "enacted" in {item["phase"] for item in response.json()["bills"]}
 
 
-def test_issue_agenda_uses_reviewed_coverage_without_popularity_claims():
+def test_issue_agenda_uses_reviewed_poll_ranks_without_wtp_popularity_claims():
     client, Session = _client()
     with Session() as session:
         load_fixture(_fixture(), session)
+        load_agenda(json.loads(AGENDA_FIXTURE_PATH.read_text(encoding="utf-8")), session)
 
     response = client.get("/issues")
     assert response.status_code == 200
     payload = response.json()
     assert payload["methodology"]["community_ranked"] is False
+    assert payload["methodology"]["sample_size"] == 1146
+    assert payload["methodology"]["source_url"].startswith("https://apnorc.org/")
+    assert payload["total"] == 20
     assert payload["items"][0]["rank"] == 1
-    assert payload["items"][0]["slug"] == "housing-rent"
-    assert payload["items"][0]["evidence_series_count"] == 3
-    assert payload["items"][0]["bill_count"] == 7
-    assert payload["items"][0]["community_score"] is None
-    assert payload["items"][0]["evidence_note"]
+    assert payload["items"][0]["slug"] == "immigration"
+    assert payload["items"][0]["priority_share"] == 44
+    housing = next(item for item in payload["items"] if item["slug"] == "housing-rent")
+    assert housing["rank"] == 6
+    assert housing["priority_share"] == 17
+    assert housing["evidence_series_count"] == 3
+    assert housing["bill_count"] == 7
+    assert housing["community_score"] is None
+    assert housing["evidence_note"]
