@@ -19,12 +19,24 @@ it('performs a private election lookup and renders the official civic answer', a
     },
   })));
   render(<MemoryRouter><ElectionsPage /></MemoryRouter>);
-  const addressInput = screen.getByLabelText('Registered residential address') as HTMLInputElement;
-  fireEvent.change(addressInput, { target: { value: '123 Private Road' } });
+  const addressInput = screen.getByLabelText('Full registered residential address') as HTMLInputElement;
+  fireEvent.change(addressInput, { target: { value: '123 Private Road, Town, MD 20000' } });
   fireEvent.click(screen.getByRole('button', { name: 'Find my election' }));
   expect(await screen.findByRole('heading', { name: 'General Election' })).toBeTruthy();
   expect(screen.getByText('Community Center')).toBeTruthy();
   expect(screen.getByText('Alex Example')).toBeTruthy();
   expect(addressInput.value).toBe('');
   await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/elections/lookup'), expect.objectContaining({ method: 'POST' })));
+});
+
+it('explains that a ZIP code alone cannot identify a ballot without sending it', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ items: [] }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<MemoryRouter><ElectionsPage /></MemoryRouter>);
+  const addressInput = screen.getByLabelText('Full registered residential address') as HTMLInputElement;
+  fireEvent.change(addressInput, { target: { value: '21136' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Find my election' }));
+  expect((await screen.findByRole('alert')).textContent).toContain('A ZIP code alone cannot identify your ballot.');
+  expect(addressInput.value).toBe('21136');
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });

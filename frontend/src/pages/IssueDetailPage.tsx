@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
 import IssueActionStrip from '../components/IssueActionStrip';
 
@@ -39,6 +39,7 @@ function Source({ source }: { source: { url: string; publisher: string; retrieve
 
 export default function IssueDetailPage() {
   const { slug = 'housing-rent' } = useParams();
+  const { hash } = useLocation();
   const [data, setData] = useState<State | null>(null);
   const [error, setError] = useState('');
 
@@ -49,10 +50,10 @@ export default function IssueDetailPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (!data || !window.location.hash) return;
-    const target = document.getElementById(window.location.hash.slice(1));
+    if (!data || !hash) return;
+    const target = document.getElementById(hash.slice(1));
     target?.scrollIntoView({ block: 'start' });
-  }, [data]);
+  }, [data, hash]);
 
   if (error) return <main className="min-h-screen bg-bg px-6 py-16 text-text-1"><div className="mx-auto max-w-3xl rounded-card border border-border bg-surface p-8"><h1 className="font-display text-3xl">Issue hub</h1><p className="mt-3 text-text-2">{error}. Please try again.</p></div></main>;
   if (!data) return <main className="min-h-screen bg-bg p-16 text-center text-text-2">Loading sourced issue data…</main>;
