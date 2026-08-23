@@ -8,6 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import JWTError
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models.auth_models import User
@@ -27,6 +28,10 @@ class PredictionWrite(BaseModel):
 
 
 class ElectionPredictionWrite(PredictionWrite):
+    contest_token: str = Field(min_length=20, max_length=5000)
+
+
+class ElectionMarketLookup(BaseModel):
     contest_token: str = Field(min_length=20, max_length=5000)
 
 
@@ -93,17 +98,37 @@ def _bill_market(bill: Bill, db: Session) -> ForecastMarket:
     if market:
         return market
     closes_at = datetime(bill.congress + 1908, 1, 3, tzinfo=timezone.utc)
+    type_paths = {
+        "hr": "house-bill", "s": "senate-bill", "hjres": "house-joint-resolution",
+        "sjres": "senate-joint-resolution", "hconres": "house-concurrent-resolution",
+        "sconres": "senate-concurrent-resolution", "hres": "house-resolution", "sres": "senate-resolution",
+    }
     market = ForecastMarket(
         market_type="bill", subject_id=bill.bill_id,
         question=f"Will {bill.bill_type.upper()}. {bill.bill_number} become law before the end of the {bill.congress}th Congress?",
         options_json=[{"key": "yes", "label": "Yes"}, {"key": "no", "label": "No"}],
         closes_at=closes_at,
-        source_url=f"https://www.congress.gov/bill/{bill.congress}th-congress/{'house' if bill.bill_type.startswith('h') else 'senate'}-bill/{bill.bill_number}",
+        source_url=f"https://www.congress.gov/bill/{bill.congress}th-congress/{type_paths.get(bill.bill_type, 'house-bill')}/{bill.bill_number}",
     )
     db.add(market)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        market = db.query(ForecastMarket).filter_by(market_type="bill", subject_id=bill.bill_id).one()
     db.refresh(market)
     return market
+
+
+def _election_market_identity(contest_token: str) -> tuple[dict, str]:
+    try:
+        contest = verify_election_contest(contest_token)
+    except JWTError as exc:
+        raise HTTPException(status_code=422, detail="Election forecast reference expired; refresh your official ballot") from exc
+    options = contest.get("options") or []
+    canonical = json.dumps({"election_id": contest.get("election_id"), "office": contest.get("office"),
+                            "district": contest.get("district"), "options": options}, sort_keys=True, separators=(",", ":"))
+    return contest, f"{contest.get('election_id')}:{hashlib.sha256(canonical.encode()).hexdigest()[:24]}"
 
 
 @router.get("/bills/{bill_id}")
@@ -126,14 +151,8 @@ def predict_bill(bill_id: str, body: PredictionWrite, user: User = Depends(get_c
 
 @router.put("/elections")
 def predict_election(body: ElectionPredictionWrite, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        contest = verify_election_contest(body.contest_token)
-    except JWTError as exc:
-        raise HTTPException(status_code=422, detail="Election forecast reference expired; refresh your official ballot") from exc
+    contest, subject_id = _election_market_identity(body.contest_token)
     options = contest.get("options") or []
-    canonical = json.dumps({"election_id": contest.get("election_id"), "office": contest.get("office"),
-                            "district": contest.get("district"), "options": options}, sort_keys=True, separators=(",", ":"))
-    subject_id = f"{contest.get('election_id')}:{hashlib.sha256(canonical.encode()).hexdigest()[:24]}"
     market = db.query(ForecastMarket).filter_by(market_type="election", subject_id=subject_id).first()
     if market is None:
         market = ForecastMarket(
@@ -143,9 +162,22 @@ def predict_election(body: ElectionPredictionWrite, user: User = Depends(get_cur
             source_url=str(contest["source_url"]),
         )
         db.add(market)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            market = db.query(ForecastMarket).filter_by(market_type="election", subject_id=subject_id).one()
         db.refresh(market)
     _save_prediction(market, body.option_key, user, db)
+    return _market_payload(market, db, user)
+
+
+@router.post("/elections/market")
+def election_forecast(body: ElectionMarketLookup, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+    _, subject_id = _election_market_identity(body.contest_token)
+    market = db.query(ForecastMarket).filter_by(market_type="election", subject_id=subject_id).first()
+    if market is None:
+        raise HTTPException(status_code=404, detail="No forecast has been opened for this contest")
     return _market_payload(market, db, user)
 
 
@@ -155,6 +187,8 @@ def resolve_market(market_id: int, body: ResolutionWrite, request: Request,
     market = db.get(ForecastMarket, market_id)
     if market is None:
         raise HTTPException(status_code=404, detail="Forecast not found")
+    if market.status in {"resolved", "void"}:
+        raise HTTPException(status_code=409, detail="A final forecast resolution cannot be replaced")
     options = {str(option["key"]) for option in market.options_json}
     if body.status == "resolved" and body.resolved_option not in options:
         raise HTTPException(status_code=422, detail="Resolution must match a published option")

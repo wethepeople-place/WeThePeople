@@ -31,6 +31,7 @@ def _environment():
 def _seed(Session):
     with Session() as session:
         users = [User(email=f"u{i}@example.test", hashed_password="test", display_name=f"User {i}") for i in range(6)]
+        users[-1].role = "admin"
         bill = Bill(bill_id="hr42-119", congress=119, bill_type="hr", bill_number=42, title="Test Act")
         session.add_all([*users, bill]); session.commit()
         return [user.id for user in users]
@@ -86,3 +87,23 @@ def test_election_forecast_accepts_only_signed_official_contest():
     assert response.status_code == 200
     assert response.json()["market_type"] == "election"
     assert response.json()["source_url"] == "https://elections.example.gov/results"
+    restored = client.post("/forecasts/elections/market", json={"contest_token": token})
+    assert restored.status_code == 200
+    assert restored.json()["current_user_choice"] == "candidate-a"
+
+
+def test_final_resolution_is_official_sourced_and_immutable():
+    app, client, Session = _environment(); user_ids = _seed(Session)
+    _as_user(app, Session, user_ids[0])
+    market_id = client.put("/forecasts/bills/hr42-119", json={"option_key": "yes"}).json()["id"]
+    _as_user(app, Session, user_ids[-1])
+    resolution = {
+        "status": "resolved", "resolved_option": "yes",
+        "source_url": "https://www.congress.gov/bill/119th-congress/house-bill/42",
+        "reason": "Congress.gov records that the measure became law.",
+    }
+    first = client.patch(f"/forecasts/admin/{market_id}", json=resolution)
+    assert first.status_code == 200
+    assert first.json()["resolved_option"] == "yes"
+    replacement = {**resolution, "status": "void", "resolved_option": None}
+    assert client.patch(f"/forecasts/admin/{market_id}", json=replacement).status_code == 409

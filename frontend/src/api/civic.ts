@@ -139,6 +139,10 @@ export function setElectionForecast(contestToken: string, optionKey: string) {
   return apiFetch<ForecastMarket>('/forecasts/elections', { method: 'PUT', body: { contest_token: contestToken, option_key: optionKey } });
 }
 
+export function fetchElectionForecast(contestToken: string) {
+  return apiFetch<ForecastMarket>('/forecasts/elections/market', { method: 'POST', body: { contest_token: contestToken } });
+}
+
 export interface CitizenSolution {
   id: number;
   creator_user_id: number;

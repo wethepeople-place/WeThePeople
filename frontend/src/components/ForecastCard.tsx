@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart3, CheckCircle2 } from 'lucide-react';
-import { fetchBillForecast, setBillForecast, setElectionForecast, type ForecastMarket } from '../api/civic';
+import { fetchBillForecast, fetchElectionForecast, setBillForecast, setElectionForecast, type ForecastMarket } from '../api/civic';
 
 type Option = { key: string; label: string; party?: string | null };
 
@@ -19,9 +19,9 @@ export default function ForecastCard({ billId, contestToken, question, options =
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!billId) return;
-    fetchBillForecast(billId).then(setMarket).catch(() => undefined);
-  }, [billId]);
+    if (billId) fetchBillForecast(billId).then(setMarket).catch(() => undefined);
+    else if (contestToken) fetchElectionForecast(contestToken).then(setMarket).catch(() => undefined);
+  }, [billId, contestToken]);
 
   const initialOptions = options.length ? options : (billId ? [{ key: 'yes', label: 'Yes' }, { key: 'no', label: 'No' }] : []);
   const visibleOptions = market?.options || initialOptions.map((option) => ({ ...option, responses: null, share: null }));
