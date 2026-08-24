@@ -30,6 +30,7 @@ function withSocialMetadata(html, { canonicalUrl, title, description }) {
 }
 
 await writeRoute(['watch'], indexHtml)
+await writeRoute(['saved'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
 await writeRoute(['act'], indexHtml)
 await writeRoute(['act', 'moderation'], indexHtml)
