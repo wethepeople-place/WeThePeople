@@ -1,7 +1,8 @@
-"""Load or remove fictional discussion content in a disposable local database.
+"""Load or remove clearly labeled fictional discussion content.
 
-This loader is deliberately separate from the reviewed discussion fixture. Its
-records are synthetic visual-test data and must never be loaded in production.
+Local loading is the default. A production load requires a separate explicit
+command-line confirmation plus exact environment gates so it cannot happen by
+changing a single setting. Every record remains bounded and reversible.
 """
 
 import argparse
@@ -28,6 +29,8 @@ from utils.db_compat import DATABASE_URL
 DEMO_EMAIL_PREFIX = "demo.discussion."
 DEMO_EMAIL_SUFFIX = "@example.invalid"
 DEMO_LABEL_SUFFIX = " (Demo)"
+APPROVED_DATASET = "wtp-discussion-demo-v2-latin"
+PRODUCTION_CONFIRMATION = "publish-bounded-latin-demo"
 ALLOWED_VIDEO_IDS = {
     "housing-rent-road-act-explained",
     "housing-rent-road-act-becomes-law",
@@ -53,8 +56,27 @@ def assert_local_demo_environment(env: dict[str, str] | None = None, database_ur
         raise DiscussionDemoError("SQLite filename must contain demo or synthetic")
 
 
+def assert_production_demo_environment(
+    confirmation: str,
+    env: dict[str, str] | None = None,
+    database_url: str | None = None,
+) -> None:
+    values = env or os.environ
+    url = database_url or DATABASE_URL
+    if values.get("WTP_DATA_CLASSIFICATION") != "synthetic":
+        raise DiscussionDemoError("WTP_DATA_CLASSIFICATION must be synthetic")
+    if values.get("WTP_TARGET_ENV") != "production":
+        raise DiscussionDemoError("WTP_TARGET_ENV must be production")
+    if values.get("WTP_ALLOW_PUBLIC_SYNTHETIC_DEMO") != APPROVED_DATASET:
+        raise DiscussionDemoError("Public synthetic demo dataset was not explicitly approved")
+    if confirmation != PRODUCTION_CONFIRMATION:
+        raise DiscussionDemoError("Exact production confirmation is required")
+    if not url.startswith("sqlite:///"):
+        raise DiscussionDemoError("The approved public demo loader requires SQLite")
+
+
 def validate_fixture(payload: dict[str, Any]) -> None:
-    if payload.get("classification") != "synthetic" or payload.get("dataset") != "wtp-discussion-demo-v1":
+    if payload.get("classification") != "synthetic" or payload.get("dataset") != APPROVED_DATASET:
         raise DiscussionDemoError("Fixture must declare the approved synthetic dataset")
     users = payload.get("users") or []
     posts = payload.get("posts") or []
@@ -178,8 +200,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("load", "clear"))
     parser.add_argument("fixture", nargs="?", type=Path, default=Path("data/discussion_demo_synthetic.json"))
+    parser.add_argument("--target", choices=("local", "production"), default="local")
+    parser.add_argument("--confirm-production-demo", default="")
     args = parser.parse_args()
-    assert_local_demo_environment()
+    if args.target == "production":
+        assert_production_demo_environment(args.confirm_production_demo)
+    else:
+        assert_local_demo_environment()
     with SessionLocal() as session:
         result = clear_fixture(session, classification="synthetic") if args.action == "clear" else load_fixture(
             json.loads(args.fixture.read_text(encoding="utf-8")), session, classification="synthetic"

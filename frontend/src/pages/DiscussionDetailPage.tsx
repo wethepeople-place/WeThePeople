@@ -22,6 +22,7 @@ export default function DiscussionDetailPage() {
 
   return <main className="min-h-screen bg-bg px-5 py-12 text-text-1"><div className="mx-auto max-w-3xl">
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Citizen discussion</p>
+    {item.author.is_demo && <aside role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-300/10 p-4 text-sm text-text-2"><strong className="text-text-1">Visual demo:</strong> This thread uses Latin placeholder text and numbered test users. It is not real civic participation.</aside>}
     <h1 className="mt-4 font-display text-4xl">{item.body}</h1>
     <p className="mt-3 text-sm text-text-3">{item.author.display_name}</p>
     {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`YouTube video shared by ${item.author.display_name}`} />}

@@ -93,6 +93,7 @@ export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
       <header className="flex items-start gap-3">
         <div aria-hidden="true" className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-accent/15 text-sm font-bold text-accent-text">{initials(item.author.display_name)}</div>
         <div className="min-w-0 flex-1"><p className="truncate font-semibold text-text-1">{item.author.display_name}</p><time className="text-xs text-text-3" dateTime={item.created_at}>{created}</time></div>
+        {item.author.is_demo && <span className="rounded-full border border-amber-500/50 bg-amber-300/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Demo data</span>}
         <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-text-3">Published</span>
       </header>
 
