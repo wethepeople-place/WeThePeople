@@ -7,11 +7,11 @@ API docs: https://developer.usajobs.gov/API-Reference
 Auth: Email + Authorization-Key header (free registration at developer.usajobs.gov)
 """
 
-import os
 import requests
 from typing import Optional, List, Dict, Any
 
 from utils.logging import get_logger
+from utils.secrets import get_secret
 
 logger = get_logger(__name__)
 
@@ -42,11 +42,11 @@ def search_jobs(
     Raises:
         ValueError: If USAJobs API key is not configured
     """
-    email = os.environ.get("USAJOBS_EMAIL", "wethepeopleforus@gmail.com")
-    api_key = os.environ.get("USAJOBS_API_KEY", "")
+    email = get_secret("USAJOBS_EMAIL")
+    api_key = get_secret("USAJOBS_API_KEY")
 
-    if not api_key:
-        raise ValueError("USAJobs API key not configured. Register free at developer.usajobs.gov")
+    if not email or not api_key:
+        raise ValueError("USAJobs email and API key are not configured. Register free at developer.usajobs.gov")
 
     params: Dict[str, Any] = {"ResultsPerPage": min(limit, 100)}
     if keyword.strip():

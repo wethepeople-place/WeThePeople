@@ -26,16 +26,17 @@ from __future__ import annotations
 import base64
 import hmac
 import hashlib
-import os
 import time
 from typing import Tuple
+
+from utils.secrets import get_secret
 
 _ALLOWED_ACTIONS = frozenset({"approve", "reject", "view", "respond"})
 _DEFAULT_TTL_SECONDS = 72 * 3600
 
 
 def _signing_key() -> bytes:
-    key = os.getenv("WTP_PRESS_API_KEY", "") or os.getenv("WTP_PRESS_KEY", "")
+    key = get_secret("WTP_PRESS_API_KEY") or get_secret("WTP_PRESS_KEY")
     if not key:
         raise RuntimeError("WTP_PRESS_API_KEY must be set to sign/verify story review tokens")
     return key.encode("utf-8")
