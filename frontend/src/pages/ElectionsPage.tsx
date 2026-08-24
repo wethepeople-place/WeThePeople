@@ -4,6 +4,14 @@ import { Link } from 'react-router-dom';
 
 import { fetchUpcomingElections, lookupElectionInformation, type ElectionLocation, type ElectionLookup } from '../api/civic';
 import ForecastCard from '../components/ForecastCard';
+import { US_STATE_NAMES } from '../data/usStateNames';
+
+type ElectionItem = { id: string; name: string; election_day: string | null; division_id: string | null };
+
+const stateOptions = Object.entries(US_STATE_NAMES).sort(([, first], [, second]) => first.localeCompare(second));
+const electionState = (divisionId: string | null) => divisionId?.match(/\/state:([a-z]{2})(?:\/|$)/i)?.[1]?.toUpperCase() || null;
+const isPublicElection = (item: ElectionItem) => !/\btest election\b/i.test(item.name);
+const voteGovStateUrl = (stateCode: string) => `https://vote.gov/register/${US_STATE_NAMES[stateCode].toLowerCase().replaceAll(' ', '-')}`;
 
 const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat('en-US', {
   month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
@@ -12,15 +20,26 @@ const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat('en
 const locationAddress = (item: ElectionLocation) => [item.address.locationName, item.address.line1, item.address.line2, item.address.city, item.address.state, item.address.zip].filter(Boolean).join(', ');
 
 export default function ElectionsPage() {
-  const [elections, setElections] = useState<Array<{ id: string; name: string; election_day: string | null }>>([]);
+  const [elections, setElections] = useState<ElectionItem[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [selectedState, setSelectedState] = useState('');
   const [address, setAddress] = useState('');
   const [result, setResult] = useState<ElectionLookup | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    fetchUpcomingElections().then((data) => setElections(data.items)).catch(() => setElections([]));
+    fetchUpcomingElections()
+      .then((data) => setElections(data.items.filter(isPublicElection)))
+      .catch(() => setElections([]))
+      .finally(() => setCatalogLoaded(true));
   }, []);
+
+  const stateElections = selectedState ? elections.filter((item) => {
+    const state = electionState(item.division_id);
+    return state === selectedState || item.division_id === 'ocd-division/country:us';
+  }) : [];
+  const hasCoverage = stateElections.length > 0;
 
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -31,7 +50,7 @@ export default function ElectionsPage() {
     }
     setLoading(true); setNotice(''); setResult(null);
     try {
-      setResult(await lookupElectionInformation(address));
+      setResult(await lookupElectionInformation(address, stateElections[0]?.id));
       setAddress('');
     }
     catch (reason) { setNotice(reason instanceof Error ? reason.message : 'Election information could not be loaded.'); }
@@ -50,18 +69,33 @@ export default function ElectionsPage() {
     </header>
     <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Private full-address lookup</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the complete registered residential address where you vote. A ZIP code alone cannot identify the correct ballot. Your address is sent to the civic-information provider for this lookup only; WTP does not retain it, your registration status, or your choices.</p></div></div>
-        <form onSubmit={lookup} className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <label className="sr-only" htmlFor="election-address">Full registered residential address</label>
-          <input id="election-address" required minLength={5} maxLength={200} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street address, city, state, ZIP" aria-describedby="election-address-help" className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" />
-          <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-5 font-bold disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button>
-        </form>
-        <p id="election-address-help" className="mt-2 text-xs text-slate-500">Example format: 123 Main Street, Baltimore, MD 21201</p>
-        {notice && <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">{notice} Verify with your state or local election office.</p>}
+        <div className="flex items-start gap-3"><CalendarDays className="mt-1 h-5 w-5 shrink-0 text-[#214f78]" /><div><h2 className="font-bold">Start with your state</h2><p className="mt-1 text-sm leading-6 text-slate-600">We check whether ballot data is available before asking for your private address.</p></div></div>
+        <label className="mt-5 block text-sm font-bold" htmlFor="election-state">State or District of Columbia</label>
+        <select id="election-state" value={selectedState} onChange={(event) => { setSelectedState(event.target.value); setAddress(''); setNotice(''); setResult(null); }} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:ring-4 focus:ring-sky-200">
+          <option value="">Select your state</option>
+          {stateOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+        </select>
+
+        {selectedState && catalogLoaded && !hasCoverage && <div role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-950">
+          <h3 className="font-bold">Ballot data is not available here yet</h3>
+          <p className="mt-1 text-sm leading-6">Our provider is not currently publishing election data for {US_STATE_NAMES[selectedState]}. Your address was not requested or sent.</p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold text-[#174f80]"><a className="underline" href={voteGovStateUrl(selectedState)} target="_blank" rel="noreferrer">Official {US_STATE_NAMES[selectedState]} voting information <ExternalLink className="inline h-4 w-4" /></a><a className="underline" href="https://www.eac.gov/voters/register-and-vote-in-your-state" target="_blank" rel="noreferrer">Find state and local election offices <ExternalLink className="inline h-4 w-4" /></a></div>
+        </div>}
+
+        {selectedState && hasCoverage && <div className="mt-5 border-t border-slate-200 pt-5">
+          <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Private full-address lookup</h2><p className="mt-1 text-sm leading-6 text-slate-600">Ballot data is available for {US_STATE_NAMES[selectedState]}. Enter your complete registered residential address. It is sent to the civic-information provider for this lookup only; WTP does not retain it, your registration status, or your choices.</p></div></div>
+          <form onSubmit={lookup} className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <label className="sr-only" htmlFor="election-address">Full registered residential address</label>
+            <input id="election-address" required minLength={5} maxLength={200} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street address, city, state, ZIP" aria-describedby="election-address-help" className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" />
+            <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-5 font-bold disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button>
+          </form>
+          <p id="election-address-help" className="mt-2 text-xs text-slate-500">Include street, city, state, and ZIP.</p>
+          {notice && <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">{notice} Verify with your state or local election office.</p>}
+        </div>}
       </section>
 
       {!result && <section className="mt-5 grid gap-3 md:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{elections.length ? <ul className="mt-3 space-y-3">{elections.slice(0, 6).map((item) => <li key={item.id} className="border-t border-slate-100 pt-3"><strong>{item.name}</strong><p className="text-sm text-slate-600">{formatDate(item.election_day)}</p></li>)}</ul> : <p className="mt-2 text-slate-600">Enter your address for the elections supported in your area.</p>}</article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{!selectedState ? <p className="mt-2 text-slate-600">Select your state to see relevant supported elections.</p> : stateElections.length ? <ul className="mt-3 space-y-3">{stateElections.map((item) => <li key={item.id} className="border-t border-slate-100 pt-3"><strong>{item.name}</strong><p className="text-sm text-slate-600">{formatDate(item.election_day)}</p></li>)}</ul> : <p className="mt-2 text-slate-600">No election for {US_STATE_NAMES[selectedState]} is currently published by our ballot-data provider.</p>}</article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Registration rules, deadlines, and voting options differ by state. Use the official federal directory when local data is unavailable.</p><a className="mt-4 inline-flex min-h-11 items-center gap-2 font-bold text-[#174f80] underline" href="https://vote.gov/" target="_blank" rel="noreferrer">Go to Vote.gov <ExternalLink className="h-4 w-4" /></a></article>
       </section>}
 
