@@ -15,8 +15,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [digestOptIn, setDigestOptIn] = useState(true);
-  const [alertOptIn, setAlertOptIn] = useState(true);
+  const [digestOptIn, setDigestOptIn] = useState(false);
+  const [alertOptIn, setAlertOptIn] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, isAuthenticated, loading: authLoading } = useAuth();

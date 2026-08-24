@@ -32,6 +32,10 @@ def engine():
     SessionLocal (e.g. /influence/stats, the influence stats router that
     queries 11 sector lobbying tables in a single composed call).
     """
+    # Import the application before creating tables so every model module
+    # registered by main.py is present in Base.metadata. Focused test runs can
+    # otherwise build a partial schema that differs from the canonical graph.
+    import main  # noqa: F401
     from sqlalchemy.pool import StaticPool
     eng = create_engine(
         "sqlite://",

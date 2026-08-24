@@ -685,6 +685,7 @@ import models.pipeline_models  # noqa: F401 — register DLQ, processed_records,
 import models.telecom_models  # noqa: F401 — register telecom sector tables
 import models.education_models  # noqa: F401 — register education sector tables
 import models.token_usage  # noqa: F401 — register token usage tracking table
+import models.tips_models  # noqa: F401 — register contributor tips for canonical migrations
 
 
 if __name__ == "__main__":
