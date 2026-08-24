@@ -127,6 +127,11 @@ export interface ForecastMarket {
   rules: string;
 }
 
+export function fetchOpenForecasts(marketType?: 'bill' | 'election') {
+  const query = marketType ? `?market_type=${marketType}` : '';
+  return apiFetch<{ items: ForecastMarket[]; privacy_threshold: number }>(`/forecasts${query}`);
+}
+
 export function fetchBillForecast(billId: string) {
   return apiFetch<ForecastMarket>(`/forecasts/bills/${encodeURIComponent(billId)}`);
 }

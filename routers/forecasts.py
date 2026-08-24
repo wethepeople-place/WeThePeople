@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from jose import JWTError
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
@@ -129,6 +129,20 @@ def _election_market_identity(contest_token: str) -> tuple[dict, str]:
     canonical = json.dumps({"election_id": contest.get("election_id"), "office": contest.get("office"),
                             "district": contest.get("district"), "options": options}, sort_keys=True, separators=(",", ":"))
     return contest, f"{contest.get('election_id')}:{hashlib.sha256(canonical.encode()).hexdigest()[:24]}"
+
+
+@router.get("")
+def open_forecasts(market_type: Literal["bill", "election"] | None = None,
+                   limit: int = Query(default=50, ge=1, le=100),
+                   user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+    query = db.query(ForecastMarket).filter(
+        ForecastMarket.status == "open",
+        ForecastMarket.closes_at > datetime.now(timezone.utc),
+    )
+    if market_type:
+        query = query.filter(ForecastMarket.market_type == market_type)
+    markets = query.order_by(ForecastMarket.closes_at.asc(), ForecastMarket.id.asc()).limit(limit).all()
+    return {"items": [_market_payload(market, db, user) for market in markets], "privacy_threshold": MIN_PUBLIC_RESPONSES}
 
 
 @router.get("/bills/{bill_id}")
