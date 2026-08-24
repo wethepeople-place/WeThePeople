@@ -30,7 +30,7 @@ const STATS: Array<[string, string]> = [
 
 export default function DigestSignupPage() {
   const [email, setEmail] = useState('');
-  const [consent, setConsent] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
