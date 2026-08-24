@@ -74,6 +74,29 @@ def test_one_changeable_prediction_and_privacy_threshold():
         assert session.query(ForecastPrediction).filter_by(market_id=market.id).count() == 5
 
 
+def test_open_forecast_discovery_is_privacy_safe_and_does_not_create_markets():
+    app, client, Session = _environment(); user_ids = _seed(Session)
+    _as_user(app, Session, user_ids[0])
+    assert client.put("/forecasts/bills/hr42-119", json={"option_key": "yes"}).status_code == 200
+    app.dependency_overrides.pop(get_optional_user)
+
+    payload = client.get("/forecasts").json()
+    assert payload["privacy_threshold"] == 5
+    assert len(payload["items"]) == 1
+    market = payload["items"][0]
+    assert market["market_type"] == "bill"
+    assert market["subject_id"] == "hr42-119"
+    assert market["current_user_choice"] is None
+    assert market["response_count"] is None
+    assert all(option["responses"] is None and option["share"] is None for option in market["options"])
+    assert "user_id" not in str(payload)
+    with Session() as session:
+        assert session.query(ForecastMarket).count() == 1
+        assert session.query(ForecastPrediction).count() == 1
+
+    assert client.get("/forecasts?market_type=election").json()["items"] == []
+
+
 def test_election_forecast_accepts_only_signed_official_contest():
     app, client, Session = _environment(); user_ids = _seed(Session); _as_user(app, Session, user_ids[0])
     token = sign_election_contest({
