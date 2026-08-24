@@ -22,6 +22,8 @@ const locationAddress = (item: ElectionLocation) => [item.address.locationName, 
 export default function ElectionsPage() {
   const [elections, setElections] = useState<ElectionItem[]>([]);
   const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [catalogAvailability, setCatalogAvailability] = useState<'loading' | 'available' | 'stale' | 'unavailable'>('loading');
+  const [catalogFetchedAt, setCatalogFetchedAt] = useState('');
   const [selectedState, setSelectedState] = useState('');
   const [address, setAddress] = useState('');
   const [result, setResult] = useState<ElectionLookup | null>(null);
@@ -30,8 +32,14 @@ export default function ElectionsPage() {
 
   useEffect(() => {
     fetchUpcomingElections()
-      .then((data) => setElections(data.items.filter(isPublicElection)))
-      .catch(() => setElections([]))
+      .then((data) => {
+        setElections(data.items.filter(isPublicElection));
+        // Keep the Pages-first rollout compatible with the currently deployed
+        // API until the separately approved backend release adds availability.
+        setCatalogAvailability(data.availability?.status || 'available');
+        setCatalogFetchedAt(data.availability?.fetched_at || '');
+      })
+      .catch(() => { setElections([]); setCatalogAvailability('unavailable'); })
       .finally(() => setCatalogLoaded(true));
   }, []);
 
@@ -76,13 +84,23 @@ export default function ElectionsPage() {
           {stateOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
         </select>
 
-        {selectedState && catalogLoaded && !hasCoverage && <div role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-950">
+        {catalogLoaded && catalogAvailability === 'unavailable' && <div role="alert" className="mt-5 rounded-xl bg-rose-50 p-4 text-rose-950">
+          <h3 className="font-bold">Election provider is temporarily unavailable</h3>
+          <p className="mt-1 text-sm leading-6">We cannot check ballot-data coverage right now, so your address is not requested or sent. This does not mean your state has no election.</p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold text-[#174f80]"><a className="underline" href={selectedState ? voteGovStateUrl(selectedState) : 'https://vote.gov/'} target="_blank" rel="noreferrer">Official voting information <ExternalLink className="inline h-4 w-4" /></a><a className="underline" href="https://www.eac.gov/voters/register-and-vote-in-your-state" target="_blank" rel="noreferrer">Find state and local election offices <ExternalLink className="inline h-4 w-4" /></a></div>
+        </div>}
+
+        {catalogLoaded && catalogAvailability === 'stale' && <div role="status" className="mt-5 rounded-xl bg-sky-50 p-4 text-sky-950"><strong>Using the most recent available election catalog.</strong><p className="mt-1 text-sm leading-6">The provider could not refresh just now. Confirm all dates and ballot details with your election office.</p></div>}
+
+        {catalogLoaded && catalogAvailability !== 'unavailable' && catalogFetchedAt && <p className="mt-3 text-xs text-slate-500">Official provider catalog refreshed {new Date(catalogFetchedAt).toLocaleString()}.</p>}
+
+        {selectedState && catalogLoaded && catalogAvailability !== 'unavailable' && !hasCoverage && <div role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-950">
           <h3 className="font-bold">Ballot data is not available here yet</h3>
           <p className="mt-1 text-sm leading-6">Our provider is not currently publishing election data for {US_STATE_NAMES[selectedState]}. Your address was not requested or sent.</p>
           <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold text-[#174f80]"><a className="underline" href={voteGovStateUrl(selectedState)} target="_blank" rel="noreferrer">Official {US_STATE_NAMES[selectedState]} voting information <ExternalLink className="inline h-4 w-4" /></a><a className="underline" href="https://www.eac.gov/voters/register-and-vote-in-your-state" target="_blank" rel="noreferrer">Find state and local election offices <ExternalLink className="inline h-4 w-4" /></a></div>
         </div>}
 
-        {selectedState && hasCoverage && <div className="mt-5 border-t border-slate-200 pt-5">
+        {selectedState && catalogAvailability !== 'unavailable' && hasCoverage && <div className="mt-5 border-t border-slate-200 pt-5">
           <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Private full-address lookup</h2><p className="mt-1 text-sm leading-6 text-slate-600">Ballot data is available for {US_STATE_NAMES[selectedState]}. Enter your complete registered residential address. It is sent to the civic-information provider for this lookup only; WTP does not retain it, your registration status, or your choices.</p></div></div>
           <form onSubmit={lookup} className="mt-5 flex flex-col gap-3 sm:flex-row">
             <label className="sr-only" htmlFor="election-address">Full registered residential address</label>
@@ -95,7 +113,7 @@ export default function ElectionsPage() {
       </section>
 
       {!result && <section className="mt-5 grid gap-3 md:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{!selectedState ? <p className="mt-2 text-slate-600">Select your state to see relevant supported elections.</p> : stateElections.length ? <ul className="mt-3 space-y-3">{stateElections.map((item) => <li key={item.id} className="border-t border-slate-100 pt-3"><strong>{item.name}</strong><p className="text-sm text-slate-600">{formatDate(item.election_day)}</p></li>)}</ul> : <p className="mt-2 text-slate-600">No election for {US_STATE_NAMES[selectedState]} is currently published by our ballot-data provider.</p>}</article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{catalogAvailability === 'unavailable' ? <p className="mt-2 text-slate-600">Coverage cannot be checked while the provider is unavailable. Use the official voter-services links.</p> : !selectedState ? <p className="mt-2 text-slate-600">Select your state to see relevant supported elections.</p> : stateElections.length ? <ul className="mt-3 space-y-3">{stateElections.map((item) => <li key={item.id} className="border-t border-slate-100 pt-3"><strong>{item.name}</strong><p className="text-sm text-slate-600">{formatDate(item.election_day)}</p></li>)}</ul> : <p className="mt-2 text-slate-600">No election for {US_STATE_NAMES[selectedState]} is currently published by our ballot-data provider.</p>}</article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Registration rules, deadlines, and voting options differ by state. Use the official federal directory when local data is unavailable.</p><a className="mt-4 inline-flex min-h-11 items-center gap-2 font-bold text-[#174f80] underline" href="https://vote.gov/" target="_blank" rel="noreferrer">Go to Vote.gov <ExternalLink className="h-4 w-4" /></a></article>
       </section>}
 
