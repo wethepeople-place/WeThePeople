@@ -26,6 +26,7 @@ await writeRoute(['act'], indexHtml)
 await writeRoute(['act', 'moderation'], indexHtml)
 await writeRoute(['discuss'], indexHtml)
 await writeRoute(['elections'], indexHtml)
+await writeRoute(['forecasts'], indexHtml)
 
 for (const video of fixture.videos ?? []) {
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(video.video_id)) throw new Error(`Unsafe Watch route identity: ${video.video_id}`)
