@@ -11,7 +11,7 @@ it('lists open forecasts without exposing sub-threshold participation', async ()
     id: 1, market_type: 'bill', subject_id: 'hr2725-119', question: 'Will H.R. 2725 become law?',
     options: [{ key: 'yes', label: 'Yes', responses: null, share: null }, { key: 'no', label: 'No', responses: null, share: null }],
     status: 'open', closes_at: '2027-01-03T00:00:00Z', source_url: 'https://www.congress.gov/bill/119th-congress/house-bill/2725',
-    response_count: null, privacy_threshold: 5, current_user_choice: null, resolved_option: null, resolution_source_url: null, rules: 'No money.',
+    response_count: null, privacy_threshold: 5, current_user_choice: null, resolved_option: null, resolution_source_url: null, resolution_reason: null, resolved_at: null, rules: 'No money.',
   }] }) });
   vi.stubGlobal('fetch', fetchMock);
   render(<MemoryRouter><ForecastDiscoveryPage /></MemoryRouter>);
