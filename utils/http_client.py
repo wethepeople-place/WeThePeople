@@ -26,6 +26,8 @@ from diskcache import Cache
 
 import os
 
+from utils.secrets import get_secret
+
 
 class _Config:
     """Minimal config replacement using environment variables."""
@@ -41,7 +43,7 @@ class _Config:
     FEC_API_KEY = os.getenv("FEC_API_KEY", "DEMO_KEY")
     FEC_API_BASE = "https://api.open.fec.gov/v1"
     DATAGOV_API_KEY = os.getenv("DATAGOV_API_KEY", "DEMO_KEY")
-    GOOGLE_CIVIC_API_KEY = os.getenv("API_KEY_GOOGLE_CIVIC", "")
+    GOOGLE_CIVIC_API_KEY = get_secret("API_KEY_GOOGLE_CIVIC")
 
 
 config = _Config()

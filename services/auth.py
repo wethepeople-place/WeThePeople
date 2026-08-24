@@ -6,6 +6,7 @@ JWT + per-user API key system.
 Env vars:
   WTP_REQUIRE_AUTH      -- "1" to enforce auth; default "0" (dev mode, all open).
   WTP_PRESS_API_KEY     -- required when WTP_REQUIRE_AUTH=1.
+  WTP_PRESS_API_KEY_FILE -- preferred root-only file containing that key.
   WTP_ENTERPRISE_API_KEY -- optional key for unlimited claims access.
 
 Usage in FastAPI:
@@ -24,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from models.database import get_db
 from services.rate_limit_store import check_rate_limit
+from utils.secrets import get_secret
 
 _CLAIMS_FREE_LIMIT = int(os.getenv("WTP_CLAIMS_FREE_LIMIT", "5"))  # per day per IP
 _CLAIMS_WINDOW = 86400  # 24 hours
@@ -110,7 +112,7 @@ def _require_auth() -> bool:
 
 
 def _press_api_key() -> str:
-    return os.getenv("WTP_PRESS_API_KEY", "")
+    return get_secret("WTP_PRESS_API_KEY")
 
 
 _SIGNED_TOKEN_PATH_RE = re.compile(
@@ -191,7 +193,7 @@ def require_press_key(
 
 def _check_legacy_enterprise_key(api_key: str) -> bool:
     """Check if the key matches the legacy WTP_ENTERPRISE_API_KEY env var."""
-    enterprise_key = os.getenv("WTP_ENTERPRISE_API_KEY", "")
+    enterprise_key = get_secret("WTP_ENTERPRISE_API_KEY")
     return bool(enterprise_key and api_key and hmac.compare_digest(api_key, enterprise_key))
 
 

@@ -3,6 +3,7 @@ JWT token creation, verification, and FastAPI dependency for authenticated route
 
 Env vars:
   WTP_JWT_SECRET          - HMAC signing key (REQUIRED in production)
+  WTP_JWT_SECRET_FILE     - preferred root-only file containing that key
   WTP_TOKEN_EXPIRY_HOURS  - Access token lifetime in hours (default: 24)
   WTP_REFRESH_EXPIRY_DAYS - Refresh token lifetime in days (default: 30)
 
@@ -25,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from models.database import get_db
 from models.auth_models import User, RevokedToken
+from utils.secrets import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +34,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-SECRET_KEY = os.getenv("WTP_JWT_SECRET", "")
-if not SECRET_KEY:
-    raise RuntimeError(
-        "WTP_JWT_SECRET env var is not set. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
-    )
+SECRET_KEY = get_secret("WTP_JWT_SECRET", required=True)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("WTP_TOKEN_EXPIRY_HOURS", "24"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("WTP_REFRESH_EXPIRY_DAYS", "30"))
