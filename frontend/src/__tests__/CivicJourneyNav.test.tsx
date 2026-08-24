@@ -15,6 +15,8 @@ it('connects every top-level civic journey destination', () => {
     Solutions: '/issues/housing-rent/solutions',
     Representatives: '/politics/find-rep',
     ACT: '/act',
+    Jobs: 'https://research.wethepeople.place/gov-salaries',
+    Forecasts: '/forecasts',
   };
 
   for (const [label, href] of Object.entries(expected)) {
@@ -22,4 +24,11 @@ it('connects every top-level civic journey destination', () => {
   }
   expect(screen.getByRole('link', { name: 'Elections' }).getAttribute('href')).toBe('/elections');
   expect(screen.getByRole('link', { name: 'Create a civic post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
+});
+
+it('keeps all seven phone-first destinations directly reachable', () => {
+  render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
+  for (const label of ['Agenda', 'Watch', 'Discuss', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
+    expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
+  }
 });
