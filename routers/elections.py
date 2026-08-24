@@ -1,17 +1,52 @@
 """Privacy-safe election information endpoints."""
 
 import hashlib
-from datetime import datetime, time, timezone
+import re
+import threading
+import time as monotonic_time
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
-from connectors.google_civic import CivicApiRateLimitError, list_elections, lookup_voter_info
+from connectors.google_civic import CivicApiRateLimitError, list_elections_with_status, lookup_voter_info
 from services.forecast_tokens import sign_election_contest
 
 
 router = APIRouter(prefix="/elections", tags=["elections"])
+
+ELECTION_CATALOG_REFRESH_SECONDS = 15 * 60
+ELECTION_CATALOG_RETRY_SECONDS = 60
+_catalog_lock = threading.Lock()
+_catalog_cache: dict[str, Any] = {}
+
+
+def _reset_election_catalog_cache() -> None:
+    """Clear process-local catalog state for deterministic tests."""
+    with _catalog_lock:
+        _catalog_cache.clear()
+
+
+def _is_public_election(item: dict[str, Any]) -> bool:
+    return bool(item.get("id")) and not re.search(r"\btest election\b", str(item.get("name") or ""), re.IGNORECASE)
+
+
+def _catalog_payload(items: list[dict[str, Any]], fetched_at: datetime, status: str) -> dict[str, Any]:
+    return {
+        "items": [{
+            "id": str(item.get("id") or ""),
+            "name": item.get("name") or "Election",
+            "election_day": item.get("electionDay") or None,
+            "division_id": item.get("ocdDivisionId") or None,
+        } for item in items if _is_public_election(item)],
+        "availability": {
+            "status": status,
+            "fetched_at": fetched_at.isoformat(),
+            "refresh_after": (fetched_at + timedelta(seconds=ELECTION_CATALOG_REFRESH_SECONDS)).isoformat(),
+        },
+        "source": {"name": "Google Civic Information API", "official_only": True},
+    }
 
 
 class ElectionLookupRequest(BaseModel):
@@ -98,19 +133,22 @@ def _authority(region: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("")
 def upcoming_elections():
-    try:
-        items = list_elections()
-    except CivicApiRateLimitError as exc:
-        raise HTTPException(status_code=503, detail="Election source is temporarily busy.") from exc
-    return {
-        "items": [{
-            "id": str(item.get("id") or ""),
-            "name": item.get("name") or "Election",
-            "election_day": item.get("electionDay") or None,
-            "division_id": item.get("ocdDivisionId") or None,
-        } for item in items if item.get("id")],
-        "source": {"name": "Google Civic Information API", "official_only": True},
-    }
+    now_monotonic = monotonic_time.monotonic()
+    with _catalog_lock:
+        if _catalog_cache and now_monotonic < _catalog_cache["refresh_at"]:
+            return _catalog_payload(_catalog_cache["items"], _catalog_cache["fetched_at"], _catalog_cache["status"])
+        try:
+            items = list_elections_with_status()
+        except CivicApiRateLimitError:
+            items = None
+        if items is None:
+            if _catalog_cache:
+                _catalog_cache.update(status="stale", refresh_at=now_monotonic + ELECTION_CATALOG_RETRY_SECONDS)
+                return _catalog_payload(_catalog_cache["items"], _catalog_cache["fetched_at"], "stale")
+            raise HTTPException(status_code=503, detail="Election provider is temporarily unavailable. Coverage could not be checked.")
+        fetched_at = datetime.now(timezone.utc)
+        _catalog_cache.update(items=items, fetched_at=fetched_at, status="available", refresh_at=now_monotonic + ELECTION_CATALOG_REFRESH_SECONDS)
+        return _catalog_payload(items, fetched_at, "available")
 
 
 @router.post("/lookup")

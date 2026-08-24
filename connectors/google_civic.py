@@ -274,6 +274,17 @@ def get_all_districts(address: str) -> Dict[str, Any]:
 # ELECTIONS — Upcoming elections
 # ============================================================================
 
+def list_elections_with_status() -> Optional[List[Dict[str, Any]]]:
+    """Return the provider catalog, or ``None`` when the provider is unavailable."""
+    data = _civic_get("elections")
+    if data is None:
+        return None
+
+    elections = data.get("elections", [])
+    logger.info("Found %d elections", len(elections))
+    return elections
+
+
 def list_elections() -> List[Dict[str, Any]]:
     """
     List all upcoming elections known to Google.
@@ -281,13 +292,7 @@ def list_elections() -> List[Dict[str, Any]]:
     Returns:
         List of election dicts with id, name, electionDay, ocdDivisionId
     """
-    data = _civic_get("elections")
-    if not data:
-        return []
-
-    elections = data.get("elections", [])
-    logger.info("Found %d elections", len(elections))
-    return elections
+    return list_elections_with_status() or []
 
 
 # ============================================================================

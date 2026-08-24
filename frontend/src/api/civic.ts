@@ -354,7 +354,11 @@ export type ElectionLookup = {
 };
 
 export function fetchUpcomingElections() {
-  return apiFetch<{ items: Array<{ id: string; name: string; election_day: string | null; division_id: string | null }> }>('/elections');
+  return apiFetch<{
+    items: Array<{ id: string; name: string; election_day: string | null; division_id: string | null }>;
+    availability?: { status: 'available' | 'stale'; fetched_at: string; refresh_after: string };
+    source?: { name: string; official_only: true };
+  }>('/elections');
 }
 
 export function lookupElectionInformation(address: string, electionId?: string) {
