@@ -124,6 +124,8 @@ export interface ForecastMarket {
   current_user_choice: string | null;
   resolved_option: string | null;
   resolution_source_url: string | null;
+  resolution_reason: string | null;
+  resolved_at: string | null;
   rules: string;
 }
 

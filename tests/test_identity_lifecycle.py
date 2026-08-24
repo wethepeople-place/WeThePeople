@@ -1,8 +1,10 @@
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from models.auth_models import User
+from models.forecast_models import ForecastMarket, ForecastPrediction
 from models.social_models import DiscussionPost, DiscussionReport
 from routers.auth import pwd_context
 from services.jwt_auth import create_access_token, create_password_reset_token, verify_token
@@ -68,6 +70,15 @@ def test_privacy_export_requires_password_and_covers_classified_social_data(clie
         reporter_id=user.id, target_type="post", target_id=post.id,
         reason="other", details="private context",
     ))
+    market = ForecastMarket(
+        market_type="bill", subject_id="hr999-119", question="Will H.R. 999 become law?",
+        options_json=[{"key": "yes", "label": "Yes"}, {"key": "no", "label": "No"}],
+        closes_at=datetime.now(timezone.utc) + timedelta(days=30),
+        source_url="https://www.congress.gov/bill/119th-congress/house-bill/999",
+    )
+    db_session.add(market)
+    db_session.flush()
+    db_session.add(ForecastPrediction(market_id=market.id, user_id=user.id, option_key="yes"))
     db_session.commit()
 
     token = create_access_token({
@@ -82,6 +93,7 @@ def test_privacy_export_requires_password_and_covers_classified_social_data(clie
     assert payload["user"]["email"] == EMAIL
     assert payload["classified_records"]["discussion_posts"][0]["body"] == "A public contribution"
     assert payload["classified_records"]["discussion_reports"][0]["details"] == "private context"
+    assert payload["classified_records"]["forecast_predictions"][0]["option_key"] == "yes"
     assert "hashed_password" not in str(payload)
     assert "key_hash" not in str(payload)
 
@@ -119,3 +131,4 @@ def test_account_anonymization_is_reauthenticated_bounded_and_invalidates_sessio
     report = db_session.query(DiscussionReport).filter_by(reporter_id=user_id).one()
     assert post.author_label.startswith("Deleted User ")
     assert report.details is None
+    assert db_session.query(ForecastPrediction).filter_by(user_id=user_id).count() == 0

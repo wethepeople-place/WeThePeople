@@ -34,6 +34,14 @@ const SECTIONS: LongformSection[] = [
   },
   {
     num: 4,
+    id: 'forecasts',
+    title: 'Civic Forecasts',
+    body: [
+      'Civic Forecasts are free predictions for civic learning, not bets, wagers, polls, endorsements, official results, voting advice, or financial contracts. We do not accept stakes or provide money, prizes, payouts, transferable credits, or anything else of value based on an outcome. You must be at least 13 to submit a Forecast. Individual choices stay private; community totals appear only after the stated privacy threshold is met. We may lock, void, correct, or remove a Forecast when its source, wording, deadline, or outcome cannot be verified reliably.',
+    ],
+  },
+  {
+    num: 5,
     id: 'jurisdiction',
     title: 'Jurisdiction',
     body: [

@@ -14,6 +14,7 @@ const SECTIONS: LongformSection[] = [
     title: 'What we collect',
     list: [
       'Email (only if you create an account or subscribe to the digest)',
+      'Your private Civic Forecast choice, the Forecast question, and timestamps when you choose to participate',
       'ZIP code (only if you use Find My Rep — never persisted)',
       'Anonymous usage analytics via a self-hosted instance (no third-party trackers)',
     ],
@@ -26,6 +27,7 @@ const SECTIONS: LongformSection[] = [
       'No ad-tech cookies. No Facebook Pixel, no Google Analytics, no Segment.',
       'No precise geolocation.',
       'No political-affiliation inference.',
+      'No sale, sharing, advertising profile, or public participant list based on Civic Forecast choices.',
     ],
   },
   {
@@ -38,6 +40,14 @@ const SECTIONS: LongformSection[] = [
   },
   {
     num: 4,
+    id: 'forecasts',
+    title: 'Civic Forecast privacy',
+    body: [
+      'Your individual Forecast choices are private and are not included in logs, URLs, analytics, public profiles, or participant lists. Public totals and shares remain hidden until at least five real participants respond. Choices are used only to save your prediction and calculate thresholded community aggregates. Account exports include your choices, and account anonymization deletes them. Identifiable choices are retained while a Forecast is active and for no more than 12 months after final resolution while we implement the approved de-identification schedule.',
+    ],
+  },
+  {
+    num: 5,
     id: 'cookies',
     title: 'Cookies',
     body: [

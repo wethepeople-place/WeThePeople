@@ -50,12 +50,13 @@ export default function ForecastCard({ billId, contestToken, question, options =
     <section className={`rounded-2xl border border-[#214f78]/25 bg-sky-50 ${compact ? 'p-4' : 'p-5 sm:p-6'}`} aria-label="Civic forecast">
       <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-[#214f78]"><BarChart3 className="h-4 w-4" />Community forecast</p>
       <h2 className={`${compact ? 'mt-2 text-base' : 'mt-3 text-xl'} font-black text-slate-950`}>{forecastQuestion}</h2>
-      <p className="mt-2 text-xs leading-5 text-slate-600">Make a prediction for civic learning. No money, purchases, prizes, payouts, or transferable points.</p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <p className="mt-2 text-xs leading-5 text-slate-600">Make a prediction for civic learning. No money, purchases, prizes, payouts, transferable credits, or financial contracts.</p>
+      {contestToken && <p className="mt-2 text-xs leading-5 text-slate-600">Community forecasts are not polls, endorsements, official results, or voting advice.</p>}
+      <div className="mt-4 grid gap-2 sm:grid-cols-2" role="group" aria-label={forecastQuestion} aria-busy={saving}>
         {visibleOptions.map((option) => {
           const selected = market?.current_user_choice === option.key;
-          return <button key={option.key} type="button" disabled={saving || market?.status === 'resolved' || market?.status === 'locked'} onClick={() => choose(option.key)} className={`min-h-11 rounded-xl border px-4 text-left text-sm font-bold transition ${selected ? 'border-[#214f78] bg-[#214f78] text-white' : 'border-slate-300 bg-white text-slate-900 hover:border-[#214f78]'}`}>
-            <span className="flex items-center justify-between gap-2"><span>{option.label}{option.party ? ` · ${option.party}` : ''}</span>{selected && <CheckCircle2 className="h-4 w-4" />}</span>
+          return <button key={option.key} type="button" aria-pressed={selected} disabled={saving || market?.status === 'resolved' || market?.status === 'locked'} onClick={() => choose(option.key)} className={`min-h-11 rounded-xl border px-4 text-left text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#214f78] ${selected ? 'border-[#214f78] bg-[#214f78] text-white' : 'border-slate-300 bg-white text-slate-900 hover:border-[#214f78]'}`}>
+            <span className="flex items-center justify-between gap-2"><span>{option.label}{option.party ? ` · ${option.party}` : ''}</span>{selected && <CheckCircle2 aria-hidden="true" className="h-4 w-4" />}</span>
             {option.share != null && <span className={`mt-1 block text-xs ${selected ? 'text-sky-100' : 'text-slate-500'}`}>{option.share}% of published responses</span>}
           </button>;
         })}
