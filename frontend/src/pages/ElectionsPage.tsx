@@ -12,12 +12,31 @@ const stateOptions = Object.entries(US_STATE_NAMES).sort(([, first], [, second])
 const electionState = (divisionId: string | null) => divisionId?.match(/\/state:([a-z]{2})(?:\/|$)/i)?.[1]?.toUpperCase() || null;
 const isPublicElection = (item: ElectionItem) => !/\btest election\b/i.test(item.name);
 const voteGovStateUrl = (stateCode: string) => `https://vote.gov/register/${US_STATE_NAMES[stateCode].toLowerCase().replaceAll(' ', '-')}`;
+const EAC_POLLING_PLACE_URL = 'https://www.eac.gov/vote';
+const EAC_ELECTION_OFFICE_URL = 'https://www.eac.gov/voters/register-and-vote-in-your-state';
 
 const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat('en-US', {
   month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
 }).format(new Date(`${value}T00:00:00Z`)) : 'Date supplied by your election office';
 
 const locationAddress = (item: ElectionLocation) => [item.address.locationName, item.address.line1, item.address.line2, item.address.city, item.address.state, item.address.zip].filter(Boolean).join(', ');
+
+function OfficialFallbackLinks({ stateCode, compact = false }: { stateCode: string; compact?: boolean }) {
+  const stateName = stateCode ? US_STATE_NAMES[stateCode] : '';
+  const links = [
+    { label: stateName ? `${stateName} voting rules` : 'State voting rules', description: 'Registration, deadlines, and voting options.', publisher: 'Vote.gov', url: stateCode ? voteGovStateUrl(stateCode) : 'https://vote.gov/' },
+    { label: 'Find your polling place', description: 'Open your state’s official polling-place lookup.', publisher: 'U.S. Election Assistance Commission', url: EAC_POLLING_PLACE_URL },
+    { label: 'Ballot and local election office', description: 'Find the official office that publishes sample ballots and local details.', publisher: 'U.S. Election Assistance Commission', url: EAC_ELECTION_OFFICE_URL },
+  ];
+  return <div className={compact ? 'mt-3 grid gap-2' : 'mt-4 grid gap-3'}>
+    {links.map((link) => <a key={link.label} className="rounded-xl border border-slate-200 bg-white p-3 text-left outline-none transition hover:border-sky-300 focus-visible:ring-4 focus-visible:ring-sky-200" href={link.url} target="_blank" rel="noreferrer">
+      <span className="flex items-start justify-between gap-2 font-bold text-[#174f80]">{link.label}<ExternalLink className="mt-0.5 h-4 w-4 shrink-0" /></span>
+      {!compact && <span className="mt-1 block text-sm leading-5 text-slate-600">{link.description}</span>}
+      <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Official source · {link.publisher}</span>
+      <span className="mt-1 block text-[11px] text-slate-500">Live publisher page — confirm current details there</span>
+    </a>)}
+  </div>;
+}
 
 export default function ElectionsPage() {
   const [elections, setElections] = useState<ElectionItem[]>([]);
@@ -87,7 +106,7 @@ export default function ElectionsPage() {
         {catalogLoaded && catalogAvailability === 'unavailable' && <div role="alert" className="mt-5 rounded-xl bg-rose-50 p-4 text-rose-950">
           <h3 className="font-bold">Election provider is temporarily unavailable</h3>
           <p className="mt-1 text-sm leading-6">We cannot check ballot-data coverage right now, so your address is not requested or sent. This does not mean your state has no election.</p>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold text-[#174f80]"><a className="underline" href={selectedState ? voteGovStateUrl(selectedState) : 'https://vote.gov/'} target="_blank" rel="noreferrer">Official voting information <ExternalLink className="inline h-4 w-4" /></a><a className="underline" href="https://www.eac.gov/voters/register-and-vote-in-your-state" target="_blank" rel="noreferrer">Find state and local election offices <ExternalLink className="inline h-4 w-4" /></a></div>
+          <OfficialFallbackLinks stateCode={selectedState} compact />
         </div>}
 
         {catalogLoaded && catalogAvailability === 'stale' && <div role="status" className="mt-5 rounded-xl bg-sky-50 p-4 text-sky-950"><strong>Using the most recent available election catalog.</strong><p className="mt-1 text-sm leading-6">The provider could not refresh just now. Confirm all dates and ballot details with your election office.</p></div>}
@@ -97,7 +116,7 @@ export default function ElectionsPage() {
         {selectedState && catalogLoaded && catalogAvailability !== 'unavailable' && !hasCoverage && <div role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-950">
           <h3 className="font-bold">Ballot data is not available here yet</h3>
           <p className="mt-1 text-sm leading-6">Our provider is not currently publishing election data for {US_STATE_NAMES[selectedState]}. Your address was not requested or sent.</p>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold text-[#174f80]"><a className="underline" href={voteGovStateUrl(selectedState)} target="_blank" rel="noreferrer">Official {US_STATE_NAMES[selectedState]} voting information <ExternalLink className="inline h-4 w-4" /></a><a className="underline" href="https://www.eac.gov/voters/register-and-vote-in-your-state" target="_blank" rel="noreferrer">Find state and local election offices <ExternalLink className="inline h-4 w-4" /></a></div>
+          <OfficialFallbackLinks stateCode={selectedState} compact />
         </div>}
 
         {selectedState && catalogAvailability !== 'unavailable' && hasCoverage && <div className="mt-5 border-t border-slate-200 pt-5">
@@ -114,7 +133,7 @@ export default function ElectionsPage() {
 
       {!result && <section className="mt-5 grid gap-3 md:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{catalogAvailability === 'unavailable' ? <p className="mt-2 text-slate-600">Coverage cannot be checked while the provider is unavailable. Use the official voter-services links.</p> : !selectedState ? <p className="mt-2 text-slate-600">Select your state to see relevant supported elections.</p> : stateElections.length ? <ul className="mt-3 space-y-3">{stateElections.map((item) => <li key={item.id} className="border-t border-slate-100 pt-3"><strong>{item.name}</strong><p className="text-sm text-slate-600">{formatDate(item.election_day)}</p></li>)}</ul> : <p className="mt-2 text-slate-600">No election for {US_STATE_NAMES[selectedState]} is currently published by our ballot-data provider.</p>}</article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Registration rules, deadlines, and voting options differ by state. Use the official federal directory when local data is unavailable.</p><a className="mt-4 inline-flex min-h-11 items-center gap-2 font-bold text-[#174f80] underline" href="https://vote.gov/" target="_blank" rel="noreferrer">Go to Vote.gov <ExternalLink className="h-4 w-4" /></a></article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Use live official sources for state rules, polling-place tools, sample-ballot publishers, and local election offices.</p><OfficialFallbackLinks stateCode={selectedState} /></article>
       </section>}
 
       {result && <div className="mt-5 space-y-5">

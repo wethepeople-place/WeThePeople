@@ -61,7 +61,10 @@ it('does not request an address when the selected state has no supported electio
   fireEvent.change(screen.getByLabelText('State or District of Columbia'), { target: { value: 'MD' } });
   expect((await screen.findByRole('status')).textContent).toContain('not currently publishing election data for Maryland');
   expect(screen.queryByLabelText('Full registered residential address')).toBeNull();
-  expect(screen.getByRole('link', { name: /Official Maryland voting information/ }).getAttribute('href')).toBe('https://vote.gov/register/maryland');
+  expect(screen.getAllByRole('link', { name: /Maryland voting rules/ })[0].getAttribute('href')).toBe('https://vote.gov/register/maryland');
+  expect(screen.getAllByRole('link', { name: /Find your polling place/ })[0].getAttribute('href')).toBe('https://www.eac.gov/vote');
+  expect(screen.getAllByRole('link', { name: /Ballot and local election office/ })[0].getAttribute('href')).toBe('https://www.eac.gov/voters/register-and-vote-in-your-state');
+  expect(screen.getAllByText(/Live publisher page/).length).toBeGreaterThanOrEqual(3);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
