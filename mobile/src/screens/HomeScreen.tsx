@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -60,6 +61,22 @@ export default function HomeScreen() {
     }
     // Fallback
     navigation.navigate('ComingSoon', { sector });
+  };
+
+  const civicEssentials = [
+    { name: 'Agenda', icon: 'list' as const, url: 'https://app.wethepeople.place/civic/' },
+    { name: 'Watch', icon: 'play-circle' as const, tab: 'WatchTab' },
+    { name: 'Discuss', icon: 'chatbubbles' as const, tab: 'DiscussTab' },
+    { name: 'ACT', icon: 'megaphone' as const, url: 'https://app.wethepeople.place/act/' },
+    { name: 'Reps', icon: 'people' as const, screen: 'ZipLookup' },
+    { name: 'Jobs', icon: 'briefcase' as const, url: 'https://research.wethepeople.place/gov-salaries' },
+    { name: 'Forecasts', icon: 'stats-chart' as const, url: 'https://app.wethepeople.place/forecasts/' },
+  ];
+
+  const openCivicEssential = (item: typeof civicEssentials[number]) => {
+    if (item.tab) navigation.getParent()?.navigate(item.tab);
+    else if (item.screen) navigation.navigate(item.screen);
+    else if (item.url) Linking.openURL(item.url);
   };
 
   return (
@@ -159,6 +176,30 @@ export default function HomeScreen() {
               </View>
             </>
           )}
+        </View>
+
+        <View style={styles.quickToolsContainer}>
+          <View style={styles.sectionRow}>
+            <View style={[styles.accentBar, { backgroundColor: UI_COLORS.ACCENT }]} />
+            <Text style={styles.sectionTitle}>Civic essentials</Text>
+          </View>
+          <View style={styles.quickToolsGrid}>
+            {civicEssentials.map((item) => (
+              <TouchableOpacity
+                key={item.name}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.name}`}
+                activeOpacity={0.85}
+                onPress={() => openCivicEssential(item)}
+                style={styles.quickToolWrapper}
+              >
+                <View style={styles.quickToolCard}>
+                  <Ionicons name={item.icon} size={28} color={UI_COLORS.ACCENT} />
+                  <Text style={styles.quickToolName}>{item.name}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Quick Tools */}
