@@ -287,6 +287,35 @@ def test_text_only_post_is_allowed_and_published_for_an_authenticated_user():
         assert post.video_link is None
 
 
+def test_youtube_short_is_normalized_and_classified_without_user_help(monkeypatch):
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        session.add(Issue(slug="crime-violence", title="Crime & Violence"))
+        session.commit()
+    _as_user(app, Session, alice_id)
+    monkeypatch.setattr(
+        "routers.discussions.fetch_social_metadata",
+        lambda provider, url: "Hemp growers and sellers take Texas to court over THC ban WFAA",
+    )
+
+    created = client.post(
+        "/discussions",
+        json={"video_url": "https://www.youtube.com/shorts/ssTeslcxXbY"},
+    )
+
+    assert created.status_code == 201
+    assert created.json()["moderation_status"] == "published"
+    detail = client.get(f"/discussions/{created.json()['id']}").json()
+    assert detail["video_link"] == {
+        "provider": "youtube",
+        "provider_video_id": "ssTeslcxXbY",
+        "canonical_url": "https://www.youtube.com/watch?v=ssTeslcxXbY",
+    }
+    assert detail["attachments"][0]["reference_id"] == "crime-violence"
+    assert detail["attachments"][0]["label"] == "Crime & Violence"
+
+
 def test_video_post_rejects_untrusted_or_malformed_links():
     for url in (
         "http://www.youtube.com/watch?v=maODCSHgPww",
