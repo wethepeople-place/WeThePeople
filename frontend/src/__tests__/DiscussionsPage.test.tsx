@@ -35,6 +35,7 @@ describe('DiscussionsPage', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'What do you want people to know?' }));
     await waitFor(() => expect(screen.getByText('Write a post, share a link, or do both.')).toBeTruthy());
     const message = screen.getByLabelText('What do you want people to know?');
     expect(screen.getByRole('button', { name: 'Post' }).hasAttribute('disabled')).toBe(true);
@@ -102,6 +103,7 @@ describe('DiscussionsPage', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'What do you want people to know?' }));
     const message = await screen.findByLabelText('What do you want people to know?');
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
       provider: 'tiktok', canonical_url: 'https://www.tiktok.com/@person/video/7579560442230508831',

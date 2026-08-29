@@ -99,6 +99,19 @@ def test_curated_thread_is_idempotent_paginated_and_source_backed():
     assert {"DiscussionFeedResponse", "DiscussionDetailResponse", "ReplyCreatedResponse"} <= set(schemas)
 
 
+def test_discuss_continuation_reuses_reviewed_records_without_duplicating_community_posts():
+    _, client, Session = _environment()
+    _seed(Session)
+    response = client.get("/discussions/continuation")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["reviewed_videos"]
+    assert all(item["content_origin"] == "reviewed" for item in payload["reviewed_videos"])
+    assert len({item["video_id"] for item in payload["reviewed_videos"]}) == len(payload["reviewed_videos"])
+    assert payload["agenda"][0]["slug"] == "housing-rent"
+    assert payload["bills"] and payload["bills"][0]["bill_id"]
+
+
 def test_video_comments_endpoint_uses_the_shared_published_conversation():
     _, client, Session = _environment()
     _seed(Session)
