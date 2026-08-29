@@ -15,7 +15,7 @@ from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture, v
 from models.database import Base, get_db
 from models.auth_models import User
 from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
-from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply, DiscussionVideoLink
+from models.social_models import DiscussionAttachment, DiscussionBookmark, DiscussionPost, DiscussionReaction, DiscussionReply, DiscussionVideoLink
 from middleware.security import SecurityHeadersMiddleware
 from routers.videos import router
 from services.jwt_auth import get_current_user, get_optional_user
@@ -164,6 +164,39 @@ def test_watch_automatically_includes_published_community_provider_videos(tmp_pa
     assert poster.status_code == 200
     assert poster.headers["content-type"] == "image/jpeg"
     assert poster.content == b"jpeg-thumbnail"
+
+
+def test_community_watch_like_and_save_use_canonical_discussion_state(tmp_path):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        user = User(email="community@example.test", hashed_password="unused")
+        post = DiscussionPost(author_label="Community member", body="Shared a YouTube video.", moderation_status="published")
+        post.video_link = DiscussionVideoLink(provider="youtube", provider_video_id="ssTeslcxXbY", canonical_url="https://www.youtube.com/watch?v=ssTeslcxXbY")
+        post.attachments.append(DiscussionAttachment(attachment_type="issue", issue_slug="housing-rent", label="Housing & Rent"))
+        session.add_all((user, post)); session.commit()
+        user_id, post_id = user.id, post.id
+
+    def current_user():
+        with Session() as session:
+            return session.get(User, user_id)
+
+    client.app.dependency_overrides[get_current_user] = current_user
+    client.app.dependency_overrides[get_optional_user] = current_user
+    video_id = f"community-{post_id}"
+    liked = client.put(f"/videos/{video_id}/like", json={"active": True})
+    saved = client.put(f"/videos/{video_id}/save", json={"active": True})
+    assert liked.status_code == saved.status_code == 200
+    assert liked.json()["liked"] is True and liked.json()["like_count"] == 1
+    assert saved.json()["saved"] is True
+    item = client.get(f"/videos/{video_id}").json()
+    assert item["liked"] is True and item["saved"] is True and item["like_count"] == 1
+    private_collection = client.get("/videos/saved").json()
+    assert private_collection["total"] == 1
+    assert private_collection["videos"][0]["video_id"] == video_id
+    with Session() as session:
+        assert session.query(DiscussionReaction).filter_by(target_type="post", target_id=post_id, reaction="like").count() == 1
+        assert session.query(DiscussionBookmark).filter_by(post_id=post_id).count() == 1
 
 
 def test_watch_interactions_are_authenticated_idempotent_private_and_video_scoped(tmp_path):

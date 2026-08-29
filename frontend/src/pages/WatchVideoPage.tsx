@@ -40,10 +40,10 @@ function CivicActions({ item }: { item: Video }) {
       <Link className="inline-flex min-h-12 items-center rounded-full bg-amber-300 px-5 font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Explore {item.issue.title}</Link>
       <Link className="inline-flex min-h-12 items-center rounded-full border border-amber-300/50 px-5 font-bold text-amber-300 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}>Take action</Link>
     </div>
-    <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
-      <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>
+    {(item.content_origin !== 'community' || item.bills.length > 0) && <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
+      {item.content_origin !== 'community' && <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>}
       {item.bills.map((bill) => <Link key={bill.bill_id} to={`/politics/bill/${bill.bill_id}`} state={{ returnToVideoId: item.video_id }}>{bill.bill_id.toUpperCase()}</Link>)}
-    </div>
+    </div>}
   </div>;
 }
 
@@ -53,10 +53,6 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   const [busy, setBusy] = useState<'like' | 'save' | ''>('');
   const [message, setMessage] = useState('');
   const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
-  if (item.content_origin === 'community') return <aside className="absolute bottom-5 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Community video actions">
-    {item.discussion_post_id && <Link className={buttonClass} to={`/discuss/${item.discussion_post_id}`} aria-label={`Open this community conversation, ${item.discussion_count} published contributions`}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></Link>}
-    <ShareButton rail url={`${window.location.origin}/watch/${item.video_id}`} title={item.caption} text={item.caption} />
-  </aside>;
   const signIn = () => navigate(`/login?next=${encodeURIComponent(`/watch/${item.video_id}`)}`);
   const toggle = async (kind: 'like' | 'save') => {
     if (!isAuthenticated) { signIn(); return; }
@@ -74,7 +70,7 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   return <aside className="absolute bottom-5 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Video actions">
     <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-6 w-6 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
     <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-6 w-6 ${item.saved ? 'fill-amber-300 text-amber-300' : ''}`} aria-hidden="true" /><span>Save</span></button>
-    <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></button>
+    {item.content_origin === 'community' && item.discussion_post_id ? <Link className={buttonClass} to={`/discuss/${item.discussion_post_id}`} aria-label={`Open this community conversation, ${item.discussion_count} published contributions`}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></Link> : <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></button>}
     <ShareButton rail url={`${window.location.origin}/watch/${item.video_id}`} title={item.caption} text={item.caption} />
     <span className="sr-only" role="status" aria-live="polite">{message}</span>
   </aside>;

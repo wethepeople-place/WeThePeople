@@ -21,7 +21,7 @@ from models.database import get_db
 from models.auth_models import User
 from models.issue_models import Issue, Video, VideoBill, VideoIssue, VideoLike, VideoSave
 from models.response_schemas import VideoInteractionState, VideoInteractionUpdate, VideoItem, VideoSharePreview, VideosResponse
-from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply, DiscussionVideoLink
+from models.social_models import DiscussionAttachment, DiscussionBookmark, DiscussionPost, DiscussionReaction, DiscussionReply, DiscussionVideoLink
 from routers.issues import _source
 from services.watch_phase4c_production_media import production_metadata
 from services.jwt_auth import get_current_user, get_optional_user
@@ -206,7 +206,7 @@ def _community_caption(post: DiscussionPost, provider_label: str, issue: Issue) 
     return f"{provider_label} video about {issue.title}" if neutral else post.body.strip()
 
 
-def _serialize_community(db: Session, row) -> dict:
+def _serialize_community(db: Session, row, user: User | None = None) -> dict:
     post, video_link, _, issue = row
     provider_label = PROVIDER_LABELS[video_link.provider]
     video_id = f"community-{post.id}"
@@ -241,9 +241,9 @@ def _serialize_community(db: Session, row) -> dict:
         "bills": [],
         "discussion_post_id": post.id,
         "discussion_count": 1 + reply_count,
-        "like_count": 0,
-        "liked": False,
-        "saved": False,
+        "like_count": db.query(DiscussionReaction).filter_by(target_type="post", target_id=post.id, reaction="like").count(),
+        "liked": bool(user and db.query(DiscussionReaction.id).filter_by(user_id=user.id, target_type="post", target_id=post.id, reaction="like").first()),
+        "saved": bool(user and db.query(DiscussionBookmark.id).filter_by(user_id=user.id, post_id=post.id).first()),
     }
 
 
@@ -263,7 +263,7 @@ def list_videos(cursor: str | None = None, limit: int = Query(25, ge=1, le=100),
     ordered = [*community, *reviewed]
     page = ordered[offset:offset + limit]
     videos = [
-        _serialize_community(db, value) if origin == "community" else _serialize(value, _interaction_state(db, value, user))
+        _serialize_community(db, value, user) if origin == "community" else _serialize(value, _interaction_state(db, value, user))
         for origin, value in page
     ]
     next_offset = offset + len(page)
@@ -274,20 +274,32 @@ def list_videos(cursor: str | None = None, limit: int = Query(25, ge=1, le=100),
 @router.get("/saved", response_model=VideosResponse)
 def list_saved_videos(limit: int = Query(25, ge=1, le=25), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return only the authenticated viewer's private saved-video collection."""
-    total = db.query(VideoSave).filter(VideoSave.user_id == user.id).count()
-    rows = (
+    community_bookmarks = (
+        db.query(DiscussionBookmark)
+        .join(DiscussionPost, DiscussionPost.id == DiscussionBookmark.post_id)
+        .join(DiscussionVideoLink, DiscussionVideoLink.post_id == DiscussionPost.id)
+        .filter(DiscussionBookmark.user_id == user.id, DiscussionPost.moderation_status == "published")
+        .order_by(DiscussionBookmark.created_at.desc(), DiscussionBookmark.id.desc())
+        .limit(limit)
+        .all()
+    )
+    community_rows = [row for bookmark in community_bookmarks if (row := _community_row(db, bookmark.post_id)) is not None]
+    reviewed_total = db.query(VideoSave).filter(VideoSave.user_id == user.id).count()
+    reviewed_rows = (
         _query(db)
         .join(VideoSave, VideoSave.video_id == Video.video_id)
         .filter(VideoSave.user_id == user.id)
         .order_by(VideoSave.created_at.desc(), Video.video_id.asc())
-        .limit(limit)
+        .limit(max(0, limit - len(community_rows)))
         .all()
     )
+    videos = [*[_serialize_community(db, row, user) for row in community_rows], *[_serialize(row, _interaction_state(db, row, user)) for row in reviewed_rows]]
+    total = len(community_rows) + reviewed_total
     return {
         "total": total,
-        "videos": [_serialize(row, _interaction_state(db, row, user)) for row in rows],
+        "videos": videos,
         "next_cursor": None,
-        "has_more": total > len(rows),
+        "has_more": total > len(videos),
     }
 
 
@@ -298,7 +310,7 @@ def get_video(video_id: str, user: User | None = Depends(get_optional_user), db:
         community = _community_row(db, int(community_match.group(1)))
         if community is None:
             raise HTTPException(status_code=404, detail="Video not found")
-        return _serialize_community(db, community)
+        return _serialize_community(db, community, user)
     row = _query(db).filter(Video.video_id == video_id).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")
@@ -331,6 +343,28 @@ def get_community_video_poster(post_id: int, db: Session = Depends(get_db)):
 
 
 def _set_interaction(video_id: str, active: bool, model, request: Request, user: User, db: Session) -> dict:
+    community_match = COMMUNITY_VIDEO_ID.fullmatch(video_id)
+    if community_match:
+        post_id = int(community_match.group(1))
+        community = _community_row(db, post_id)
+        if community is None:
+            raise HTTPException(status_code=404, detail="Video not found")
+        host = request.client.host if request.client else "unknown"
+        allowed, _, reset_at = check_rate_limit(ip=f"user:{user.id}:ip:{host}", endpoint="watch:interaction", max_requests=60, window_seconds=60, db=db)
+        if not allowed:
+            retry_after = max(1, int(reset_at - datetime.now(timezone.utc).timestamp()))
+            raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": str(retry_after)})
+        if model is VideoLike:
+            existing = db.query(DiscussionReaction).filter_by(user_id=user.id, target_type="post", target_id=post_id, reaction="like").first()
+            if existing and not active: db.delete(existing)
+            elif not existing and active: db.add(DiscussionReaction(user_id=user.id, target_type="post", target_id=post_id, reaction="like"))
+        else:
+            existing = db.query(DiscussionBookmark).filter_by(user_id=user.id, post_id=post_id).first()
+            if existing and not active: db.delete(existing)
+            elif not existing and active: db.add(DiscussionBookmark(user_id=user.id, post_id=post_id))
+        db.commit()
+        state = _serialize_community(db, community, user)
+        return {key: state[key] for key in ("video_id", "discussion_post_id", "discussion_count", "like_count", "liked", "saved")}
     row = db.get(Video, video_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")

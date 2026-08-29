@@ -123,6 +123,9 @@ describe('WatchVideoPage', () => {
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/videos/community/42/poster')
     expect(screen.queryByText('Reviewed source')).toBeNull()
     expect(screen.getByRole('link', { name: /Open this community conversation/ }).getAttribute('href')).toBe('/discuss/42')
+    expect(screen.getByRole('button', { name: /Like video/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save video privately' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /^YouTube/ })).toBeNull()
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
   })
 
