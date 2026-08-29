@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import DiscussionsPage from '../pages/DiscussionsPage';
@@ -29,15 +29,27 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
   });
 
-  it('offers the four supported social platforms and an Agenda selector', async () => {
+  it('puts the social link first and automatically suggests an Agenda issue', async () => {
     authenticated = true;
     vi.mocked(fetch)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(/Share a Facebook, TikTok, Instagram, or YouTube link/)).toBeTruthy());
-    expect(screen.getByLabelText(/Social link/).getAttribute('placeholder')).toContain('Facebook, TikTok, Instagram, or YouTube');
-    expect(await screen.findByRole('option', { name: '1. Housing & Rent' })).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/Paste a Facebook, TikTok, Instagram, or YouTube link/)).toBeTruthy());
+    const link = screen.getByLabelText('Video link');
+    expect(link.getAttribute('placeholder')).toContain('Facebook, TikTok, Instagram, or YouTube');
+    expect(screen.queryByRole('combobox', { name: 'Agenda issue' })).toBeNull();
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
+      provider: 'tiktok', canonical_url: 'https://www.tiktok.com/@person/video/7679228789091519757',
+      suggested_issue: { slug: 'housing-rent', title: 'Housing & Rent', score: 6 },
+      alternatives: [], confidence: 'high', metadata_available: true,
+    }) } as Response);
+    fireEvent.change(link, { target: { value: 'https://www.tiktok.com/@person/video/7679228789091519757' } });
+    await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
+    expect(screen.getByText('Housing & Rent')).toBeTruthy();
+    expect(screen.getByLabelText(/Add your take/).hasAttribute('required')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+    expect(await screen.findByRole('option', { name: 'Housing & Rent' })).toBeTruthy();
   });
 
   it('renders a chronological civic post card with public counts', async () => {

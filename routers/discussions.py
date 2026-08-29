@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Literal, Optional
 from urllib.parse import parse_qs, urlparse
 import re
+import requests
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
@@ -28,6 +29,7 @@ from routers.issues import _source
 from models.response_schemas import IssueSource
 from services.jwt_auth import get_current_user, get_optional_user
 from services.rate_limit_store import check_rate_limit
+from services.social_link_classifier import confidence_for, fetch_social_metadata, rank_agenda_issues
 
 router = APIRouter(prefix="/discussions", tags=["discussions"])
 
@@ -36,6 +38,7 @@ REPORT_LIMIT = 5
 BLOCK_LIMIT = 10
 POST_LIMIT = 5
 ENGAGEMENT_LIMIT = 30
+LINK_SUGGEST_LIMIT = 20
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 TIKTOK_ID = re.compile(r"^[0-9]{10,25}$")
 FACEBOOK_ID = re.compile(r"^[A-Za-z0-9_-]{5,100}$")
@@ -64,7 +67,7 @@ class ReportCreate(BaseModel):
 
 
 class DiscussionCreate(BaseModel):
-    body: str = Field(min_length=1, max_length=10000)
+    body: str = Field(default="", max_length=10000)
     video_url: Optional[str] = Field(default=None, min_length=1, max_length=1000)
     issue_slug: Optional[str] = Field(default=None, min_length=1, max_length=100)
 
@@ -73,8 +76,27 @@ class DiscussionCreate(BaseModel):
     def body_must_have_text(cls, value: str) -> str:
         value = value.strip()
         if not value:
-            raise ValueError("Post body must contain text")
+            return ""
         return value
+
+
+class LinkSuggestionRequest(BaseModel):
+    video_url: str = Field(min_length=1, max_length=1000)
+
+
+class LinkSuggestionItem(BaseModel):
+    slug: str
+    title: str
+    score: int
+
+
+class LinkSuggestionResponse(BaseModel):
+    provider: Literal["youtube", "tiktok", "facebook", "instagram"]
+    canonical_url: str
+    suggested_issue: Optional[LinkSuggestionItem]
+    alternatives: list[LinkSuggestionItem]
+    confidence: Literal["low", "medium", "high"]
+    metadata_available: bool
 
 
 class VideoCommentCreate(BaseModel):
@@ -298,6 +320,33 @@ def _base_query(db: Session):
     ).filter(DiscussionPost.moderation_status == "published")
 
 
+@router.post("/link-suggestion", response_model=LinkSuggestionResponse)
+def suggest_discussion_issue(
+    body: LinkSuggestionRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _rate_limit(request, user, "discussions:link-suggestion", LINK_SUGGEST_LIMIT, db)
+    provider, _, canonical_url = _social_link(body.video_url)
+    metadata = ""
+    try:
+        metadata = fetch_social_metadata(provider, canonical_url)
+    except (requests.RequestException, ValueError):
+        metadata = ""
+    issues = {row.slug: row.title for row in db.query(Issue).order_by(Issue.slug.asc()).all()}
+    matches = rank_agenda_issues(metadata, issues)
+    ranked = [LinkSuggestionItem(slug=item.slug, title=issues[item.slug], score=item.score) for item in matches[:3]]
+    return {
+        "provider": provider,
+        "canonical_url": canonical_url,
+        "suggested_issue": ranked[0] if ranked else None,
+        "alternatives": ranked[1:],
+        "confidence": confidence_for(matches),
+        "metadata_available": bool(metadata.strip()),
+    }
+
+
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=DiscussionCreatedResponse)
 def create_discussion(
     body: DiscussionCreate,
@@ -307,6 +356,8 @@ def create_discussion(
 ):
     _rate_limit(request, user, "discussions:create", POST_LIMIT, db)
     video_link = _social_link(body.video_url) if body.video_url else None
+    if not video_link and not body.body:
+        raise HTTPException(status_code=422, detail="Add a thought or paste a supported social link")
     if video_link and not body.issue_slug:
         raise HTTPException(status_code=422, detail="Choose the Agenda issue this link belongs to")
     if body.issue_slug and db.get(Issue, body.issue_slug) is None:
@@ -314,7 +365,7 @@ def create_discussion(
     post = DiscussionPost(
         author_id=user.id,
         author_label=user.display_name or "Community member",
-        body=body.body,
+        body=body.body or f"Shared a {video_link[0].title()} video for civic review.",
         moderation_status="pending",
     )
     if video_link:

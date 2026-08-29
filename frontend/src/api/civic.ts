@@ -249,6 +249,21 @@ export function createVideoDiscussion(data: { body: string; video_url?: string; 
   return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
 }
 
+export interface DiscussionLinkSuggestion {
+  provider: 'youtube' | 'tiktok' | 'facebook' | 'instagram';
+  canonical_url: string;
+  suggested_issue: { slug: string; title: string; score: number } | null;
+  alternatives: Array<{ slug: string; title: string; score: number }>;
+  confidence: 'low' | 'medium' | 'high';
+  metadata_available: boolean;
+}
+
+export function suggestDiscussionIssue(videoUrl: string) {
+  return apiFetch<DiscussionLinkSuggestion>('/discussions/link-suggestion', {
+    method: 'POST', body: { video_url: videoUrl },
+  });
+}
+
 export function fetchVideoComments(videoId: string) {
   return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>(`/discussions/videos/${encodeURIComponent(videoId)}`);
 }
