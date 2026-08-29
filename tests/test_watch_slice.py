@@ -148,7 +148,7 @@ def test_watch_automatically_includes_published_community_provider_videos(tmp_pa
     assert item["creator_label"] == "Community member"
     assert item["caption"] == "YouTube video about Housing & Rent"
     assert item["issue"] == {"slug": "housing-rent", "title": "Housing & Rent"}
-    assert item["delivery"]["poster_url"] == f"/api/videos/community/{post_id}/poster"
+    assert item["delivery"]["poster_url"] == f"/videos/community/{post_id}/poster"
     assert item["delivery"]["provider_video_id"] == "ssTeslcxXbY"
     assert item["discussion_post_id"] == post_id
     assert client.get(f"/videos/community-{post_id}").json() == item

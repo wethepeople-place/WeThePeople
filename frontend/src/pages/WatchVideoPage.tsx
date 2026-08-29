@@ -119,6 +119,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
   if (!provider || !embedUrl) return <LinkOutCard item={item} delivery={embed} position={position} total={total} onChange={onChange} onComments={onComments} />;
   const providerLabel = getProviderLabel(provider);
   const privacyLine = `Playing connects to ${providerLabel}`;
+  const posterUrl = embed.poster_url?.startsWith('/videos/') ? `${getApiBaseUrl()}${embed.poster_url}` : embed.poster_url;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-6 px-4 py-8 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:px-8">
       <div className="relative mx-auto grid aspect-[9/16] max-h-[72vh] w-full max-w-md place-content-center overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
@@ -132,7 +133,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
           allowFullScreen
           onError={() => setFailed(true)}
         /> : <div className="relative flex h-full max-w-2xl flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-8">
-          {embed.poster_url && !posterFailed && <img src={embed.poster_url} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" onError={() => setPosterFailed(true)} />}
+          {posterUrl && !posterFailed && <img src={posterUrl} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" onError={() => setPosterFailed(true)} />}
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/60 to-black/90" />
           <div className="relative z-[1] flex flex-col items-center">
           <p className="text-sm font-bold uppercase tracking-widest text-amber-300">{embed.source_label || providerLabel}</p>
