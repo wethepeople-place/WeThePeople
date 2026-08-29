@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { createVideoDiscussion, fetchPublicDiscussions, suggestDiscussionIssue, type PublicDiscussionPost } from '../api/civic';
+import { createDiscussion, fetchPublicDiscussions, suggestDiscussionIssue, type PublicDiscussionPost } from '../api/civic';
 import { fetchIssueAgenda, type AgendaIssue } from '../api/issues';
 import DiscussionPostCard from '../components/DiscussionPostCard';
 import { useAuth } from '../contexts/AuthContext';
 
 const PAGE_SIZE = 20;
+
+function isSupportedSocialLink(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase().replace(/^www\./, '');
+    return hostname === 'youtu.be' || hostname === 'youtube.com' || hostname.endsWith('.youtube.com')
+      || hostname === 'tiktok.com' || hostname.endsWith('.tiktok.com')
+      || hostname === 'instagram.com' || hostname.endsWith('.instagram.com')
+      || hostname === 'facebook.com' || hostname.endsWith('.facebook.com')
+      || hostname === 'fb.watch';
+  } catch {
+    return false;
+  }
+}
 
 export default function DiscussionsPage() {
   const [params] = useSearchParams();
@@ -21,12 +34,12 @@ export default function DiscussionsPage() {
   const [error, setError] = useState('');
   const [body, setBody] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [showLink, setShowLink] = useState(false);
   const [agendaIssues, setAgendaIssues] = useState<AgendaIssue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState(issue);
   const [suggestionState, setSuggestionState] = useState<'idle' | 'loading' | 'ready' | 'unmatched' | 'error'>('idle');
   const [suggestedTitle, setSuggestedTitle] = useState('');
   const [showIssuePicker, setShowIssuePicker] = useState(false);
-  const [showNote, setShowNote] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
   const { isAuthenticated } = useAuth();
@@ -35,7 +48,7 @@ export default function DiscussionsPage() {
   useEffect(() => setSelectedIssue(issue), [issue]);
 
   useEffect(() => {
-    if (issue || !videoUrl.trim()) {
+    if (issue || !videoUrl.trim() || !isSupportedSocialLink(videoUrl.trim())) {
       setSuggestionState('idle');
       setSuggestedTitle('');
       setShowIssuePicker(false);
@@ -92,7 +105,7 @@ export default function DiscussionsPage() {
   useEffect(() => {
     if (!compose) return;
     composer.current?.scrollIntoView({ block: 'start' });
-    composer.current?.querySelector<HTMLInputElement>('input[type="url"]')?.focus();
+    composer.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
   }, [compose, isAuthenticated]);
 
   const loadMore = async () => {
@@ -107,8 +120,12 @@ export default function DiscussionsPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
     try {
-      const result = await createVideoDiscussion({ body, ...(videoUrl ? { video_url: videoUrl } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
-      setBody(''); setVideoUrl(''); setSelectedIssue(issue); setSuggestedTitle(''); setShowNote(false); setNotice(`${result.message}. It will appear here after review.`);
+      const trimmedLink = videoUrl.trim();
+      const socialLink = trimmedLink && isSupportedSocialLink(trimmedLink) ? trimmedLink : '';
+      const postBody = socialLink || !trimmedLink ? body.trim() : [body.trim(), trimmedLink].filter(Boolean).join('\n\n');
+      if (postBody.length > 10000) throw new Error('Shorten your post before adding this link.');
+      const result = await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
+      setBody(''); setVideoUrl(''); setShowLink(false); setSelectedIssue(issue); setSuggestedTitle(''); setNotice(`${result.message}. It will appear here after review.`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to submit post.'); }
     finally { setSubmitting(false); }
   };
@@ -127,23 +144,23 @@ export default function DiscussionsPage() {
       <div className="mt-7 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
           <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-labelledby="share-video-heading">
-            <h2 id="share-video-heading" className="text-xl font-semibold">Create a civic post</h2>
-            <p className="mt-2 text-sm leading-6 text-text-2">Paste a TikTok, Instagram, Facebook, or YouTube link. We organize it automatically.</p>
+            <h2 id="share-video-heading" className="text-xl font-semibold">Share with your community</h2>
+            <p className="mt-2 text-sm leading-6 text-text-2">Write a post, share a link, or do both.</p>
             {isAuthenticated ? <form className="mt-5 space-y-4" onSubmit={submit}>
-              <label className="block text-sm font-semibold">Video link<input className="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" required placeholder="Paste link" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></label>
-              {videoUrl && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
+              <label className="block text-sm font-semibold">What do you want people to know?<textarea className="mt-2 min-h-28 w-full rounded-xl border border-border bg-bg px-4 py-3 text-base leading-6 text-text-1" maxLength={10000} placeholder="Share a thought, question, or update…" value={body} onChange={(event) => setBody(event.target.value)} /></label>
+              {showLink && <label className="block text-sm font-semibold">Link <span className="font-normal text-text-3">(optional)</span><input autoFocus className="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" inputMode="url" pattern="https://.*" placeholder="https://…" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /><span className="mt-2 block text-xs font-normal leading-5 text-text-3">Web links open safely in a new tab. TikTok, Instagram, Facebook, and YouTube links are organized automatically.</span></label>}
+              {videoUrl && isSupportedSocialLink(videoUrl) && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
                 {suggestionState === 'loading' && <p className="text-sm text-text-2">Matching this video automatically…</p>}
                 {suggestionState === 'ready' && <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-3">Suggested issue</p><p className="mt-1 font-semibold text-text-1">{suggestedTitle}</p></div><button type="button" className="font-semibold text-accent-text underline" onClick={() => setShowIssuePicker((current) => !current)}>{showIssuePicker ? 'Keep suggestion' : 'Change'}</button></div>}
                 {suggestionState === 'unmatched' && <p className="text-sm text-text-2">Add a few words about the topic so we can match it.</p>}
                 {suggestionState === 'error' && <p className="text-sm text-text-2">We will match the topic when you post.</p>}
               </div>}
               {(Boolean(issue) || showIssuePicker) && <label className="block text-sm font-semibold">Agenda issue<select className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" value={selectedIssue} onChange={(event) => { setSelectedIssue(event.target.value); setSuggestedTitle(agendaIssues.find((item) => item.slug === event.target.value)?.title || ''); setSuggestionState(event.target.value ? 'ready' : 'unmatched'); }} required disabled={Boolean(issue)}><option value="">Choose an issue</option>{agendaIssues.map((agendaIssue) => <option key={agendaIssue.slug} value={agendaIssue.slug}>{agendaIssue.title}</option>)}</select></label>}
-              {showNote && <label className="block text-sm font-semibold">Your note <span className="font-normal text-text-3">(optional)</span><textarea autoFocus className="mt-2 min-h-20 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" maxLength={10000} placeholder="What is this about?" value={body} onChange={(event) => setBody(event.target.value)} /></label>}
               <div className="flex flex-wrap items-center gap-4">
-                <button disabled={submitting || !videoUrl.trim()} className="min-h-12 rounded-full bg-accent px-7 py-3 font-bold text-white disabled:opacity-60">{submitting ? 'Posting…' : 'Post'}</button>
-                {!showNote && <button type="button" className="text-sm font-semibold text-accent-text underline" onClick={() => setShowNote(true)}>Add a note</button>}
+                <button disabled={submitting || (!body.trim() && !videoUrl.trim())} className="min-h-12 rounded-full bg-accent px-7 py-3 font-bold text-white disabled:opacity-40">{submitting ? 'Posting…' : 'Post'}</button>
+                {!showLink ? <button type="button" className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-text-1 hover:bg-bg" onClick={() => setShowLink(true)}>Add link</button> : <button type="button" className="text-sm font-semibold text-text-2 underline" onClick={() => { setVideoUrl(''); setShowLink(false); }}>Remove link</button>}
               </div>
-              <p className="text-xs leading-5 text-text-3">Posts are reviewed before appearing publicly.</p>
+              <p className="text-xs leading-5 text-text-3">Your post will be reviewed before it appears publicly.</p>
             </form> : <p className="mt-4"><Link className="font-semibold text-accent-text underline" to={`/login?next=${encodeURIComponent(compose ? '/discuss?compose=1#composer' : '/discuss')}`}>Sign in to start a conversation</Link></p>}
             {notice && <p role="status" className="mt-4 text-sm text-accent-text">{notice}</p>}
           </section>
