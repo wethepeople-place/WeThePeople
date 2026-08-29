@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bookmark, ChevronDown, ExternalLink, Heart, MessageCircle, Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { Bookmark, ChevronDown, ExternalLink, Heart, Image as ImageIcon, Link2, MessageCircle, Pause, Play, SquarePen, Video as VideoIcon, Volume2, VolumeX } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
@@ -33,6 +33,22 @@ type Accessibility = {
 };
 
 const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
+
+function WatchQuickComposer() {
+  const composeUrl = '/discuss?compose=1#composer';
+  const lockedClass = 'inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-slate-500 opacity-80';
+  return <aside className="mx-auto w-[calc(100%-2rem)] max-w-3xl rounded-2xl border border-white/15 bg-slate-900/95 p-3 text-white shadow-2xl shadow-black/40 backdrop-blur sm:flex sm:items-center sm:gap-3" aria-label="Create a civic post">
+    <Link className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-full bg-white/10 px-4 text-left text-sm font-semibold text-slate-200 outline-none transition hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70 sm:text-base" to={composeUrl}>
+      <span className="grid h-9 w-9 shrink-0 place-content-center rounded-full bg-amber-300 text-slate-950"><SquarePen className="h-5 w-5" aria-hidden="true" /></span>
+      <span className="truncate">Share a civic video, link, or thought…</span>
+    </Link>
+    <div className="mt-2 flex items-center justify-center gap-1 sm:mt-0" aria-label="Post options">
+      <Link className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-amber-300 outline-none hover:bg-white/10 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={composeUrl}><Link2 className="h-5 w-5" aria-hidden="true" />Post link</Link>
+      <button className={lockedClass} type="button" disabled aria-label="Image — coming soon" title="Image uploads are coming after safety controls are ready"><ImageIcon className="h-5 w-5" aria-hidden="true" />Image</button>
+      <button className={lockedClass} type="button" disabled aria-label="Upload video — coming soon" title="Video uploads are coming after safety controls are ready"><VideoIcon className="h-5 w-5" aria-hidden="true" />Upload</button>
+    </div>
+  </aside>;
+}
 
 function CivicActions({ item }: { item: Video }) {
   return <div className="mt-5 min-w-0">
@@ -276,7 +292,7 @@ export default function WatchVideoPage() {
   }, [loaded, videoId, videos]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
   if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
-  if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-12 text-center text-white"><h1 className="text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
+  if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
   const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
-  return <><main className="h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed">{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
+  return <><main className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }
