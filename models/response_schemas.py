@@ -555,6 +555,7 @@ class VideoAccessibility(BaseModel):
 
 class VideoItem(BaseModel):
     video_id: str
+    content_origin: Literal["reviewed", "community"] = "reviewed"
     creator_label: str
     caption: str
     transcript: Optional[str] = None

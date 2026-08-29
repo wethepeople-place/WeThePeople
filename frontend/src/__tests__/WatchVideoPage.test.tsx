@@ -96,6 +96,36 @@ describe('WatchVideoPage', () => {
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
   })
 
+  it('shows an automatically-fed community video with its proxied thumbnail', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total: 1, next_cursor: null, has_more: false,
+        videos: [{
+          video_id: 'community-42', content_origin: 'community', creator_label: 'Community member',
+          caption: 'YouTube video about Housing & Rent', transcript: null,
+          media_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', published_at: '2026-08-29T00:00:00Z',
+          delivery: { mode: 'official_embed', provider: 'youtube', provider_video_id: 'ssTeslcxXbY', canonical_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', source_label: 'YouTube', poster_url: '/api/videos/community/42/poster', development_only: false },
+          accessibility: null, source: { url: 'https://www.youtube.com/shorts/ssTeslcxXbY', publisher: 'YouTube' },
+          issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: 42,
+          like_count: 0, discussion_count: 1, liked: false, saved: false,
+        }],
+      }),
+    }))
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/watch/community-42']}>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByText('Community shared')).toBeTruthy())
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/videos/community/42/poster')
+    expect(screen.queryByText('Reviewed source')).toBeNull()
+    expect(screen.getByRole('link', { name: /Open this community conversation/ }).getAttribute('href')).toBe('/discuss/42')
+    expect(container.querySelectorAll('iframe')).toHaveLength(0)
+  })
+
   it('opens the shared video conversation without leaving Watch', async () => {
     const video = {
       video_id: 'housing-rent-road-act-explained', creator_label: 'Money Instructor',

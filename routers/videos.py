@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
@@ -12,14 +13,15 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, or_
-from fastapi.responses import HTMLResponse
+import requests
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.database import get_db
 from models.auth_models import User
-from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
+from models.issue_models import Issue, Video, VideoBill, VideoIssue, VideoLike, VideoSave
 from models.response_schemas import VideoInteractionState, VideoInteractionUpdate, VideoItem, VideoSharePreview, VideosResponse
-from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply
+from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply, DiscussionVideoLink
 from routers.issues import _source
 from services.watch_phase4c_production_media import production_metadata
 from services.jwt_auth import get_current_user, get_optional_user
@@ -29,6 +31,8 @@ router = APIRouter(prefix="/videos", tags=["videos"])
 PUBLIC_WEB_ORIGIN = os.getenv("WTP_PUBLIC_WEB_ORIGIN", "https://app.wethepeople.place").rstrip("/")
 CURSOR_SECRET = os.getenv("WTP_VIDEO_CURSOR_SECRET", "development-only-watch-cursor").encode()
 WATCH_FIXTURE_PATH = Path(__file__).resolve().parents[1] / "data" / "watch_housing_rent.json"
+COMMUNITY_VIDEO_ID = re.compile(r"^community-([1-9][0-9]*)$")
+PROVIDER_LABELS = {"youtube": "YouTube", "tiktok": "TikTok", "facebook": "Facebook", "instagram": "Instagram"}
 
 
 def _fixture_metadata(video_id: str) -> tuple[dict | None, dict | None]:
@@ -84,22 +88,25 @@ def _fixture_accessibility(video_id: str) -> dict | None:
         return None
 
 
-def _cursor(row: Video) -> str:
-    payload = json.dumps({"v": 1, "s": row.sort_order, "p": row.published_at.isoformat(), "i": row.video_id}, separators=(",", ":"), sort_keys=True).encode()
+def _cursor(offset: int) -> str:
+    payload = json.dumps({"v": 2, "o": offset}, separators=(",", ":"), sort_keys=True).encode()
     signature = hmac.new(CURSOR_SECRET, payload, hashlib.sha256).digest()
     return base64.urlsafe_b64encode(payload + signature).decode().rstrip("=")
 
 
-def _decode_cursor(value: str) -> tuple[int, datetime, str]:
+def _decode_cursor(value: str) -> int:
     try:
         raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
         payload, signature = raw[:-32], raw[-32:]
         if not hmac.compare_digest(signature, hmac.new(CURSOR_SECRET, payload, hashlib.sha256).digest()):
             raise ValueError
         data = json.loads(payload)
-        if data.get("v") != 1:
+        if data.get("v") != 2:
             raise ValueError
-        return int(data["s"]), datetime.fromisoformat(data["p"]), str(data["i"])
+        offset = int(data["o"])
+        if offset < 0:
+            raise ValueError
+        return offset
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise HTTPException(status_code=400, detail="Invalid video cursor") from None
 
@@ -108,6 +115,8 @@ def _share_preview(row: Video) -> dict:
     item = _serialize(row)
     return {
         "video_id": row.video_id,
+        "content_origin": "reviewed",
+        "content_origin": "reviewed",
         "canonical_url": f"{PUBLIC_WEB_ORIGIN}/watch/{quote(row.video_id, safe='')}",
         "title": f"{row.caption} | WeThePeople.place",
         "description": f"{row.creator_label} · {item['issue']['title']} · Source: {item['source']['publisher']}",
@@ -172,21 +181,94 @@ def _serialize(row: Video, interaction: dict | None = None) -> dict:
     }
 
 
+def _community_query(db: Session):
+    return (
+        db.query(DiscussionPost, DiscussionVideoLink, DiscussionAttachment, Issue)
+        .join(DiscussionVideoLink, DiscussionVideoLink.post_id == DiscussionPost.id)
+        .join(
+            DiscussionAttachment,
+            and_(
+                DiscussionAttachment.post_id == DiscussionPost.id,
+                DiscussionAttachment.attachment_type == "issue",
+            ),
+        )
+        .join(Issue, Issue.slug == DiscussionAttachment.issue_slug)
+        .filter(DiscussionPost.moderation_status == "published")
+    )
+
+
+def _community_row(db: Session, post_id: int):
+    return _community_query(db).filter(DiscussionPost.id == post_id).first()
+
+
+def _community_caption(post: DiscussionPost, provider_label: str, issue: Issue) -> str:
+    neutral = re.fullmatch(r"Shared a [A-Za-z]+ video\.", post.body.strip())
+    return f"{provider_label} video about {issue.title}" if neutral else post.body.strip()
+
+
+def _serialize_community(db: Session, row) -> dict:
+    post, video_link, _, issue = row
+    provider_label = PROVIDER_LABELS[video_link.provider]
+    video_id = f"community-{post.id}"
+    reply_count = db.query(DiscussionReply).filter_by(post_id=post.id, moderation_status="published").count()
+    delivery_mode = "official_embed" if video_link.provider in {"youtube", "tiktok", "facebook"} else "link_out"
+    poster_url = f"/api/videos/community/{post.id}/poster" if video_link.provider == "youtube" else None
+    return {
+        "video_id": video_id,
+        "content_origin": "community",
+        "creator_label": post.author_label,
+        "caption": _community_caption(post, provider_label, issue),
+        "transcript": None,
+        "captions_url": None,
+        "media_url": video_link.canonical_url,
+        "delivery": {
+            "mode": delivery_mode,
+            "provider": video_link.provider,
+            "provider_video_id": video_link.provider_video_id,
+            "canonical_url": video_link.canonical_url,
+            "poster_url": poster_url,
+            "source_label": provider_label,
+            "development_only": False,
+        },
+        "accessibility": None,
+        "published_at": post.created_at.isoformat(),
+        "source": {
+            "url": video_link.canonical_url,
+            "publisher": provider_label,
+            "retrieved_at": video_link.created_at.isoformat(),
+        },
+        "issue": {"slug": issue.slug, "title": issue.title},
+        "bills": [],
+        "discussion_post_id": post.id,
+        "discussion_count": 1 + reply_count,
+        "like_count": 0,
+        "liked": False,
+        "saved": False,
+    }
+
+
 @router.get("", response_model=VideosResponse)
-def list_videos(cursor: str | None = None, limit: int = Query(10, ge=1, le=25), user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
-    query = _query(db)
-    total = query.count()
-    if cursor:
-        sort_order, published_at, video_id = _decode_cursor(cursor)
-        query = query.filter(or_(
-            Video.sort_order > sort_order,
-            and_(Video.sort_order == sort_order, Video.published_at < published_at),
-            and_(Video.sort_order == sort_order, Video.published_at == published_at, Video.video_id > video_id),
-        ))
-    rows = query.order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).limit(limit + 1).all()
-    has_more = len(rows) > limit
-    page = rows[:limit]
-    return {"total": total, "videos": [_serialize(row, _interaction_state(db, row, user)) for row in page], "next_cursor": _cursor(page[-1]) if has_more and page else None, "has_more": has_more}
+def list_videos(cursor: str | None = None, limit: int = Query(25, ge=1, le=100), user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+    offset = _decode_cursor(cursor) if cursor else 0
+    # Community shares form the live, newest-first feed. The small reviewed
+    # catalog follows in its editorial order, preserving its existing contract.
+    community = [
+        ("community", row)
+        for row in _community_query(db).order_by(DiscussionPost.created_at.desc(), DiscussionPost.id.desc()).all()
+    ]
+    reviewed = [
+        ("reviewed", row)
+        for row in _query(db).order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).all()
+    ]
+    ordered = [*community, *reviewed]
+    page = ordered[offset:offset + limit]
+    videos = [
+        _serialize_community(db, value) if origin == "community" else _serialize(value, _interaction_state(db, value, user))
+        for origin, value in page
+    ]
+    next_offset = offset + len(page)
+    has_more = next_offset < len(ordered)
+    return {"total": len(ordered), "videos": videos, "next_cursor": _cursor(next_offset) if has_more else None, "has_more": has_more}
 
 
 @router.get("/saved", response_model=VideosResponse)
@@ -211,10 +293,41 @@ def list_saved_videos(limit: int = Query(25, ge=1, le=25), user: User = Depends(
 
 @router.get("/{video_id}", response_model=VideoItem)
 def get_video(video_id: str, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+    community_match = COMMUNITY_VIDEO_ID.fullmatch(video_id)
+    if community_match:
+        community = _community_row(db, int(community_match.group(1)))
+        if community is None:
+            raise HTTPException(status_code=404, detail="Video not found")
+        return _serialize_community(db, community)
     row = _query(db).filter(Video.video_id == video_id).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Video not found")
     return _serialize(row, _interaction_state(db, row, user))
+
+
+@router.get("/community/{post_id}/poster", include_in_schema=False)
+def get_community_video_poster(post_id: int, db: Session = Depends(get_db)):
+    row = _community_row(db, post_id)
+    if row is None or row[1].provider != "youtube":
+        raise HTTPException(status_code=404, detail="Video poster not found")
+    provider_video_id = row[1].provider_video_id
+    try:
+        response = requests.get(
+            f"https://i.ytimg.com/vi/{provider_video_id}/hqdefault.jpg",
+            headers={"User-Agent": "WeThePeople-WatchPoster/1.0 (+https://app.wethepeople.place)"},
+            timeout=(2, 5),
+            allow_redirects=False,
+        )
+        response.raise_for_status()
+        if len(response.content) > 1_500_000:
+            raise ValueError
+    except (requests.RequestException, ValueError):
+        raise HTTPException(status_code=404, detail="Video poster unavailable") from None
+    return Response(
+        content=response.content,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"},
+    )
 
 
 def _set_interaction(video_id: str, active: bool, model, request: Request, user: User, db: Session) -> dict:

@@ -15,7 +15,7 @@ from jobs.load_watch_fixture import WatchFixtureValidationError, load_fixture, v
 from models.database import Base, get_db
 from models.auth_models import User
 from models.issue_models import Video, VideoBill, VideoIssue, VideoLike, VideoSave
-from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply
+from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionReply, DiscussionVideoLink
 from middleware.security import SecurityHeadersMiddleware
 from routers.videos import router
 from services.jwt_auth import get_current_user, get_optional_user
@@ -121,6 +121,49 @@ def test_watch_exposes_only_published_exact_or_issue_discussion(tmp_path):
         session.commit()
         published_id = published.id
     assert client.get("/videos/housing-rent-why-rents-move").json()["discussion_post_id"] == published_id
+
+
+def test_watch_automatically_includes_published_community_provider_videos(tmp_path, monkeypatch):
+    client, Session = _client(tmp_path)
+    with Session() as session:
+        load_housing(housing_fixture(), session)
+        load_fixture(_watch_fixture(), session)
+        published = DiscussionPost(author_label="Community member", body="Shared a YouTube video.", moderation_status="published")
+        hidden = DiscussionPost(author_label="Community member", body="Hidden provider video", moderation_status="hidden")
+        session.add_all((published, hidden)); session.flush()
+        session.add_all((
+            DiscussionAttachment(post_id=published.id, attachment_type="issue", issue_slug="housing-rent", label="Housing & Rent"),
+            DiscussionAttachment(post_id=hidden.id, attachment_type="issue", issue_slug="housing-rent", label="Housing & Rent"),
+            DiscussionVideoLink(post_id=published.id, provider="youtube", provider_video_id="ssTeslcxXbY", canonical_url="https://www.youtube.com/shorts/ssTeslcxXbY"),
+            DiscussionVideoLink(post_id=hidden.id, provider="youtube", provider_video_id="KUpIEDqbVyk", canonical_url="https://www.youtube.com/watch?v=KUpIEDqbVyk"),
+        ))
+        session.commit()
+        post_id = published.id
+
+    feed = client.get("/videos").json()
+    assert feed["total"] == 2
+    item = feed["videos"][0]
+    assert item["video_id"] == f"community-{post_id}"
+    assert item["content_origin"] == "community"
+    assert item["creator_label"] == "Community member"
+    assert item["caption"] == "YouTube video about Housing & Rent"
+    assert item["issue"] == {"slug": "housing-rent", "title": "Housing & Rent"}
+    assert item["delivery"]["poster_url"] == f"/api/videos/community/{post_id}/poster"
+    assert item["delivery"]["provider_video_id"] == "ssTeslcxXbY"
+    assert item["discussion_post_id"] == post_id
+    assert client.get(f"/videos/community-{post_id}").json() == item
+    assert all(not video["delivery"] or video["delivery"].get("provider_video_id") != "KUpIEDqbVyk" for video in feed["videos"])
+
+    class ThumbnailResponse:
+        content = b"jpeg-thumbnail"
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr("routers.videos.requests.get", lambda *args, **kwargs: ThumbnailResponse())
+    poster = client.get(f"/videos/community/{post_id}/poster")
+    assert poster.status_code == 200
+    assert poster.headers["content-type"] == "image/jpeg"
+    assert poster.content == b"jpeg-thumbnail"
 
 
 def test_watch_interactions_are_authenticated_idempotent_private_and_video_scoped(tmp_path):
