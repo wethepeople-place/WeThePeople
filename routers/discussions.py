@@ -119,7 +119,7 @@ class DiscussionVideoLinkItem(BaseModel):
 
 class DiscussionCreatedResponse(BaseModel):
     id: int
-    moderation_status: Literal["pending"]
+    moderation_status: Literal["pending", "published"]
     message: str
 
 
@@ -374,8 +374,8 @@ def create_discussion(
     post = DiscussionPost(
         author_id=user.id,
         author_label=user.display_name or "Community member",
-        body=body.body or f"Shared a {video_link[0].title()} video for civic review.",
-        moderation_status="pending",
+        body=body.body or f"Shared a {video_link[0].title()} video.",
+        moderation_status="published",
     )
     if video_link:
         provider, video_id, canonical_url = video_link
@@ -389,7 +389,7 @@ def create_discussion(
     db.add(post)
     db.commit()
     db.refresh(post)
-    return {"id": post.id, "moderation_status": "pending", "message": "Submitted for moderation"}
+    return {"id": post.id, "moderation_status": "published", "message": "Posted"}
 
 
 @router.get("", response_model=DiscussionFeedResponse)

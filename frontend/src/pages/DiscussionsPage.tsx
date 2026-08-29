@@ -125,7 +125,8 @@ export default function DiscussionsPage() {
       const postBody = socialLink || !trimmedLink ? body.trim() : [body.trim(), trimmedLink].filter(Boolean).join('\n\n');
       if (postBody.length > 10000) throw new Error('Shorten your post before adding this link.');
       const result = await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
-      setBody(''); setVideoUrl(''); setShowLink(false); setSelectedIssue(issue); setSuggestedTitle(''); setNotice(`${result.message}. It will appear here after review.`);
+      setBody(''); setVideoUrl(''); setShowLink(false); setSelectedIssue(issue); setSuggestedTitle('');
+      setNotice(result.moderation_status === 'published' ? 'Posted. It is now visible in Latest discussions.' : `${result.message}. It will appear here after review.`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to submit post.'); }
     finally { setSubmitting(false); }
   };
