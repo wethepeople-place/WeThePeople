@@ -12,7 +12,8 @@ from models.auth_models import User
 from models.civic_models import Proposal, SolutionRevision, SolutionVote
 from models.database import get_db
 from models.issue_models import Issue
-from models.social_models import DiscussionAttachment, DiscussionPost
+from models.social_models import DiscussionAttachment, DiscussionPost, DiscussionVideoLink
+from routers.discussions import _social_link
 from services.jwt_auth import get_current_user, get_optional_user
 from services.rate_limit_store import check_rate_limit
 
@@ -25,6 +26,7 @@ class SolutionCreate(BaseModel):
     title: str = Field(min_length=5, max_length=500)
     summary: str = Field(min_length=10, max_length=1000)
     body: str = Field(min_length=20, max_length=10000)
+    video_url: Optional[str] = Field(default=None, max_length=2000)
 
     @field_validator("issue_slug", "title", "summary", "body")
     @classmethod
@@ -84,6 +86,11 @@ def _serialize(row: Proposal, db: Session, user: Optional[User] = None, include_
         "vote_totals": _totals(row.id, db), "current_user_choice": vote,
         "vote_rule": VOTE_RULE, "vote_choices": ["support", "oppose"],
         "discussion_post_id": discussion.post_id if discussion else None,
+        "video_link": ({
+            "provider": discussion.post.video_link.provider,
+            "provider_video_id": discussion.post.video_link.provider_video_id,
+            "canonical_url": discussion.post.video_link.canonical_url,
+        } if discussion and discussion.post.video_link else None),
     }
     if include_body:
         payload.update({"body": row.body, "duplicate_of_solution_id": row.duplicate_of_id})
@@ -149,6 +156,21 @@ def create_solution(body: SolutionCreate, request: Request, user: User = Depends
                    status="published", published_at=datetime.now(timezone.utc), latest_revision_number=1)
     db.add(row)
     db.flush()
+    video_link = _social_link(body.video_url) if body.video_url else None
+    if video_link:
+        provider, provider_video_id, canonical_url = video_link
+        discussion = DiscussionPost(
+            author_id=user.id, author_label=user.display_name or "Community member",
+            body=body.body, moderation_status="published",
+            video_link=DiscussionVideoLink(
+                provider=provider, provider_video_id=provider_video_id, canonical_url=canonical_url,
+            ),
+        )
+        discussion.attachments.extend([
+            DiscussionAttachment(attachment_type="issue", issue_slug=row.issue_slug, label=db.get(Issue, row.issue_slug).title),
+            DiscussionAttachment(attachment_type="solution", solution_id=row.id, label=row.title),
+        ])
+        db.add(discussion)
     db.add(SolutionRevision(solution_id=row.id, editor_user_id=user.id, revision_number=1, title=row.title,
                             summary=row.summary, body=row.body, change_note="Initial publication"))
     db.commit()
