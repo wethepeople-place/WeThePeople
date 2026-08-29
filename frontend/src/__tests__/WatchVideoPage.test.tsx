@@ -56,6 +56,10 @@ describe('WatchVideoPage', () => {
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
     expect(container.querySelectorAll('video')).toHaveLength(0)
     expect(screen.getByRole('link', { name: 'Explore the Civic Hub' }).getAttribute('href')).toBe('/civic')
+    expect(screen.getByRole('link', { name: /Share a civic video, link, or thought/ }).getAttribute('href')).toBe('/discuss?compose=1#composer')
+    expect(screen.getByRole('link', { name: 'Post link' }).getAttribute('href')).toBe('/discuss?compose=1#composer')
+    expect(screen.getByRole('button', { name: /Image — coming soon/ }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: /Upload video — coming soon/ }).hasAttribute('disabled')).toBe(true)
   })
 
   it('shows a local reviewed thumbnail without loading the provider player', async () => {
@@ -120,6 +124,7 @@ describe('WatchVideoPage', () => {
     )
 
     await waitFor(() => expect(screen.getByText('Community shared')).toBeTruthy())
+    expect(screen.getByRole('link', { name: /Share a civic video, link, or thought/ }).getAttribute('href')).toBe('/discuss?compose=1#composer')
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/videos/community/42/poster')
     expect(screen.queryByText('Reviewed source')).toBeNull()
     expect(screen.getByRole('link', { name: /Open this community conversation/ }).getAttribute('href')).toBe('/discuss/42')
