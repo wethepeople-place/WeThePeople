@@ -7,7 +7,6 @@ it('connects every top-level civic journey destination', () => {
   render(<MemoryRouter initialEntries={['/government']}><CivicJourneyNav /></MemoryRouter>);
 
   const expected = {
-    Watch: '/watch',
     Agenda: '/civic',
     Issues: '/issues/housing-rent',
     Discuss: '/discuss',
@@ -26,9 +25,10 @@ it('connects every top-level civic journey destination', () => {
   expect(screen.getByRole('link', { name: 'Create a civic post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
 });
 
-it('keeps all seven phone-first destinations directly reachable', () => {
+it('keeps the six main phone-first destinations directly reachable', () => {
   render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
-  for (const label of ['Agenda', 'Watch', 'Discuss', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
+  for (const label of ['Discuss', 'Agenda', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
     expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
   }
+  expect(screen.queryByRole('link', { name: 'Watch' })).toBeNull();
 });

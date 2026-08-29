@@ -15,7 +15,7 @@ export default function DiscussionDetailPage() {
   const solution = item.attachments.find((value) => value.type === 'solution');
   const related = item.attachments.filter((value) => ['video', 'bill', 'politician', 'source'].includes(value.type));
   const href = (type: string, id: string) => ({
-    video: `/watch/${id}`,
+    video: `/discuss?video=${encodeURIComponent(id)}`,
     bill: `/politics/bill/${id}`,
     politician: `/politics/people/${id}`,
   }[type]);

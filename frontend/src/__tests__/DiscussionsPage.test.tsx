@@ -14,17 +14,17 @@ describe('DiscussionsPage', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('settles an empty public feed and links back into the journey', async () => {
+  it('settles an empty public feed and points people to its composer', async () => {
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('No published discussions yet')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('No posts here yet')).toBeTruthy());
     expect(screen.queryByLabelText('Loading latest discussions')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Explore Watch' }).getAttribute('href')).toBe('/watch');
+    expect(screen.getByRole('link', { name: 'Create a post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
     expect(screen.getByText('Latest').getAttribute('aria-current')).toBe('page');
   });
 
   it('requests and preserves issue context', async () => {
     render(<MemoryRouter initialEntries={['/discuss?issue=housing-rent']}><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('No published discussions yet')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('No posts here yet')).toBeTruthy());
     expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('issue_slug=housing-rent');
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
   });

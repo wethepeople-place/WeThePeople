@@ -29,7 +29,6 @@ import CivicJourneyNav from "./components/CivicJourneyNav";
 
 // ── Lazy-loaded pages ──
 
-const HomePage = React.lazy(() => import("./pages/HomePage"));
 const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage"));
 const SolutionsPage = React.lazy(() => import("./pages/SolutionsPage"));
 const SolutionDetailPage = React.lazy(() => import("./pages/SolutionDetailPage"));
@@ -214,7 +213,7 @@ const App: React.FC = () => (
       }>
         <Routes>
           {/* Sector selector */}
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<DiscussionsPage />} />
           <Route path="/issues/:slug" element={<IssueDetailPage />} />
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
           <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />
