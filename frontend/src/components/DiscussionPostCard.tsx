@@ -105,7 +105,7 @@ export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
       </header>
 
       <div id={`discussion-${item.id}`} className="mt-4 whitespace-pre-wrap text-lg leading-8 text-text-1">{linkedText(item.body, item.id)}</div>
-      {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`YouTube video shared by ${item.author.display_name}`} />}
+      {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`Video shared by ${item.author.display_name}`} postId={item.id} />}
       {reviewedVideo && <Link aria-label={`Watch with conversation, ${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`} className="mt-4 flex min-h-12 w-full items-center justify-between gap-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm sm:inline-flex sm:w-auto sm:rounded-full" to={`/watch/${reviewedVideo.reference_id}?comments=1`}><span className="inline-flex items-center gap-2"><Play className="h-4 w-4 fill-current" />Watch with conversation</span><span className="whitespace-nowrap text-xs font-semibold text-white/80">{item.reply_count} {item.reply_count === 1 ? 'reply' : 'replies'}</span></Link>}
 
       {item.attachments.length > 0 && <aside aria-label="Civic context" className="mt-4 flex flex-wrap gap-2">{item.attachments.map((attachment) => {

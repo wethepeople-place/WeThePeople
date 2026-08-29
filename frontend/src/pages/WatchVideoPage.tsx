@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getOfficialEmbedUrl, getProviderLabel, getProviderPrivacyUrl, getValidatedProvider } from '../features/watch/providers';
 
 type Video = {
-  video_id: string; creator_label: string; caption: string; transcript: string | null;
+  video_id: string; content_origin?: 'reviewed' | 'community'; creator_label: string; caption: string; transcript: string | null;
   media_url: string; published_at: string;
   delivery: Delivery | null;
   accessibility: Accessibility | null;
@@ -52,6 +52,11 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'like' | 'save' | ''>('');
   const [message, setMessage] = useState('');
+  const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
+  if (item.content_origin === 'community') return <aside className="absolute bottom-5 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Community video actions">
+    {item.discussion_post_id && <Link className={buttonClass} to={`/discuss/${item.discussion_post_id}`} aria-label={`Open this community conversation, ${item.discussion_count} published contributions`}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></Link>}
+    <ShareButton rail url={`${window.location.origin}/watch/${item.video_id}`} title={item.caption} text={item.caption} />
+  </aside>;
   const signIn = () => navigate(`/login?next=${encodeURIComponent(`/watch/${item.video_id}`)}`);
   const toggle = async (kind: 'like' | 'save') => {
     if (!isAuthenticated) { signIn(); return; }
@@ -66,7 +71,6 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Action failed.'); }
     finally { setBusy(''); }
   };
-  const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
   return <aside className="absolute bottom-5 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Video actions">
     <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-6 w-6 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
     <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-6 w-6 ${item.saved ? 'fill-amber-300 text-amber-300' : ''}`} aria-hidden="true" /><span>Save</span></button>
@@ -79,7 +83,7 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
 function WatchStatus({ item, provider, position, total }: { item: Video; provider: string; position: number; total: number }) {
   return <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest">
     <span className="rounded-full bg-white/10 px-3 py-1.5 text-white">{provider}</span>
-    <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">Reviewed source</span>
+    <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">{item.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
     <span className="ml-auto text-slate-400" aria-label={`Video ${position} of ${total}`}>{position} / {total}</span>
     <span className="basis-full text-amber-300">Watch · <Link className="underline decoration-amber-300/60 underline-offset-4 outline-none hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>{item.issue.title}</Link></span>
   </div>;
@@ -156,7 +160,7 @@ function LinkOutCard({ item, delivery, position, total, onChange, onComments }: 
     <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 pr-24 sm:px-8 sm:pr-28">
       <ActionRail item={item} onChange={onChange} onComments={onComments} />
       <WatchStatus item={item} provider={delivery.source_label || 'Official source'} position={position} total={total} />
-      <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">{delivery.development_only ? 'Development Watch fixture' : 'Reviewed production source'}</p>
+      <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">{delivery.development_only ? 'Development Watch fixture' : item.content_origin === 'community' ? 'Shared by a community member' : 'Reviewed production source'}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
       <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
       <a className="mt-5 w-fit rounded-full bg-white px-5 py-3 font-bold text-slate-950" href={delivery.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
@@ -237,7 +241,7 @@ export default function WatchVideoPage() {
   useEffect(() => {
     const controller = new AbortController();
     const loadFeed = async () => {
-      const feedResponse = await authedFetch(`${getApiBaseUrl()}/videos?limit=25`, { signal: controller.signal });
+      const feedResponse = await authedFetch(`${getApiBaseUrl()}/videos?limit=100`, { signal: controller.signal });
       if (!feedResponse.ok) throw new Error('Watch could not load');
       const feed = await feedResponse.json() as Feed;
       let items = feed.videos;
