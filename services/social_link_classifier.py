@@ -25,7 +25,13 @@ ISSUE_TERMS: dict[str, tuple[str, ...]] = {
     "housing-rent": ("housing", "rent", "renter", "landlord", "mortgage", "home price", "foreclosure", "eviction"),
     "education-student-debt": ("education", "school", "teacher", "college", "university", "student loan", "student debt", "tuition"),
     "jobs-unemployment": ("unemployment", "job market", "job loss", "layoff", "hiring", "employment"),
-    "poverty-hunger-homelessness": ("poverty", "homeless", "hunger", "food insecurity", "shelter"),
+    "poverty-hunger-homelessness": (
+        "poverty",
+        "homeless",
+        "hunger",
+        "food insecurity",
+        "shelter",
+    ),
     "taxes": ("tax reform", "income tax", "corporate tax", "tax cut", "tax rate", "taxes"),
     "climate-environment": ("climate", "environment", "pollution", "emissions", "global warming", "clean energy"),
     "crime-violence": (
@@ -105,15 +111,51 @@ def fetch_social_metadata(provider: str, canonical_url: str) -> str:
     return " ".join(values)
 
 
+def _word_forms(word: str) -> set[str]:
+    """Return conservative inflectional relatives without fuzzy substring matching."""
+    forms = {word}
+    pending = [word]
+    while pending:
+        current = pending.pop()
+        relatives: set[str] = set()
+        if len(current) > 7 and current.endswith("ness"):
+            relatives.add(current[:-4])
+        if len(current) > 5 and current.endswith("ies"):
+            relatives.add(f"{current[:-3]}y")
+        if len(current) > 4 and current.endswith("s") and not current.endswith("ss"):
+            relatives.add(current[:-1])
+        if len(current) > 6 and current.endswith("ing"):
+            relatives.update((current[:-3], f"{current[:-3]}e"))
+        if len(current) > 5 and current.endswith("ed"):
+            relatives.update((current[:-2], f"{current[:-2]}e"))
+        for relative in relatives:
+            if len(relative) >= 4 and relative not in forms:
+                forms.add(relative)
+                pending.append(relative)
+    return forms
+
+
+def _related_term_occurs(term: str, words: list[str]) -> bool:
+    term_words = term.split()
+    if not term_words or len(term_words) > len(words):
+        return False
+    term_forms = [_word_forms(word) for word in term_words]
+    for start in range(len(words) - len(term_words) + 1):
+        if all(term_forms[index] & _word_forms(words[start + index]) for index in range(len(term_words))):
+            return True
+    return False
+
+
 def rank_agenda_issues(text: str, available_slugs: Iterable[str]) -> list[Match]:
     normalized = re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+    words = normalized.split()
     matches: list[Match] = []
     for slug in available_slugs:
         found: list[str] = []
         score = 0
         for term in ISSUE_TERMS.get(slug, ()):
             clean = re.sub(r"[^a-z0-9]+", " ", term.lower()).strip()
-            if re.search(rf"\b{re.escape(clean)}\b", normalized):
+            if _related_term_occurs(clean, words):
                 found.append(term)
                 score += 3 if " " in clean else 2
         if score:

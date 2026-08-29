@@ -23,6 +23,7 @@ from models.social_models import (
 from models.issue_models import Issue
 from routers.discussions import router
 from services.jwt_auth import get_current_user, get_optional_user
+from services.social_link_classifier import rank_agenda_issues
 from tests.test_housing_rent_loader import _fixture as housing_fixture
 from tests.test_watch_slice import _watch_fixture
 
@@ -314,6 +315,51 @@ def test_youtube_short_is_normalized_and_classified_without_user_help(monkeypatc
     }
     assert detail["attachments"][0]["reference_id"] == "crime-violence"
     assert detail["attachments"][0]["label"] == "Crime & Violence"
+
+
+def test_youtube_homelessness_video_is_classified_without_user_help(monkeypatch):
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        session.add(Issue(slug="poverty-hunger-homelessness", title="Poverty, Hunger & Homelessness"))
+        session.commit()
+    _as_user(app, Session, alice_id)
+    monkeypatch.setattr(
+        "routers.discussions.fetch_social_metadata",
+        lambda provider, url: "What's behind rising homelessness in America? YouTube",
+    )
+
+    created = client.post(
+        "/discussions",
+        json={"video_url": "https://www.youtube.com/watch?v=KUpIEDqbVyk"},
+    )
+
+    assert created.status_code == 201
+    detail = client.get(f"/discussions/{created.json()['id']}").json()
+    assert detail["video_link"]["provider_video_id"] == "KUpIEDqbVyk"
+    assert detail["attachments"][0]["reference_id"] == "poverty-hunger-homelessness"
+    assert detail["attachments"][0]["label"] == "Poverty, Hunger & Homelessness"
+
+
+def test_classifier_matches_related_word_forms_across_the_reviewed_vocabulary():
+    cases = (
+        ("homelessness is rising", "poverty-hunger-homelessness"),
+        ("immigrants at the border", "immigration"),
+        ("grocery prices increased", "food-costs-security"),
+        ("tariffs affect imports", "trade-tariffs"),
+        ("medical bills and insurance premiums", "health-care-costs"),
+        ("shootings threaten public safety", "crime-violence"),
+    )
+    slugs = (
+        "poverty-hunger-homelessness",
+        "immigration",
+        "food-costs-security",
+        "trade-tariffs",
+        "health-care-costs",
+        "crime-violence",
+    )
+    for text, expected in cases:
+        assert rank_agenda_issues(text, slugs)[0].slug == expected
 
 
 def test_video_post_rejects_untrusted_or_malformed_links():
