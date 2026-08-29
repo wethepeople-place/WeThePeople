@@ -362,6 +362,37 @@ def test_classifier_matches_related_word_forms_across_the_reviewed_vocabulary():
         assert rank_agenda_issues(text, slugs)[0].slug == expected
 
 
+def test_classifier_selects_each_reviewed_agenda_issue_from_realistic_metadata():
+    cases = {
+        "immigration": "Immigrants face deportation at the border as asylum rules change",
+        "economy": "Economic recession concerns weigh on consumer confidence and GDP",
+        "health-care-reform": "Universal healthcare and health insurance coverage reform",
+        "cost-of-living": "Household budgets squeezed by living expenses and affordability",
+        "inflation": "Inflation erodes purchasing power as prices rise",
+        "housing-rent": "Renters face evictions while mortgages and home prices increase",
+        "education-student-debt": "Schools teachers tuition and student loans shape education policy",
+        "jobs-unemployment": "Layoffs hiring and unemployment reshape the job market",
+        "poverty-hunger-homelessness": "Homelessness hunger poverty and shelters strain communities",
+        "taxes": "Income taxes corporate tax rates and tax reform",
+        "climate-environment": "Climate pollution emissions and global warming threaten the environment",
+        "crime-violence": "Shootings violence and hate crimes raise public safety concerns",
+        "health-care-costs": "Medical bills insurance premiums prescription costs and deductibles",
+        "food-costs-security": "Groceries and food prices drive food insecurity",
+        "federal-budget-debt": "Federal deficits national debt government spending and the debt ceiling",
+        "welfare-entitlements": "Welfare public benefits eligibility and entitlement reforms",
+        "wages": "Minimum wages worker pay and wage growth",
+        "government-corruption": "Government fraud bribery ethics violations and accountability",
+        "social-security": "Social Security retirement benefits and program financing",
+        "trade-tariffs": "Tariffs imports exports and trade agreements",
+    }
+    slugs = tuple(cases)
+
+    for expected, text in cases.items():
+        matches = rank_agenda_issues(text, slugs)
+        assert matches, expected
+        assert matches[0].slug == expected, (expected, matches)
+
+
 def test_video_post_rejects_untrusted_or_malformed_links():
     for url in (
         "http://www.youtube.com/watch?v=maODCSHgPww",
