@@ -96,6 +96,29 @@ describe('DiscussionsPage', () => {
     expect(screen.getByText('Demo data')).toBeTruthy();
   });
 
+  it('recognizes a supported provider URL pasted directly into the main composer', async () => {
+    authenticated = true;
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    const message = await screen.findByLabelText('What do you want people to know?');
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
+      provider: 'tiktok', canonical_url: 'https://www.tiktok.com/@person/video/7579560442230508831',
+      suggested_issue: { slug: 'housing-rent', title: 'Housing & Rent', score: 6 },
+      alternatives: [], confidence: 'high', metadata_available: true,
+    }) } as Response);
+    fireEvent.change(message, { target: { value: 'https://www.tiktok.com/@person/video/7579560442230508831?tracking=1' } });
+    await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, moderation_status: 'published', message: 'Posted' }) } as Response);
+    fireEvent.click(screen.getByRole('button', { name: 'Post' }));
+    expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
+    const [, request] = vi.mocked(fetch).mock.calls.at(-1) || [];
+    const payload = JSON.parse(String(request?.body));
+    expect(payload.video_url).toContain('tiktok.com/@person/video/7579560442230508831');
+    expect(payload.body).toBe('');
+  });
+
   it('renders ordinary HTTPS links as safe external links', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,

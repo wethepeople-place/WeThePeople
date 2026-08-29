@@ -21,6 +21,11 @@ function isSupportedSocialLink(value: string) {
   }
 }
 
+function supportedSocialLinkIn(value: string) {
+  const candidate = value.match(/https:\/\/[^\s]+/)?.[0]?.replace(/[),.;!?]+$/, '') || '';
+  return isSupportedSocialLink(candidate) ? candidate : '';
+}
+
 export default function DiscussionsPage() {
   const [params] = useSearchParams();
   const issue = params.get('issue') || '';
@@ -44,11 +49,12 @@ export default function DiscussionsPage() {
   const [notice, setNotice] = useState('');
   const { isAuthenticated } = useAuth();
   const hasDemoItems = items.some((item) => item.author?.is_demo);
+  const socialCandidate = videoUrl.trim() || supportedSocialLinkIn(body);
 
   useEffect(() => setSelectedIssue(issue), [issue]);
 
   useEffect(() => {
-    if (issue || !videoUrl.trim() || !isSupportedSocialLink(videoUrl.trim())) {
+    if (issue || !socialCandidate || !isSupportedSocialLink(socialCandidate)) {
       setSuggestionState('idle');
       setSuggestedTitle('');
       setShowIssuePicker(false);
@@ -59,7 +65,7 @@ export default function DiscussionsPage() {
     const timeout = window.setTimeout(() => {
       setSuggestionState('loading');
       setShowIssuePicker(false);
-      suggestDiscussionIssue(videoUrl.trim())
+      suggestDiscussionIssue(socialCandidate)
         .then((result) => {
           if (!active) return;
           if (result.suggested_issue) {
@@ -82,7 +88,7 @@ export default function DiscussionsPage() {
         });
     }, 500);
     return () => { active = false; window.clearTimeout(timeout); };
-  }, [issue, videoUrl]);
+  }, [issue, socialCandidate]);
 
   useEffect(() => {
     let active = true;
@@ -121,8 +127,9 @@ export default function DiscussionsPage() {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
     try {
       const trimmedLink = videoUrl.trim();
-      const socialLink = trimmedLink && isSupportedSocialLink(trimmedLink) ? trimmedLink : '';
-      const postBody = socialLink || !trimmedLink ? body.trim() : [body.trim(), trimmedLink].filter(Boolean).join('\n\n');
+      const socialLink = trimmedLink && isSupportedSocialLink(trimmedLink) ? trimmedLink : supportedSocialLinkIn(body);
+      const note = socialLink ? body.replace(socialLink, '').trim() : body.trim();
+      const postBody = socialLink || !trimmedLink ? note : [note, trimmedLink].filter(Boolean).join('\n\n');
       if (postBody.length > 10000) throw new Error('Shorten your post before adding this link.');
       const result = await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
       setBody(''); setVideoUrl(''); setShowLink(false); setSelectedIssue(issue); setSuggestedTitle('');
@@ -150,7 +157,7 @@ export default function DiscussionsPage() {
             {isAuthenticated ? <form className="mt-5 space-y-4" onSubmit={submit}>
               <label className="block text-sm font-semibold">What do you want people to know?<textarea className="mt-2 min-h-28 w-full rounded-xl border border-border bg-bg px-4 py-3 text-base leading-6 text-text-1" maxLength={10000} placeholder="Share a thought, question, or update…" value={body} onChange={(event) => setBody(event.target.value)} /></label>
               {showLink && <label className="block text-sm font-semibold">Link <span className="font-normal text-text-3">(optional)</span><input autoFocus className="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" inputMode="url" pattern="https://.*" placeholder="https://…" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /><span className="mt-2 block text-xs font-normal leading-5 text-text-3">Web links open safely in a new tab. TikTok, Instagram, Facebook, and YouTube links are organized automatically.</span></label>}
-              {videoUrl && isSupportedSocialLink(videoUrl) && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
+              {socialCandidate && isSupportedSocialLink(socialCandidate) && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
                 {suggestionState === 'loading' && <p className="text-sm text-text-2">Matching this video automatically…</p>}
                 {suggestionState === 'ready' && <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-3">Suggested issue</p><p className="mt-1 font-semibold text-text-1">{suggestedTitle}</p></div><button type="button" className="font-semibold text-accent-text underline" onClick={() => setShowIssuePicker((current) => !current)}>{showIssuePicker ? 'Keep suggestion' : 'Change'}</button></div>}
                 {suggestionState === 'unmatched' && <p className="text-sm text-text-2">Add a few words about the topic so we can match it.</p>}
@@ -161,7 +168,7 @@ export default function DiscussionsPage() {
                 <button disabled={submitting || (!body.trim() && !videoUrl.trim())} className="min-h-12 rounded-full bg-accent px-7 py-3 font-bold text-white disabled:opacity-40">{submitting ? 'Posting…' : 'Post'}</button>
                 {!showLink ? <button type="button" className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-text-1 hover:bg-bg" onClick={() => setShowLink(true)}>Add link</button> : <button type="button" className="text-sm font-semibold text-text-2 underline" onClick={() => { setVideoUrl(''); setShowLink(false); }}>Remove link</button>}
               </div>
-              <p className="text-xs leading-5 text-text-3">Your post will be reviewed before it appears publicly.</p>
+              <p className="text-xs leading-5 text-text-3">Signed-in posts appear immediately. Provider links are organized into the civic feed automatically.</p>
             </form> : <p className="mt-4"><Link className="font-semibold text-accent-text underline" to={`/login?next=${encodeURIComponent(compose ? '/discuss?compose=1#composer' : '/discuss')}`}>Sign in to start a conversation</Link></p>}
             {notice && <p role="status" className="mt-4 text-sm text-accent-text">{notice}</p>}
           </section>
