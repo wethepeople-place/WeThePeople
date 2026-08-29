@@ -386,3 +386,4 @@ def test_link_post_automatically_attaches_the_best_issue_without_user_selection(
         assert [(item.attachment_type, item.issue_slug) for item in post.attachments] == [
             ("issue", "health-care-reform")
         ]
+        assert post.attachments[0].label == "Health Care Reform"
