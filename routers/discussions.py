@@ -369,7 +369,8 @@ def create_discussion(
         issue_slug = suggestions[0].slug if suggestions else None
         if not issue_slug:
             raise HTTPException(status_code=422, detail="We could not match this link yet. Add a few words about its topic and try again")
-    if issue_slug and db.get(Issue, issue_slug) is None:
+    issue_record = db.get(Issue, issue_slug) if issue_slug else None
+    if issue_slug and issue_record is None:
         raise HTTPException(status_code=422, detail="Choose a reviewed WTP issue")
     post = DiscussionPost(
         author_id=user.id,
@@ -384,7 +385,7 @@ def create_discussion(
         )
     if issue_slug:
         post.attachments.append(DiscussionAttachment(
-            attachment_type="issue", issue_slug=issue_slug, label="Related issue"
+            attachment_type="issue", issue_slug=issue_slug, label=issue_record.title
         ))
     db.add(post)
     db.commit()
