@@ -46,13 +46,19 @@ class DiscussionPost(Base):
 
 
 class DiscussionVideoLink(Base):
-    """A normalized external video link submitted with a community post."""
+    """A normalized external social-media link submitted with a community post."""
 
     __tablename__ = "discussion_video_links"
     __table_args__ = (
         UniqueConstraint("post_id", name="uq_discussion_video_link_post"),
-        CheckConstraint("provider IN ('youtube')", name="ck_discussion_video_link_provider"),
-        CheckConstraint("length(provider_video_id) = 11", name="ck_discussion_video_link_id_length"),
+        CheckConstraint(
+            "provider IN ('youtube','tiktok','facebook','instagram')",
+            name="ck_discussion_video_link_provider",
+        ),
+        CheckConstraint(
+            "length(provider_video_id) BETWEEN 5 AND 100",
+            name="ck_discussion_video_link_id_length",
+        ),
     )
 
     id = Column(Integer, primary_key=True)

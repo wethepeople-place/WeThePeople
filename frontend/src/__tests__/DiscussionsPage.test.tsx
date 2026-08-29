@@ -4,10 +4,12 @@ import { MemoryRouter } from 'react-router-dom';
 
 import DiscussionsPage from '../pages/DiscussionsPage';
 
-vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ isAuthenticated: false }) }));
+let authenticated = false;
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ isAuthenticated: authenticated }) }));
 
 describe('DiscussionsPage', () => {
   beforeEach(() => {
+    authenticated = false;
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) }));
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -25,6 +27,17 @@ describe('DiscussionsPage', () => {
     await waitFor(() => expect(screen.getByText('No published discussions yet')).toBeTruthy());
     expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('issue_slug=housing-rent');
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
+  });
+
+  it('offers the four supported social platforms and an Agenda selector', async () => {
+    authenticated = true;
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText(/Share a Facebook, TikTok, Instagram, or YouTube link/)).toBeTruthy());
+    expect(screen.getByLabelText(/Social link/).getAttribute('placeholder')).toContain('Facebook, TikTok, Instagram, or YouTube');
+    expect(await screen.findByRole('option', { name: '1. Housing & Rent' })).toBeTruthy();
   });
 
   it('renders a chronological civic post card with public counts', async () => {

@@ -227,7 +227,7 @@ def test_post_reactions_are_public_and_bookmarks_remain_private_and_idempotent()
         assert session.query(DiscussionBookmark).count() == 0
 
 
-def test_youtube_post_is_normalized_and_held_for_moderation():
+def test_social_post_is_normalized_connected_to_an_agenda_and_held_for_moderation():
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)
     assert client.post("/discussions", json={"body": "Worth discussing", "video_url": "https://youtu.be/maODCSHgPww"}).status_code == 401
@@ -256,6 +256,22 @@ def test_youtube_post_is_normalized_and_held_for_moderation():
         "canonical_url": "https://www.youtube.com/watch?v=maODCSHgPww",
     }
 
+    cases = (
+        ("https://www.tiktok.com/@civic.creator/video/7512345678901234567?lang=en", "tiktok", "7512345678901234567", "https://www.tiktok.com/@civic.creator/video/7512345678901234567"),
+        ("https://www.facebook.com/civic.page/videos/123456789012345/?tracking=1", "facebook", "123456789012345", "https://www.facebook.com/civic.page/videos/123456789012345"),
+        ("https://www.instagram.com/reel/ABC_def-123/?utm_source=share", "instagram", "ABC_def-123", "https://www.instagram.com/reel/ABC_def-123/"),
+    )
+    for url, provider, provider_id, canonical_url in cases:
+        response = client.post("/discussions", json={
+            "body": f"Review this {provider} source",
+            "video_url": url,
+            "issue_slug": "housing-rent",
+        })
+        assert response.status_code == 201
+        with Session() as session:
+            link = session.get(DiscussionPost, response.json()["id"]).video_link
+            assert (link.provider, link.provider_video_id, link.canonical_url) == (provider, provider_id, canonical_url)
+
 
 def test_text_only_post_is_allowed_and_held_for_moderation():
     app, client, Session = _environment()
@@ -271,15 +287,37 @@ def test_text_only_post_is_allowed_and_held_for_moderation():
 
 
 def test_video_post_rejects_untrusted_or_malformed_links():
-    app, client, Session = _environment()
-    alice_id, _ = _seed(Session)
-    _as_user(app, Session, alice_id)
     for url in (
         "http://www.youtube.com/watch?v=maODCSHgPww",
         "https://evil.example/watch?v=maODCSHgPww",
         "https://www.youtube.com/watch?v=not-valid",
         "https://www.youtube.com.evil.example/watch?v=maODCSHgPww",
+        "https://www.tiktok.com.evil.example/@person/video/7512345678901234567",
+        "https://www.instagram.com/profile-name/",
+        "https://fb.watch/unresolved-short-link/",
     ):
+        app, client, Session = _environment()
+        alice_id, _ = _seed(Session)
+        _as_user(app, Session, alice_id)
         assert client.post("/discussions", json={"body": "Discuss", "video_url": url}).status_code == 422
-    with Session() as session:
-        assert session.query(DiscussionVideoLink).count() == 0
+        with Session() as session:
+            assert session.query(DiscussionVideoLink).count() == 0
+
+
+def test_social_link_requires_a_reviewed_agenda_issue():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    _as_user(app, Session, alice_id)
+    missing = client.post("/discussions", json={
+        "body": "Where does this belong?",
+        "video_url": "https://www.instagram.com/p/ABC_def-123/",
+    })
+    assert missing.status_code == 422
+    assert missing.json()["detail"] == "Choose the Agenda issue this link belongs to"
+    unknown = client.post("/discussions", json={
+        "body": "Unknown issue",
+        "video_url": "https://www.instagram.com/p/ABC_def-123/",
+        "issue_slug": "not-reviewed",
+    })
+    assert unknown.status_code == 422
+    assert unknown.json()["detail"] == "Choose a reviewed WTP issue"

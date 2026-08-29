@@ -214,7 +214,7 @@ export interface PublicDiscussionDetail {
 }
 
 export interface DiscussionVideoLink {
-  provider: 'youtube'; provider_video_id: string; canonical_url: string;
+  provider: 'youtube' | 'tiktok' | 'facebook' | 'instagram'; provider_video_id: string; canonical_url: string;
 }
 
 export interface PublicDiscussionPost {
