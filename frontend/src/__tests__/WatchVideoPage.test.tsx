@@ -105,7 +105,7 @@ describe('WatchVideoPage', () => {
           video_id: 'community-42', content_origin: 'community', creator_label: 'Community member',
           caption: 'YouTube video about Housing & Rent', transcript: null,
           media_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', published_at: '2026-08-29T00:00:00Z',
-          delivery: { mode: 'official_embed', provider: 'youtube', provider_video_id: 'ssTeslcxXbY', canonical_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', source_label: 'YouTube', poster_url: '/api/videos/community/42/poster', development_only: false },
+          delivery: { mode: 'official_embed', provider: 'youtube', provider_video_id: 'ssTeslcxXbY', canonical_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', source_label: 'YouTube', poster_url: '/videos/community/42/poster', development_only: false },
           accessibility: null, source: { url: 'https://www.youtube.com/shorts/ssTeslcxXbY', publisher: 'YouTube' },
           issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: 42,
           like_count: 0, discussion_count: 1, liked: false, saved: false,

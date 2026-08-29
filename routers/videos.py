@@ -212,7 +212,7 @@ def _serialize_community(db: Session, row) -> dict:
     video_id = f"community-{post.id}"
     reply_count = db.query(DiscussionReply).filter_by(post_id=post.id, moderation_status="published").count()
     delivery_mode = "official_embed" if video_link.provider in {"youtube", "tiktok", "facebook"} else "link_out"
-    poster_url = f"/api/videos/community/{post.id}/poster" if video_link.provider == "youtube" else None
+    poster_url = f"/videos/community/{post.id}/poster" if video_link.provider == "youtube" else None
     return {
         "video_id": video_id,
         "content_origin": "community",

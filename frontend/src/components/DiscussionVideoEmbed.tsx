@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Play } from 'lucide-react';
 import type { DiscussionVideoLink } from '../api/civic';
+import { getApiBaseUrl } from '../api/client';
 import { getOfficialEmbedUrl, getProviderLabel, getProviderPrivacyUrl } from '../features/watch/providers';
 
 export default function DiscussionVideoEmbed({ video, title, postId }: { video: DiscussionVideoLink; title: string; postId: number }) {
@@ -8,7 +9,7 @@ export default function DiscussionVideoEmbed({ video, title, postId }: { video: 
   const [posterFailed, setPosterFailed] = useState(false);
   const embedUrl = getOfficialEmbedUrl(video);
   const providerLabel = video.provider === 'instagram' ? 'Instagram' : getProviderLabel(video.provider);
-  const posterUrl = video.provider === 'youtube' ? `/api/videos/community/${postId}/poster` : '';
+  const posterUrl = video.provider === 'youtube' ? `${getApiBaseUrl()}/videos/community/${postId}/poster` : '';
   if (!embedUrl) return <a className="mt-4 inline-flex min-h-11 items-center text-accent-text underline" href={video.canonical_url} target="_blank" rel="noopener noreferrer">Open on {providerLabel}</a>;
   return <div className="mt-5 overflow-hidden rounded-card border border-border bg-[#111827] text-white"><div className="relative aspect-video">
     {consented ? <iframe className="absolute inset-0 h-full w-full" src={embedUrl} title={title} referrerPolicy="strict-origin-when-cross-origin" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <div className="absolute inset-0 grid place-content-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-6 text-center">
