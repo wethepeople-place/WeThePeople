@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { CitizenSolution, fetchSolution, fetchSolutionRevisions, reviseSolution, setSolutionVote, SolutionRevisionItem } from '../api/civic';
+import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function SolutionDetailPage() {
@@ -48,6 +49,7 @@ export default function SolutionDetailPage() {
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">{issueName} · Citizen solution</p>
     <h1 className="mt-4 font-display text-4xl sm:text-6xl">{item.title}</h1><p className="mt-4 text-sm text-text-3">By {item.creator_display_name} · Revision {item.latest_revision_number}</p>
     <p className="mt-7 text-xl leading-8 text-text-2">{item.summary}</p><div className="mt-8 whitespace-pre-wrap rounded-card border border-border bg-surface p-6 leading-8">{item.body}</div>
+    {item.video_link && item.discussion_post_id && <DiscussionVideoEmbed video={item.video_link} title={item.title} postId={item.discussion_post_id} />}
     {item.status === 'closed' && <p className="mt-6 rounded border border-amber-500/50 bg-amber-950/20 p-4 text-amber-100">This solution is closed. Its published record and revision history remain readable, but it no longer accepts revisions or votes.</p>}
     <div className="mt-6 flex flex-wrap gap-3">{isAuthenticated ? <><button disabled={item.status !== 'published'} aria-pressed={item.current_user_choice === 'support'} onClick={() => vote('support')} className="rounded border border-emerald-500 px-4 py-2 disabled:opacity-50">Support · {item.vote_totals.support}</button><button disabled={item.status !== 'published'} aria-pressed={item.current_user_choice === 'oppose'} onClick={() => vote('oppose')} className="rounded border border-rose-500 px-4 py-2 disabled:opacity-50">Oppose · {item.vote_totals.oppose}</button></> : item.status === 'published' ? <Link className="rounded border border-accent px-4 py-2 text-accent-text" to={`/login?next=${encodeURIComponent(returnPath)}`}>Sign in to Support or Oppose</Link> : null}{canEdit && <button className="rounded border border-accent px-4 py-2" onClick={() => setEditing((value) => !value)}>Revise</button>}</div>
     {!isAuthenticated && item.status === 'published' && <p className="mt-3 text-xs leading-5 text-text-3">Signing in returns you here. No vote is submitted automatically.</p>}

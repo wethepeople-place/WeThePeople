@@ -167,6 +167,7 @@ export interface CitizenSolution {
   created_at: string;
   updated_at: string;
   discussion_post_id: number | null;
+  video_link?: DiscussionVideoLink | null;
   duplicate_of_solution_id?: number | null;
   message?: string;
 }
@@ -175,7 +176,7 @@ export function fetchSolutions(issueSlug: string) {
   return apiFetch<{ total: number; limit: number; offset: number; items: CitizenSolution[] }>('/solutions', { params: { issue_slug: issueSlug } });
 }
 
-export function createCitizenSolution(data: { issue_slug: string; title: string; summary: string; body: string }) {
+export function createCitizenSolution(data: { issue_slug: string; title: string; summary: string; body: string; video_url?: string | null }) {
   return apiFetch<CitizenSolution>('/solutions', { method: 'POST', body: data });
 }
 

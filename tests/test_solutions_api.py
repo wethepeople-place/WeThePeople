@@ -69,6 +69,28 @@ def test_solution_submission_is_canonical_issue_linked_and_revisioned():
         assert session.get(Proposal, item["id"]).author_id == users["alice@example.test"]
 
 
+def test_solution_can_attach_a_normalized_consent_gated_provider_video():
+    app, client, Session, users = _environment()
+    _as_user(app, Session, users["alice@example.test"])
+    payload = {**_payload(), "video_url": "https://www.youtube.com/shorts/ssTeslcxXbY"}
+    created = client.post("/solutions", json=payload)
+    assert created.status_code == 201
+    item = created.json()
+    assert item["video_link"] == {
+        "provider": "youtube",
+        "provider_video_id": "ssTeslcxXbY",
+        "canonical_url": "https://www.youtube.com/watch?v=ssTeslcxXbY",
+    }
+    assert item["discussion_post_id"] is not None
+    from models.social_models import DiscussionAttachment, DiscussionPost
+    with Session() as session:
+        post = session.get(DiscussionPost, item["discussion_post_id"])
+        assert post.moderation_status == "published"
+        assert {(link.attachment_type, link.issue_slug, link.solution_id) for link in post.attachments} == {
+            ("issue", "housing-rent", None), ("solution", None, item["id"]),
+        }
+
+
 def test_solution_list_is_issue_scoped_public_and_not_hot_ranked():
     app, client, Session, users = _environment()
     _as_user(app, Session, users["alice@example.test"])
