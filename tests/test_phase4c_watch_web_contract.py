@@ -89,7 +89,8 @@ def test_direct_watch_identity_fetch_and_github_pages_fallback_are_present():
 def test_production_embed_copy_is_not_mislabeled_as_development():
     assert "Playing connects to ${providerLabel}" in PAGE
     assert "Development-only official embed test" not in PAGE
-    assert "delivery.development_only ? 'Development Watch fixture' : 'Reviewed production source'" in PAGE
+    assert "delivery.development_only ? 'Development Watch fixture'" in PAGE
+    assert "'Shared by a community member' : 'Reviewed production source'" in PAGE
 
 
 def test_watch_poc_has_provider_position_and_scroll_orientation_cues():
