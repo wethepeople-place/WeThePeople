@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.auth_models import User
-from models.database import get_db
+from models.database import Bill, get_db
 from models.social_models import (
     DiscussionAttachment,
     DiscussionBookmark,
@@ -26,6 +26,10 @@ from models.social_models import (
 )
 from models.issue_models import Issue, Video, VideoIssue
 from routers.issues import _source
+from routers.issues import list_issue_agenda
+from routers.videos import _interaction_state as _video_interaction_state
+from routers.videos import _query as _video_query
+from routers.videos import _serialize as _serialize_video
 from models.response_schemas import IssueSource
 from services.jwt_auth import get_current_user, get_optional_user
 from services.rate_limit_store import check_rate_limit
@@ -443,6 +447,40 @@ def list_video_comments(
         user=user,
         db=db,
     )
+
+
+@router.get("/continuation")
+def list_discussion_continuation(
+    bill_offset: int = Query(0, ge=0),
+    bill_limit: int = Query(10, ge=1, le=25),
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
+    """Continue Discuss with real reviewed material, never duplicate community posts."""
+    reviewed_rows = _video_query(db).order_by(
+        Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()
+    ).all()
+    reviewed_videos = [
+        {**_serialize_video(row, _video_interaction_state(db, row, user)), "content_origin": "reviewed"}
+        for row in reviewed_rows
+    ]
+    agenda = list_issue_agenda(db)
+    bill_query = db.query(Bill).order_by(Bill.latest_action_date.desc(), Bill.bill_id.asc())
+    bill_total = bill_query.count()
+    bills = bill_query.offset(bill_offset).limit(bill_limit).all()
+    return {
+        "reviewed_videos": reviewed_videos,
+        "agenda": agenda["items"],
+        "bills": [{
+            "bill_id": row.bill_id,
+            "title": row.title,
+            "latest_action_text": row.latest_action_text,
+            "latest_action_date": row.latest_action_date.isoformat() if row.latest_action_date else None,
+        } for row in bills],
+        "bill_total": bill_total,
+        "bill_offset": bill_offset,
+        "bill_limit": bill_limit,
+    }
 
 
 @router.post(

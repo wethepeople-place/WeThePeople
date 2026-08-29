@@ -242,6 +242,21 @@ export function fetchPublicDiscussions(issueSlug?: string, videoId?: string, off
   return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: { ...(issueSlug ? { issue_slug: issueSlug } : {}), ...(videoId ? { video_id: videoId } : {}), offset, limit } });
 }
 
+export type DiscussionContinuation = {
+  reviewed_videos: Array<{
+    video_id: string; creator_label: string; caption: string; transcript: string | null;
+    delivery: { provider: string | null; provider_video_id: string | null; canonical_url: string } | null;
+    source: { url: string; publisher: string }; issue: { slug: string; title: string };
+  }>;
+  agenda: Array<{ slug: string; title: string; summary: string | null; priority_note: string; bill_count: number }>;
+  bills: Array<{ bill_id: string; title: string | null; latest_action_text: string | null; latest_action_date: string | null }>;
+  bill_total: number;
+};
+
+export function fetchDiscussionContinuation() {
+  return apiFetch<DiscussionContinuation>('/discussions/continuation');
+}
+
 export function fetchPublicDiscussion(postId: number) {
   return apiFetch<PublicDiscussionDetail>(`/discussions/${postId}`);
 }
