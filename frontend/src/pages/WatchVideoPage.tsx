@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ExternalLink, Heart, Image as ImageIcon, Link2, MessageCircle, Pause, Play, SquarePen, Video as VideoIcon, Volume2, VolumeX } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -19,6 +19,16 @@ type Video = {
   like_count: number; discussion_count: number; liked: boolean; saved: boolean;
 };
 type Feed = { videos: Video[]; next_cursor: string | null; has_more: boolean };
+
+type AgendaFallback = {
+  kind: 'agenda'; key: string; slug: string; title: string; summary: string | null;
+  evidenceNote: string | null; billCount: number;
+};
+type BillFallback = {
+  kind: 'bill'; key: string; billId: string; title: string; latestAction: string | null;
+  latestActionDate: string | null;
+};
+type CivicFallback = AgendaFallback | BillFallback;
 
 type Delivery = {
   mode: 'official_embed' | 'hosted_video' | 'link_out'; provider: string | null;
@@ -134,7 +144,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
   const posterUrl = embed.poster_url?.startsWith('/videos/') ? `${getApiBaseUrl()}${embed.poster_url}` : embed.poster_url;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-6 px-4 py-8 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:px-8">
-      <div className="relative mx-auto grid aspect-[9/16] max-h-[72vh] w-full max-w-md place-content-center overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
+      <div className="relative mx-auto aspect-[9/16] max-h-[72vh] w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
         <ActionRail item={item} onChange={onChange} onComments={onComments} />
         {playerLoaded && !failed ? <iframe
           className="absolute inset-0 h-full w-full"
@@ -144,7 +154,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onError={() => setFailed(true)}
-        /> : <div className="relative flex h-full max-w-2xl flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-8">
+        /> : <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-8">
           {posterUrl && !posterFailed && <img src={posterUrl} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" onError={() => setPosterFailed(true)} />}
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/60 to-black/90" />
           <div className="relative z-[1] flex flex-col items-center">
@@ -227,6 +237,32 @@ function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean
   return <NativeVideoCard {...props} />;
 }
 
+function CivicFallbackCard({ item }: { item: CivicFallback }) {
+  if (item.kind === 'agenda') return <article data-feed-id={item.key} className="min-h-screen snap-start bg-[#0b1220] text-white">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-24">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Civic context · Agenda issue</p>
+      <h2 className="mt-4 text-3xl font-bold sm:text-5xl">{item.title}</h2>
+      {item.summary && <p className="mt-5 text-lg leading-8 text-slate-200">{item.summary}</p>}
+      {item.evidenceNote && <p className="mt-5 rounded-2xl bg-white/10 p-5 leading-7 text-slate-100"><span className="font-bold text-amber-300">Reviewed evidence:</span> {item.evidenceNote}</p>}
+      <p className="mt-4 text-sm text-slate-400">{item.billCount} linked {item.billCount === 1 ? 'bill' : 'bills'} in WTP.</p>
+      <Link className="mt-7 inline-flex min-h-12 w-fit items-center rounded-full bg-amber-300 px-6 font-bold text-slate-950" to={`/issues/${item.slug}`}>Explore this issue</Link>
+    </div>
+  </article>;
+  return <article data-feed-id={item.key} className="min-h-screen snap-start bg-[#111827] text-white">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-24">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-300">Civic context · Legislation</p>
+      <h2 className="mt-4 text-3xl font-bold sm:text-5xl">{item.title}</h2>
+      <p className="mt-4 font-semibold text-amber-300">{item.billId.toUpperCase()}</p>
+      {item.latestAction && <p className="mt-5 rounded-2xl bg-white/10 p-5 leading-7 text-slate-100"><span className="font-bold">Latest official action:</span> {item.latestAction}</p>}
+      {item.latestActionDate && <p className="mt-3 text-sm text-slate-400">Action date: {item.latestActionDate}</p>}
+      <Link className="mt-7 inline-flex min-h-12 w-fit items-center rounded-full bg-white px-6 font-bold text-slate-950" to={`/politics/bill/${item.billId}`}>Read the bill record</Link>
+    </div>
+  </article>;
+}
+
+const VIDEO_PAGE_SIZE = 6;
+const CIVIC_PAGE_SIZE = 10;
+
 export default function WatchVideoPage() {
   const { videoId } = useParams();
   const location = useLocation();
@@ -239,6 +275,14 @@ export default function WatchVideoPage() {
   const [activeId, setActiveId] = useState(videoId || '');
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const [continuationError, setContinuationError] = useState('');
+  const [nextVideoCursor, setNextVideoCursor] = useState<string | null>(null);
+  const [videoCatalogExhausted, setVideoCatalogExhausted] = useState(false);
+  const [fallbacks, setFallbacks] = useState<CivicFallback[]>([]);
+  const [agendaLoaded, setAgendaLoaded] = useState(false);
+  const [billOffset, setBillOffset] = useState(0);
+  const [billCatalogExhausted, setBillCatalogExhausted] = useState(false);
+  const [loadingContinuation, setLoadingContinuation] = useState(false);
   const [commentsVideoId, setCommentsVideoId] = useState(() => new URLSearchParams(location.search).get('comments') === '1' ? (videoId || '') : '');
   const commentsTrigger = useRef<HTMLElement | null>(null);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -254,7 +298,7 @@ export default function WatchVideoPage() {
   useEffect(() => {
     const controller = new AbortController();
     const loadFeed = async () => {
-      const feedResponse = await authedFetch(`${getApiBaseUrl()}/videos?limit=100`, { signal: controller.signal });
+      const feedResponse = await authedFetch(`${getApiBaseUrl()}/videos?limit=${VIDEO_PAGE_SIZE}`, { signal: controller.signal });
       if (!feedResponse.ok) throw new Error('Watch could not load');
       const feed = await feedResponse.json() as Feed;
       let items = feed.videos;
@@ -267,12 +311,73 @@ export default function WatchVideoPage() {
         items = [exact, ...items];
       }
       setVideos(items);
+      setNextVideoCursor(feed.next_cursor);
+      setVideoCatalogExhausted(!feed.has_more);
       setActiveId(requestedId || items[0]?.video_id || '');
       setLoaded(true);
     };
     void loadFeed().catch((e) => { if (e.name !== 'AbortError') { setError(e.message); setLoaded(true); } });
     return () => controller.abort();
   }, [authedFetch]);
+  const appendUniqueVideos = useCallback((incoming: Video[]) => {
+    setVideos((current) => {
+      const seen = new Set(current.map((item) => item.video_id));
+      return [...current, ...incoming.filter((item) => !seen.has(item.video_id))];
+    });
+  }, []);
+  const appendUniqueFallbacks = useCallback((incoming: CivicFallback[]) => {
+    setFallbacks((current) => {
+      const seen = new Set(current.map((item) => item.key));
+      return [...current, ...incoming.filter((item) => !seen.has(item.key))];
+    });
+  }, []);
+  const loadContinuation = useCallback(async () => {
+    if (loadingContinuation || billCatalogExhausted) return;
+    setLoadingContinuation(true);
+    setContinuationError('');
+    try {
+      if (!videoCatalogExhausted && nextVideoCursor) {
+        const response = await authedFetch(`${getApiBaseUrl()}/videos?limit=${VIDEO_PAGE_SIZE}&cursor=${encodeURIComponent(nextVideoCursor)}`);
+        if (!response.ok) throw new Error('More civic videos are temporarily unavailable.');
+        const page = await response.json() as Feed;
+        appendUniqueVideos(page.videos);
+        setNextVideoCursor(page.next_cursor);
+        setVideoCatalogExhausted(!page.has_more);
+        return;
+      }
+      if (!agendaLoaded) {
+        const response = await authedFetch(`${getApiBaseUrl()}/issues`);
+        if (!response.ok) throw new Error('Civic issue context is temporarily unavailable.');
+        const agenda = await response.json() as { items?: Array<{ slug: string; title: string; summary?: string | null; evidence_note?: string | null; bill_count?: number }> };
+        appendUniqueFallbacks((agenda.items || []).map((item) => ({
+          kind: 'agenda', key: `agenda:${item.slug}`, slug: item.slug, title: item.title,
+          summary: item.summary || null, evidenceNote: item.evidence_note || null, billCount: item.bill_count || 0,
+        })));
+        setAgendaLoaded(true);
+        return;
+      }
+      const response = await authedFetch(`${getApiBaseUrl()}/politics/bills?limit=${CIVIC_PAGE_SIZE}&offset=${billOffset}`);
+      if (!response.ok) throw new Error('Legislation is temporarily unavailable.');
+      const page = await response.json() as { total: number; bills?: Array<{ bill_id: string; title?: string | null; latest_action_text?: string | null; latest_action_date?: string | null }> };
+      const bills = page.bills || [];
+      appendUniqueFallbacks(bills.map((bill) => ({
+        kind: 'bill', key: `bill:${bill.bill_id}`, billId: bill.bill_id,
+        title: bill.title || bill.bill_id.toUpperCase(), latestAction: bill.latest_action_text || null,
+        latestActionDate: bill.latest_action_date || null,
+      })));
+      const nextOffset = billOffset + bills.length;
+      setBillOffset(nextOffset);
+      setBillCatalogExhausted(bills.length === 0 || nextOffset >= page.total);
+    } catch (reason) {
+      setContinuationError(reason instanceof Error ? reason.message : 'More civic material is temporarily unavailable.');
+    } finally {
+      setLoadingContinuation(false);
+    }
+  }, [agendaLoaded, appendUniqueFallbacks, appendUniqueVideos, authedFetch, billCatalogExhausted, billOffset, loadingContinuation, nextVideoCursor, videoCatalogExhausted]);
+  useEffect(() => {
+    if (!loaded || error || billCatalogExhausted) return;
+    if (!videos.length || (videoCatalogExhausted && fallbacks.length === 0)) void loadContinuation();
+  }, [billCatalogExhausted, error, fallbacks.length, loadContinuation, loaded, videoCatalogExhausted, videos.length]);
   useEffect(() => {
     if (!videos.length) return;
     const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; navigate(`/watch/${id}`, { replace: true }); } }, { threshold: [0.6] });
@@ -292,7 +397,8 @@ export default function WatchVideoPage() {
   }, [loaded, videoId, videos]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
   if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
-  if (!videos.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">No civic videos are published yet.</h1><p className="max-w-xl text-slate-300">Watch will show reviewed civic videos with evidence, issue, and bill links.</p><Link className="font-semibold text-sky-300 underline" to="/civic">Explore the Civic Hub</Link></main>;
+  if (!videos.length && !fallbacks.length && loadingContinuation) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading real civic material…</main>;
+  if (!videos.length && !fallbacks.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">Civic material is temporarily unavailable.</h1><p className="max-w-xl text-slate-300">Nothing synthetic will be inserted. Try the live civic records again.</p><button type="button" className="rounded-full bg-amber-300 px-5 py-3 font-bold text-slate-950" onClick={() => void loadContinuation()}>Try again</button></main>;
   const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
-  return <><main className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
+  return <><main onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/civic">Explore the full Civic Hub</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }

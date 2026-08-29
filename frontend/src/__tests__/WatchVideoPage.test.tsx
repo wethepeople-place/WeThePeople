@@ -40,7 +40,13 @@ describe('WatchVideoPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('settles an empty successful feed without creating video embeds', async () => {
+  it('continues an empty video feed with real Agenda material without creating embeds', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => Promise.resolve({
+      ok: true,
+      json: async () => input.includes('/issues')
+        ? { items: [{ slug: 'housing-rent', title: 'Housing & Rent', summary: 'A reviewed issue summary.', evidence_note: 'Rent evidence.', bill_count: 7 }] }
+        : { total: 0, videos: [], next_cursor: null, has_more: false },
+    })))
     const { container } = render(
       <MemoryRouter initialEntries={['/watch']}>
         <Routes>
@@ -50,12 +56,12 @@ describe('WatchVideoPage', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('No civic videos are published yet.')).toBeTruthy()
+      expect(screen.getByText('Civic context · Agenda issue')).toBeTruthy()
     })
     expect(screen.queryByText('Loading Watch…')).toBeNull()
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
     expect(container.querySelectorAll('video')).toHaveLength(0)
-    expect(screen.getByRole('link', { name: 'Explore the Civic Hub' }).getAttribute('href')).toBe('/civic')
+    expect(screen.getByRole('link', { name: 'Explore this issue' }).getAttribute('href')).toBe('/issues/housing-rent')
     expect(screen.getByRole('link', { name: /Share a civic video, link, or thought/ }).getAttribute('href')).toBe('/discuss?compose=1#composer')
     expect(screen.getByRole('link', { name: 'Post link' }).getAttribute('href')).toBe('/discuss?compose=1#composer')
     expect(screen.getByRole('button', { name: /Image — coming soon/ }).hasAttribute('disabled')).toBe(true)
@@ -97,7 +103,11 @@ describe('WatchVideoPage', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Play video from YouTube' })).toBeTruthy())
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/watch-thumbnails/housing-rent-road-act-explained.jpg')
+    expect(container.querySelector('img')?.parentElement?.className).toContain('absolute inset-0')
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Play video from YouTube' }))
+    await waitFor(() => expect(container.querySelectorAll('iframe')).toHaveLength(1))
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain('youtube-nocookie.com/embed/maODCSHgPww')
   })
 
   it('shows an automatically-fed community video with its proxied thumbnail', async () => {
@@ -167,6 +177,39 @@ describe('WatchVideoPage', () => {
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
   })
 
+  it('pages videos near the end and deduplicates canonical video IDs', async () => {
+    const makeVideo = (video_id: string) => ({
+      video_id, creator_label: 'Reviewed source', caption: `Video ${video_id}`,
+      transcript: 'Reviewed overview.', media_url: `https://example.com/${video_id}`, published_at: '2026-08-11T00:00:00Z',
+      delivery: { mode: 'link_out', provider: null, provider_video_id: null, canonical_url: `https://example.com/${video_id}`, source_label: 'Official source', development_only: false },
+      accessibility: null, source: { url: `https://example.com/${video_id}`, publisher: 'Official source' },
+      issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: null,
+      like_count: 0, discussion_count: 0, liked: false, saved: false,
+    })
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => Promise.resolve({
+      ok: true,
+      json: async () => input.includes('cursor=next-page')
+        ? { total: 2, videos: [makeVideo('one'), makeVideo('two')], next_cursor: null, has_more: false }
+        : { total: 2, videos: [makeVideo('one')], next_cursor: 'next-page', has_more: true },
+    })))
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/watch/one']}>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+      </MemoryRouter>,
+    )
+    const feed = await screen.findByRole('main', { name: 'Civic video feed' })
+    Object.defineProperties(feed, {
+      scrollHeight: { configurable: true, value: 2000 },
+      scrollTop: { configurable: true, value: 1200 },
+      clientHeight: { configurable: true, value: 800 },
+    })
+    fireEvent.scroll(feed)
+    await waitFor(() => expect(container.querySelectorAll('[data-video-id]')).toHaveLength(2))
+    expect(container.querySelectorAll('[data-video-id="one"]')).toHaveLength(1)
+    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('cursor=next-page'))).toBe(true)
+  })
+
   it('does not force-scroll again when visibility updates the video URL', async () => {
     const videos = ['one', 'two'].map((video_id) => ({
       video_id, creator_label: 'Reviewed source', caption: `Video ${video_id}`,
@@ -191,6 +234,6 @@ describe('WatchVideoPage', () => {
       observerCallback?.([{ isIntersecting: true, intersectionRatio: 1, target: second } as unknown as IntersectionObserverEntry], {} as IntersectionObserver)
     })
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).includes('/videos?')).length).toBe(1)
   })
 })
