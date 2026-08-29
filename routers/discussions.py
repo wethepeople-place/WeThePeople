@@ -37,6 +37,9 @@ BLOCK_LIMIT = 10
 POST_LIMIT = 5
 ENGAGEMENT_LIMIT = 30
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+TIKTOK_ID = re.compile(r"^[0-9]{10,25}$")
+FACEBOOK_ID = re.compile(r"^[A-Za-z0-9_-]{5,100}$")
+INSTAGRAM_ID = re.compile(r"^[A-Za-z0-9_-]{5,64}$")
 DEMO_EMAIL_PREFIX = "demo.discussion."
 
 
@@ -87,7 +90,7 @@ class VideoCommentCreate(BaseModel):
 
 
 class DiscussionVideoLinkItem(BaseModel):
-    provider: Literal["youtube"]
+    provider: Literal["youtube", "tiktok", "facebook", "instagram"]
     provider_video_id: str
     canonical_url: str
 
@@ -242,26 +245,49 @@ def _post(row: DiscussionPost, published_reply_count: int, db: Session, user: Op
     }
 
 
-def _youtube_link(raw_url: str) -> tuple[str, str]:
+def _social_link(raw_url: str) -> tuple[str, str, str]:
     try:
         parsed = urlparse(raw_url.strip())
     except ValueError:
-        raise HTTPException(status_code=422, detail="Enter a valid YouTube link")
+        raise HTTPException(status_code=422, detail="Enter a valid Facebook, TikTok, Instagram, or YouTube link")
     if parsed.scheme != "https":
-        raise HTTPException(status_code=422, detail="YouTube links must use https")
+        raise HTTPException(status_code=422, detail="Social links must use https")
     host = (parsed.hostname or "").lower()
-    video_id = None
+    parts = [part for part in parsed.path.split("/") if part]
+    video_id: Optional[str] = None
     if host == "youtu.be":
-        video_id = parsed.path.strip("/").split("/")[0]
+        video_id = parts[0] if len(parts) == 1 else None
     elif host in {"youtube.com", "www.youtube.com", "m.youtube.com"}:
         if parsed.path == "/watch":
             video_id = parse_qs(parsed.query).get("v", [None])[0]
         elif parsed.path.startswith(("/shorts/", "/embed/")):
-            parts = parsed.path.strip("/").split("/")
             video_id = parts[1] if len(parts) == 2 else None
-    if not video_id or not YOUTUBE_ID.fullmatch(video_id):
-        raise HTTPException(status_code=422, detail="Enter a valid YouTube video link")
-    return video_id, f"https://www.youtube.com/watch?v={video_id}"
+        if video_id and YOUTUBE_ID.fullmatch(video_id):
+            return "youtube", video_id, f"https://www.youtube.com/watch?v={video_id}"
+    elif host in {"tiktok.com", "www.tiktok.com", "m.tiktok.com"}:
+        if len(parts) == 3 and parts[0].startswith("@") and parts[1] == "video":
+            video_id = parts[2]
+        if video_id and TIKTOK_ID.fullmatch(video_id):
+            return "tiktok", video_id, f"https://www.tiktok.com/{parts[0]}/video/{video_id}"
+    elif host in {"facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com"}:
+        query_id = parse_qs(parsed.query).get("v", [None])[0] if parsed.path in {"/watch", "/watch/"} else None
+        if query_id and query_id.isdigit():
+            video_id = query_id
+            return "facebook", video_id, f"https://www.facebook.com/watch/?v={video_id}"
+        for marker in ("videos", "reel", "posts"):
+            if marker in parts and parts.index(marker) + 1 < len(parts):
+                video_id = parts[parts.index(marker) + 1]
+                break
+        if video_id and FACEBOOK_ID.fullmatch(video_id):
+            marker = next(marker for marker in ("videos", "reel", "posts") if marker in parts)
+            prefix = parts[:parts.index(marker)]
+            return "facebook", video_id, f"https://www.facebook.com/{'/'.join([*prefix, marker, video_id])}"
+    elif host in {"instagram.com", "www.instagram.com"}:
+        if len(parts) == 2 and parts[0] in {"p", "reel", "tv"}:
+            video_id = parts[1]
+        if video_id and INSTAGRAM_ID.fullmatch(video_id):
+            return "instagram", video_id, f"https://www.instagram.com/{parts[0]}/{video_id}/"
+    raise HTTPException(status_code=422, detail="Enter a direct Facebook, TikTok, Instagram, or YouTube post link")
 
 
 def _base_query(db: Session):
@@ -280,7 +306,9 @@ def create_discussion(
     db: Session = Depends(get_db),
 ):
     _rate_limit(request, user, "discussions:create", POST_LIMIT, db)
-    video_link = _youtube_link(body.video_url) if body.video_url else None
+    video_link = _social_link(body.video_url) if body.video_url else None
+    if video_link and not body.issue_slug:
+        raise HTTPException(status_code=422, detail="Choose the Agenda issue this link belongs to")
     if body.issue_slug and db.get(Issue, body.issue_slug) is None:
         raise HTTPException(status_code=422, detail="Choose a reviewed WTP issue")
     post = DiscussionPost(
@@ -290,9 +318,9 @@ def create_discussion(
         moderation_status="pending",
     )
     if video_link:
-        video_id, canonical_url = video_link
+        provider, video_id, canonical_url = video_link
         post.video_link = DiscussionVideoLink(
-            provider="youtube", provider_video_id=video_id, canonical_url=canonical_url
+            provider=provider, provider_video_id=video_id, canonical_url=canonical_url
         )
     if body.issue_slug:
         post.attachments.append(DiscussionAttachment(

@@ -41,7 +41,7 @@ export function getOfficialEmbedUrl(delivery: ProviderDelivery): string | null {
   if (provider === 'tiktok') {
     return `https://www.tiktok.com/player/v1/${id}?autoplay=1&controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1`
   }
-  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(delivery.canonical_url)}&show_text=false&autoplay=true`
+  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(delivery.canonical_url)}&show_text=false&autoplay=1`
 }
 
 export function getProviderPrivacyUrl(provider: WatchProvider): string {
