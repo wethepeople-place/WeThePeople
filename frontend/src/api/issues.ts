@@ -37,7 +37,7 @@ export type IssueBill = {
   latest_action_date: string | null; relevance_note: string | null; source: IssueSource;
 };
 export type IssueVideo = {
-  video_id: string; caption: string; creator_label: string;
+  video_id: string; content_origin: 'reviewed' | 'community'; caption: string; creator_label: string;
   issue: { slug: string; title: string };
 };
 
@@ -57,13 +57,14 @@ export async function fetchIssueDetail(slug: string) {
   const [evidence, bills, feed] = await Promise.all([
     read<{ issue_slug: string; total: number; series: EvidenceSeries[] }>(`/issues/${safeSlug}/evidence`).then((value) => ({ value, available: true })).catch(() => ({ value: { series: [] as EvidenceSeries[] }, available: false })),
     read<{ issue_slug: string; total: number; bills: IssueBill[] }>(`/issues/${safeSlug}/bills`).then((value) => ({ value, available: true })).catch(() => ({ value: { bills: [] as IssueBill[] }, available: false })),
-    read<{ videos: IssueVideo[] }>('/videos?limit=25').then((value) => ({ value, available: true })).catch(() => ({ value: { videos: [] as IssueVideo[] }, available: false })),
+    read<{ total: number; videos: IssueVideo[] }>(`/videos?limit=25&issue_slug=${safeSlug}`).then((value) => ({ value, available: true })).catch(() => ({ value: { total: 0, videos: [] as IssueVideo[] }, available: false })),
   ]);
   return {
     summary,
     evidence: evidence.value.series,
     bills: bills.value.bills,
-    videos: feed.value.videos.filter((video) => video.issue.slug === slug),
+    videos: feed.value.videos,
+    videoTotal: feed.value.total,
     availability: { evidence: evidence.available, bills: bills.available, videos: feed.available },
   };
 }

@@ -12,7 +12,7 @@ describe('IssueDetailPage journey actions', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ videos: [{ video_id: 'housing-video', caption: 'Housing explained', creator_label: 'Civic source', issue: { slug: 'housing-rent', title: 'Housing & Rent' } }] }) }));
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, videos: [{ video_id: 'housing-video', content_origin: 'community', caption: 'Housing explained', creator_label: 'Community member', issue: { slug: 'housing-rent', title: 'Housing & Rent' } }] }) }));
 
     render(
       <MemoryRouter initialEntries={['/issues/housing-rent']}>
@@ -29,6 +29,8 @@ describe('IssueDetailPage journey actions', () => {
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
     expect(screen.getByRole('link', { name: /Housing explained/ }).getAttribute('href')).toBe('/watch/housing-video');
+    expect(screen.getByText('Community shared')).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/videos?limit=25&issue_slug=housing-rent'))).toBe(true);
     const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
     expect(within(issueNavigation).getByRole('link', { name: /Official data/ }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
     expect(within(issueNavigation).getByRole('link', { name: /Elections/ }).getAttribute('href')).toBe('/elections?issue=housing-rent');
@@ -40,7 +42,7 @@ describe('IssueDetailPage journey actions', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
       .mockRejectedValueOnce(new Error('network'))
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ videos: [] }) }));
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, videos: [] }) }));
     render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
     expect(screen.getByText('Evidence is temporarily unavailable. Other issue connections remain accessible.')).toBeTruthy();
@@ -53,7 +55,7 @@ describe('IssueDetailPage journey actions', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ videos: [] }) }));
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, videos: [] }) }));
 
     render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());

@@ -248,17 +248,31 @@ def _serialize_community(db: Session, row, user: User | None = None) -> dict:
 
 
 @router.get("", response_model=VideosResponse)
-def list_videos(cursor: str | None = None, limit: int = Query(25, ge=1, le=100), user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+def list_videos(
+    cursor: str | None = None,
+    limit: int = Query(25, ge=1, le=100),
+    issue_slug: str | None = Query(None, min_length=1, max_length=100),
+    user: User | None = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
     offset = _decode_cursor(cursor) if cursor else 0
+    community_query = _community_query(db)
+    reviewed_query = _query(db)
+    if issue_slug:
+        # Both community and reviewed videos already carry a canonical Issue
+        # relationship. Filter on that stored identity; never reclassify or
+        # guess from captions while serving an Issue Hub.
+        community_query = community_query.filter(DiscussionAttachment.issue_slug == issue_slug)
+        reviewed_query = reviewed_query.join(VideoIssue).filter(VideoIssue.issue_slug == issue_slug)
     # Community shares form the live, newest-first feed. The small reviewed
     # catalog follows in its editorial order, preserving its existing contract.
     community = [
         ("community", row)
-        for row in _community_query(db).order_by(DiscussionPost.created_at.desc(), DiscussionPost.id.desc()).all()
+        for row in community_query.order_by(DiscussionPost.created_at.desc(), DiscussionPost.id.desc()).all()
     ]
     reviewed = [
         ("reviewed", row)
-        for row in _query(db).order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).all()
+        for row in reviewed_query.order_by(Video.sort_order.asc(), Video.published_at.desc(), Video.video_id.asc()).all()
     ]
     ordered = [*community, *reviewed]
     page = ordered[offset:offset + limit]

@@ -4,7 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
 import IssueActionStrip from '../components/IssueActionStrip';
 
-type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; videos: IssueVideo[]; availability: { evidence: boolean; bills: boolean; videos: boolean } };
+type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; videos: IssueVideo[]; videoTotal: number; availability: { evidence: boolean; bills: boolean; videos: boolean } };
 
 const date = (value: string) => new Intl.DateTimeFormat('en-US', {
   year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
@@ -81,13 +81,13 @@ export default function IssueDetailPage() {
       <section aria-label="Issue coverage" className="mt-2 grid grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white py-3 text-center">
         <div><p className="text-lg font-black text-[#245b87]">{data.evidence.length}</p><p className="text-[.7rem] text-slate-500">evidence series</p></div>
         <div><p className="text-lg font-black text-[#245b87]">{data.bills.length}</p><p className="text-[.7rem] text-slate-500">reviewed bills</p></div>
-        <div><p className="text-lg font-black text-[#245b87]">{data.videos.length}</p><p className="text-[.7rem] text-slate-500">reviewed videos</p></div>
+        <div><p className="text-lg font-black text-[#245b87]">{data.videoTotal}</p><p className="text-[.7rem] text-slate-500">linked videos</p></div>
       </section>
 
       <div className="mt-2"><Link to={`/issues/${slug}/solutions`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><Lightbulb className="h-5 w-5" />Explore and propose solutions</Link></div>
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
-        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videos.length} reviewed ${data.videos.length === 1 ? 'video' : 'videos'} with civic context` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
+        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
         <HubRow icon={BarChart3} label="Official data" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
         <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
@@ -104,14 +104,14 @@ export default function IssueDetailPage() {
       </details>
 
       <section id="watch" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 className="text-2xl font-black">Reviewed videos</h2></div>
+        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 className="text-2xl font-black">Civic videos</h2></div>
         {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
-          : data.videos.length === 0 ? <p className="mt-5 text-text-2">No reviewed videos are connected to this issue yet.</p>
-            : <div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.map((video) => <Link key={video.video_id} className="rounded-card border border-border bg-surface p-5 transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
-              <p className="text-xs font-bold uppercase tracking-wider text-accent-text">Reviewed video</p>
+          : data.videos.length === 0 ? <p className="mt-5 text-text-2">No linked civic videos are connected to this issue yet.</p>
+            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.map((video) => <Link key={video.video_id} className="rounded-card border border-border bg-surface p-5 transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
+              <p className="text-xs font-bold uppercase tracking-wider text-accent-text">{video.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</p>
               <h3 className="mt-2 text-lg font-semibold leading-6">{video.caption}</h3>
               <p className="mt-3 text-sm text-text-2">{video.creator_label}</p>
-            </Link>)}</div>}
+            </Link>)}</div>{data.videoTotal > data.videos.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.videos.length} of {data.videoTotal} linked videos.</p>}</>}
       </section>
 
       <section id="evidence" className="mt-14 scroll-mt-24">
