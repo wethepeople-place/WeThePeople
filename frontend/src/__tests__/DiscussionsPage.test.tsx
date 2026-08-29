@@ -29,21 +29,18 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
   });
 
-  it('offers a text-first composer and automatically suggests an Agenda issue for social links', async () => {
+  it('offers one composer that accepts text or a social link without extra steps', async () => {
     authenticated = true;
     vi.mocked(fetch)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'What do you want people to know?' }));
-    await waitFor(() => expect(screen.getByText('Write a post, share a link, or do both.')).toBeTruthy());
-    const message = screen.getByLabelText('What do you want people to know?');
+    const message = screen.getByLabelText('Create a post');
     expect(screen.getByRole('button', { name: 'Post' }).hasAttribute('disabled')).toBe(true);
     fireEvent.change(message, { target: { value: 'A text-only civic post' } });
     expect(screen.getByRole('button', { name: 'Post' }).hasAttribute('disabled')).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
-    const link = screen.getByLabelText(/Link/);
-    expect(link.getAttribute('placeholder')).toBe('https://…');
+    expect(message.getAttribute('placeholder')).toContain('paste a link');
+    expect(screen.queryByRole('button', { name: 'Add link' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Video link' })).toBeNull();
     expect(screen.queryByRole('combobox', { name: 'Agenda issue' })).toBeNull();
     expect(screen.queryByLabelText(/Your note/)).toBeNull();
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
@@ -51,12 +48,10 @@ describe('DiscussionsPage', () => {
       suggested_issue: { slug: 'housing-rent', title: 'Housing & Rent', score: 6 },
       alternatives: [], confidence: 'high', metadata_available: true,
     }) } as Response);
-    fireEvent.change(link, { target: { value: 'https://www.tiktok.com/@person/video/7679228789091519757' } });
-    await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
+    fireEvent.change(message, { target: { value: 'https://www.tiktok.com/@person/video/7679228789091519757' } });
+    await waitFor(() => expect(screen.getByText(/Filed automatically under/)).toBeTruthy(), { timeout: 2000 });
     expect(screen.getByText('Housing & Rent')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Post' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
-    expect(await screen.findByRole('option', { name: 'Housing & Rent' })).toBeTruthy();
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
       id: 10, moderation_status: 'published', message: 'Posted',
     }) } as Response);
@@ -100,18 +95,16 @@ describe('DiscussionsPage', () => {
   it('recognizes a supported provider URL pasted directly into the main composer', async () => {
     authenticated = true;
     vi.mocked(fetch)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'What do you want people to know?' }));
-    const message = await screen.findByLabelText('What do you want people to know?');
+    const message = await screen.findByLabelText('Create a post');
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
       provider: 'tiktok', canonical_url: 'https://www.tiktok.com/@person/video/7579560442230508831',
       suggested_issue: { slug: 'housing-rent', title: 'Housing & Rent', score: 6 },
       alternatives: [], confidence: 'high', metadata_available: true,
     }) } as Response);
     fireEvent.change(message, { target: { value: 'https://www.tiktok.com/@person/video/7579560442230508831?tracking=1' } });
-    await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
+    await waitFor(() => expect(screen.getByText(/Filed automatically under/)).toBeTruthy(), { timeout: 2000 });
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, moderation_status: 'published', message: 'Posted' }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
     expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
