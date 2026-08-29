@@ -51,3 +51,24 @@ keyboard, and accessibility-label states are explicit.
 
 Root-post creation, reactions, follows, bookmarks, ranking, broad moderation
 tooling, and the HUD token remain deferred.
+
+## Native media upload safety gate
+
+Native photo and video upload must remain unavailable until the complete
+publishing pipeline is approved and implemented. A browser file picker by
+itself is not a safe release. The minimum launch gate includes:
+
+- private object storage with short-lived signed upload credentials;
+- allowlisted file signatures, size and duration limits, and per-user rate limits;
+- malware scanning before any processing or reviewer access;
+- image metadata, including location data, removal;
+- server-side image normalization and video transcoding into safe playback formats;
+- generated thumbnails plus required image alt text and video captions;
+- pending moderation before public access, with reviewer audit records;
+- deletion, retention, appeal, reporting, and account-lifecycle behavior;
+- storage, bandwidth, processing-cost, and abuse monitoring; and
+- documented recovery behavior for failed, interrupted, and duplicate uploads.
+
+The first bounded release should allow one image per post. Short video should
+follow only after the transcoding, caption, moderation, retention, and cost
+controls pass security and accessibility review.

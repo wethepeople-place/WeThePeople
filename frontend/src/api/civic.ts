@@ -245,7 +245,7 @@ export function fetchPublicDiscussion(postId: number) {
   return apiFetch<PublicDiscussionDetail>(`/discussions/${postId}`);
 }
 
-export function createVideoDiscussion(data: { body: string; video_url?: string; issue_slug?: string }) {
+export function createDiscussion(data: { body: string; video_url?: string; issue_slug?: string }) {
   return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
 }
 

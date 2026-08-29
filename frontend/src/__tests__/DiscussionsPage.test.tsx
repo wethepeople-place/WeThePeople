@@ -29,15 +29,20 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
   });
 
-  it('puts the social link first and automatically suggests an Agenda issue', async () => {
+  it('offers a text-first composer and automatically suggests an Agenda issue for social links', async () => {
     authenticated = true;
     vi.mocked(fetch)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(/Paste a TikTok, Instagram, Facebook, or YouTube link/)).toBeTruthy());
-    const link = screen.getByLabelText('Video link');
-    expect(link.getAttribute('placeholder')).toBe('Paste link');
+    await waitFor(() => expect(screen.getByText('Write a post, share a link, or do both.')).toBeTruthy());
+    const message = screen.getByLabelText('What do you want people to know?');
+    expect(screen.getByRole('button', { name: 'Post' }).hasAttribute('disabled')).toBe(true);
+    fireEvent.change(message, { target: { value: 'A text-only civic post' } });
+    expect(screen.getByRole('button', { name: 'Post' }).hasAttribute('disabled')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
+    const link = screen.getByLabelText(/Link/);
+    expect(link.getAttribute('placeholder')).toBe('https://…');
     expect(screen.queryByRole('combobox', { name: 'Agenda issue' })).toBeNull();
     expect(screen.queryByLabelText(/Your note/)).toBeNull();
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
@@ -49,8 +54,6 @@ describe('DiscussionsPage', () => {
     await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
     expect(screen.getByText('Housing & Rent')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Post' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Add a note' }));
-    expect(screen.getByLabelText(/Your note/).hasAttribute('required')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(await screen.findByRole('option', { name: 'Housing & Rent' })).toBeTruthy();
   });
@@ -66,7 +69,7 @@ describe('DiscussionsPage', () => {
       }] }),
     } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('link', { name: 'What should Congress do next?' }).getAttribute('href')).toBe('/discuss/7'));
+    await waitFor(() => expect(screen.getByText('What should Congress do next?')).toBeTruthy());
     expect(screen.getByRole('link', { name: 'Housing & Rent evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
     expect(screen.getByText('Civic neighbor')).toBeTruthy();
     expect(screen.getByRole('link', { name: '1 reply' }).getAttribute('href')).toBe('/discuss/7');
@@ -86,5 +89,21 @@ describe('DiscussionsPage', () => {
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('note').textContent).toContain('not real civic participation'));
     expect(screen.getByText('Demo data')).toBeTruthy();
+  });
+
+  it('renders ordinary HTTPS links as safe external links', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ total: 1, limit: 20, offset: 0, items: [{
+        id: 9, body: 'Read the public record\n\nhttps://example.gov/public-record',
+        author: { id: 2, display_name: 'Civic neighbor' }, moderation_status: 'published', reply_count: 0,
+        created_at: '2026-08-29T00:00:00Z', updated_at: '2026-08-29T00:00:00Z', attachments: [],
+        reactions: { like: 0, insightful: 0, disagree: 0 }, viewer_reactions: [], viewer_bookmarked: false,
+      }] }),
+    } as Response);
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    const externalLink = await screen.findByRole('link', { name: /https:\/\/example.gov\/public-record/ });
+    expect(externalLink.getAttribute('href')).toBe('https://example.gov/public-record');
+    expect(externalLink.getAttribute('target')).toBe('_blank');
   });
 });
