@@ -35,10 +35,11 @@ describe('DiscussionsPage', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, methodology: {}, items: [{ rank: 1, slug: 'housing-rent', title: 'Housing & Rent' }] }) } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(/Paste a Facebook, TikTok, Instagram, or YouTube link/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Paste a TikTok, Instagram, Facebook, or YouTube link/)).toBeTruthy());
     const link = screen.getByLabelText('Video link');
-    expect(link.getAttribute('placeholder')).toContain('Facebook, TikTok, Instagram, or YouTube');
+    expect(link.getAttribute('placeholder')).toBe('Paste link');
     expect(screen.queryByRole('combobox', { name: 'Agenda issue' })).toBeNull();
+    expect(screen.queryByLabelText(/Your note/)).toBeNull();
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
       provider: 'tiktok', canonical_url: 'https://www.tiktok.com/@person/video/7679228789091519757',
       suggested_issue: { slug: 'housing-rent', title: 'Housing & Rent', score: 6 },
@@ -47,7 +48,9 @@ describe('DiscussionsPage', () => {
     fireEvent.change(link, { target: { value: 'https://www.tiktok.com/@person/video/7679228789091519757' } });
     await waitFor(() => expect(screen.getByText('Suggested issue')).toBeTruthy(), { timeout: 2000 });
     expect(screen.getByText('Housing & Rent')).toBeTruthy();
-    expect(screen.getByLabelText(/Add your take/).hasAttribute('required')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Post' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Add a note' }));
+    expect(screen.getByLabelText(/Your note/).hasAttribute('required')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(await screen.findByRole('option', { name: 'Housing & Rent' })).toBeTruthy();
   });

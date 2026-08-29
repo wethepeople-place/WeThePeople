@@ -320,6 +320,18 @@ def _base_query(db: Session):
     ).filter(DiscussionPost.moderation_status == "published")
 
 
+def _issue_suggestions(provider: str, canonical_url: str, db: Session, extra_text: str = "") -> tuple[list[LinkSuggestionItem], str, bool]:
+    metadata = ""
+    try:
+        metadata = fetch_social_metadata(provider, canonical_url)
+    except (requests.RequestException, ValueError):
+        metadata = ""
+    issues = {row.slug: row.title for row in db.query(Issue).order_by(Issue.slug.asc()).all()}
+    matches = rank_agenda_issues(f"{metadata} {extra_text}", issues)
+    ranked = [LinkSuggestionItem(slug=item.slug, title=issues[item.slug], score=item.score) for item in matches[:3]]
+    return ranked, confidence_for(matches), bool(metadata.strip())
+
+
 @router.post("/link-suggestion", response_model=LinkSuggestionResponse)
 def suggest_discussion_issue(
     body: LinkSuggestionRequest,
@@ -329,21 +341,14 @@ def suggest_discussion_issue(
 ):
     _rate_limit(request, user, "discussions:link-suggestion", LINK_SUGGEST_LIMIT, db)
     provider, _, canonical_url = _social_link(body.video_url)
-    metadata = ""
-    try:
-        metadata = fetch_social_metadata(provider, canonical_url)
-    except (requests.RequestException, ValueError):
-        metadata = ""
-    issues = {row.slug: row.title for row in db.query(Issue).order_by(Issue.slug.asc()).all()}
-    matches = rank_agenda_issues(metadata, issues)
-    ranked = [LinkSuggestionItem(slug=item.slug, title=issues[item.slug], score=item.score) for item in matches[:3]]
+    ranked, confidence, metadata_available = _issue_suggestions(provider, canonical_url, db)
     return {
         "provider": provider,
         "canonical_url": canonical_url,
         "suggested_issue": ranked[0] if ranked else None,
         "alternatives": ranked[1:],
-        "confidence": confidence_for(matches),
-        "metadata_available": bool(metadata.strip()),
+        "confidence": confidence,
+        "metadata_available": metadata_available,
     }
 
 
@@ -358,9 +363,13 @@ def create_discussion(
     video_link = _social_link(body.video_url) if body.video_url else None
     if not video_link and not body.body:
         raise HTTPException(status_code=422, detail="Add a thought or paste a supported social link")
-    if video_link and not body.issue_slug:
-        raise HTTPException(status_code=422, detail="Choose the Agenda issue this link belongs to")
-    if body.issue_slug and db.get(Issue, body.issue_slug) is None:
+    issue_slug = body.issue_slug
+    if video_link and not issue_slug:
+        suggestions, _, _ = _issue_suggestions(video_link[0], video_link[2], db, body.body)
+        issue_slug = suggestions[0].slug if suggestions else None
+        if not issue_slug:
+            raise HTTPException(status_code=422, detail="We could not match this link yet. Add a few words about its topic and try again")
+    if issue_slug and db.get(Issue, issue_slug) is None:
         raise HTTPException(status_code=422, detail="Choose a reviewed WTP issue")
     post = DiscussionPost(
         author_id=user.id,
@@ -373,9 +382,9 @@ def create_discussion(
         post.video_link = DiscussionVideoLink(
             provider=provider, provider_video_id=video_id, canonical_url=canonical_url
         )
-    if body.issue_slug:
+    if issue_slug:
         post.attachments.append(DiscussionAttachment(
-            attachment_type="issue", issue_slug=body.issue_slug, label="Related issue"
+            attachment_type="issue", issue_slug=issue_slug, label="Related issue"
         ))
     db.add(post)
     db.commit()

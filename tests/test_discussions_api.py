@@ -305,16 +305,17 @@ def test_video_post_rejects_untrusted_or_malformed_links():
             assert session.query(DiscussionVideoLink).count() == 0
 
 
-def test_social_link_requires_a_reviewed_agenda_issue():
+def test_social_link_asks_for_topic_only_when_automatic_matching_fails(monkeypatch):
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)
     _as_user(app, Session, alice_id)
+    monkeypatch.setattr("routers.discussions.fetch_social_metadata", lambda provider, url: "")
     missing = client.post("/discussions", json={
         "body": "Where does this belong?",
         "video_url": "https://www.instagram.com/p/ABC_def-123/",
     })
     assert missing.status_code == 422
-    assert missing.json()["detail"] == "Choose the Agenda issue this link belongs to"
+    assert missing.json()["detail"] == "We could not match this link yet. Add a few words about its topic and try again"
     unknown = client.post("/discussions", json={
         "body": "Unknown issue",
         "video_url": "https://www.instagram.com/p/ABC_def-123/",
@@ -361,3 +362,25 @@ def test_link_post_allows_an_empty_take_and_uses_a_neutral_system_body():
     with Session() as session:
         post = session.get(DiscussionPost, response.json()["id"])
         assert post.body == "Shared a Tiktok video for civic review."
+
+
+def test_link_post_automatically_attaches_the_best_issue_without_user_selection(monkeypatch):
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        session.add(Issue(slug="health-care-reform", title="Health Care Reform"))
+        session.commit()
+    _as_user(app, Session, alice_id)
+    monkeypatch.setattr(
+        "routers.discussions.fetch_social_metadata",
+        lambda provider, url: "#healthinsurance #universalhealthcare",
+    )
+    response = client.post("/discussions", json={
+        "video_url": "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757",
+    })
+    assert response.status_code == 201
+    with Session() as session:
+        post = session.get(DiscussionPost, response.json()["id"])
+        assert [(item.attachment_type, item.issue_slug) for item in post.attachments] == [
+            ("issue", "health-care-reform")
+        ]
