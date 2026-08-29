@@ -246,7 +246,7 @@ export function fetchPublicDiscussion(postId: number) {
 }
 
 export function createDiscussion(data: { body: string; video_url?: string; issue_slug?: string }) {
-  return apiFetch<{ id: number; moderation_status: 'pending'; message: string }>('/discussions', { method: 'POST', body: data });
+  return apiFetch<{ id: number; moderation_status: 'pending' | 'published'; message: string }>('/discussions', { method: 'POST', body: data });
 }
 
 export interface DiscussionLinkSuggestion {

@@ -72,3 +72,12 @@ itself is not a safe release. The minimum launch gate includes:
 The first bounded release should allow one image per post. Short video should
 follow only after the transcoding, caption, moderation, retention, and cost
 controls pass security and accessibility review.
+
+## Root-post publication policy
+
+Creating a root civic post requires an authenticated WTP account. Authenticated
+root posts publish immediately. For supported YouTube, Facebook, TikTok, and
+Instagram URLs, WTP validates and normalizes the provider URL, extracts topic
+signals, and connects the post to a reviewed Agenda issue. WTP does not hold or
+claim to moderate the provider-hosted media. Reports, blocking, rate limits,
+provider takedowns, and later removal remain post-publication safeguards.

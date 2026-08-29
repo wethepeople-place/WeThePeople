@@ -228,7 +228,7 @@ def test_post_reactions_are_public_and_bookmarks_remain_private_and_idempotent()
         assert session.query(DiscussionBookmark).count() == 0
 
 
-def test_social_post_is_normalized_connected_to_an_agenda_and_held_for_moderation():
+def test_social_post_is_normalized_connected_to_an_agenda_and_published_immediately():
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)
     assert client.post("/discussions", json={"body": "Worth discussing", "video_url": "https://youtu.be/maODCSHgPww"}).status_code == 401
@@ -240,14 +240,12 @@ def test_social_post_is_normalized_connected_to_an_agenda_and_held_for_moderatio
         "issue_slug": "housing-rent",
     })
     assert created.status_code == 201
-    assert created.json()["moderation_status"] == "pending"
+    assert created.json()["moderation_status"] == "published"
     with Session() as session:
         post = session.get(DiscussionPost, created.json()["id"])
         assert post.body == "What policy tradeoff does this highlight?"
-        assert post.moderation_status == "pending"
+        assert post.moderation_status == "published"
         assert post.video_link.canonical_url == "https://www.youtube.com/watch?v=maODCSHgPww"
-        post.moderation_status = "published"
-        session.commit()
 
     public = client.get(f"/discussions/{created.json()['id']}")
     assert public.status_code == 200
@@ -269,21 +267,23 @@ def test_social_post_is_normalized_connected_to_an_agenda_and_held_for_moderatio
             "issue_slug": "housing-rent",
         })
         assert response.status_code == 201
+        assert response.json()["moderation_status"] == "published"
         with Session() as session:
             link = session.get(DiscussionPost, response.json()["id"]).video_link
             assert (link.provider, link.provider_video_id, link.canonical_url) == (provider, provider_id, canonical_url)
 
 
-def test_text_only_post_is_allowed_and_held_for_moderation():
+def test_text_only_post_is_allowed_and_published_for_an_authenticated_user():
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)
     _as_user(app, Session, alice_id)
     created = client.post("/discussions", json={"body": "  What evidence should we examine next?  "})
     assert created.status_code == 201
+    assert created.json()["moderation_status"] == "published"
     with Session() as session:
         post = session.get(DiscussionPost, created.json()["id"])
         assert post.body == "What evidence should we examine next?"
-        assert post.moderation_status == "pending"
+        assert post.moderation_status == "published"
         assert post.video_link is None
 
 
@@ -361,7 +361,8 @@ def test_link_post_allows_an_empty_take_and_uses_a_neutral_system_body():
     assert response.status_code == 201
     with Session() as session:
         post = session.get(DiscussionPost, response.json()["id"])
-        assert post.body == "Shared a Tiktok video for civic review."
+        assert post.body == "Shared a Tiktok video."
+        assert post.moderation_status == "published"
 
 
 def test_link_post_automatically_attaches_the_best_issue_without_user_selection(monkeypatch):
@@ -379,6 +380,7 @@ def test_link_post_automatically_attaches_the_best_issue_without_user_selection(
         "video_url": "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757",
     })
     assert response.status_code == 201
+    assert response.json()["moderation_status"] == "published"
     with Session() as session:
         post = session.get(DiscussionPost, response.json()["id"])
         assert [(item.attachment_type, item.issue_slug) for item in post.attachments] == [

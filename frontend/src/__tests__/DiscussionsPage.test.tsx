@@ -56,6 +56,11 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('button', { name: 'Post' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(await screen.findByRole('option', { name: 'Housing & Rent' })).toBeTruthy();
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
+      id: 10, moderation_status: 'published', message: 'Posted',
+    }) } as Response);
+    fireEvent.click(screen.getByRole('button', { name: 'Post' }));
+    expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
   });
 
   it('renders a chronological civic post card with public counts', async () => {
