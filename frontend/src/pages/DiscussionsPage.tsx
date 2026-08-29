@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { createVideoDiscussion, fetchPublicDiscussions, type PublicDiscussionPost } from '../api/civic';
+import { createVideoDiscussion, fetchPublicDiscussions, suggestDiscussionIssue, type PublicDiscussionPost } from '../api/civic';
 import { fetchIssueAgenda, type AgendaIssue } from '../api/issues';
 import DiscussionPostCard from '../components/DiscussionPostCard';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,12 +23,53 @@ export default function DiscussionsPage() {
   const [videoUrl, setVideoUrl] = useState('');
   const [agendaIssues, setAgendaIssues] = useState<AgendaIssue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState(issue);
+  const [suggestionState, setSuggestionState] = useState<'idle' | 'loading' | 'ready' | 'unmatched' | 'error'>('idle');
+  const [suggestedTitle, setSuggestedTitle] = useState('');
+  const [showIssuePicker, setShowIssuePicker] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
   const { isAuthenticated } = useAuth();
   const hasDemoItems = items.some((item) => item.author?.is_demo);
 
   useEffect(() => setSelectedIssue(issue), [issue]);
+
+  useEffect(() => {
+    if (issue || !videoUrl.trim()) {
+      setSuggestionState('idle');
+      setSuggestedTitle('');
+      setShowIssuePicker(false);
+      if (!issue) setSelectedIssue('');
+      return;
+    }
+    let active = true;
+    const timeout = window.setTimeout(() => {
+      setSuggestionState('loading');
+      setShowIssuePicker(false);
+      suggestDiscussionIssue(videoUrl.trim())
+        .then((result) => {
+          if (!active) return;
+          if (result.suggested_issue) {
+            setSelectedIssue(result.suggested_issue.slug);
+            setSuggestedTitle(result.suggested_issue.title);
+            setSuggestionState('ready');
+          } else {
+            setSelectedIssue('');
+            setSuggestedTitle('');
+            setSuggestionState('unmatched');
+            setShowIssuePicker(true);
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          setSelectedIssue('');
+          setSuggestedTitle('');
+          setSuggestionState('error');
+          setShowIssuePicker(true);
+        });
+    }, 500);
+    return () => { active = false; window.clearTimeout(timeout); };
+  }, [issue, videoUrl]);
 
   useEffect(() => {
     let active = true;
@@ -51,7 +92,7 @@ export default function DiscussionsPage() {
   useEffect(() => {
     if (!compose) return;
     composer.current?.scrollIntoView({ block: 'start' });
-    composer.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+    composer.current?.querySelector<HTMLInputElement>('input[type="url"]')?.focus();
   }, [compose, isAuthenticated]);
 
   const loadMore = async () => {
@@ -67,7 +108,7 @@ export default function DiscussionsPage() {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
     try {
       const result = await createVideoDiscussion({ body, ...(videoUrl ? { video_url: videoUrl } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
-      setBody(''); setVideoUrl(''); setNotice(`${result.message}. It will appear here after review.`);
+      setBody(''); setVideoUrl(''); setSelectedIssue(issue); setSuggestedTitle(''); setShowNote(false); setNotice(`${result.message}. It will appear here after review.`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to submit post.'); }
     finally { setSubmitting(false); }
   };
@@ -87,13 +128,22 @@ export default function DiscussionsPage() {
         <div className="min-w-0">
           <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-labelledby="share-video-heading">
             <h2 id="share-video-heading" className="text-xl font-semibold">Create a civic post</h2>
-            <p className="mt-2 text-sm leading-6 text-text-2">Share a Facebook, TikTok, Instagram, or YouTube link and connect it to the Agenda issue it informs. New posts are reviewed before appearing publicly.</p>
+            <p className="mt-2 text-sm leading-6 text-text-2">Paste a TikTok, Instagram, Facebook, or YouTube link. We organize it automatically.</p>
             {isAuthenticated ? <form className="mt-5 space-y-4" onSubmit={submit}>
-              <label className="block text-sm font-semibold">What should people examine?<textarea className="mt-2 min-h-28 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" required maxLength={10000} placeholder="Point to evidence, ask a focused question, or explain the civic tradeoff." value={body} onChange={(event) => setBody(event.target.value)} /></label>
-              <label className="block text-sm font-semibold">Social link <span className="font-normal text-text-3">(optional)</span><input className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" placeholder="Paste a Facebook, TikTok, Instagram, or YouTube link" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></label>
-              <label className="block text-sm font-semibold">Agenda issue {videoUrl && <span className="text-red-600">(required for a link)</span>}<select className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" value={selectedIssue} onChange={(event) => setSelectedIssue(event.target.value)} required={Boolean(videoUrl)} disabled={Boolean(issue)}><option value="">Choose an issue</option>{agendaIssues.map((agendaIssue) => <option key={agendaIssue.slug} value={agendaIssue.slug}>{agendaIssue.rank}. {agendaIssue.title}</option>)}</select></label>
-              <p className="text-xs leading-5 text-text-3">Photo and native video uploads are coming after privacy stripping, security scanning, moderation, and deletion controls are complete.</p>
-              <button disabled={submitting} className="min-h-11 rounded-full bg-accent px-5 py-3 font-bold text-white disabled:opacity-60">{submitting ? 'Submitting…' : 'Submit for review'}</button>
+              <label className="block text-sm font-semibold">Video link<input className="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" type="url" required placeholder="Paste link" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></label>
+              {videoUrl && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
+                {suggestionState === 'loading' && <p className="text-sm text-text-2">Matching this video automatically…</p>}
+                {suggestionState === 'ready' && <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-3">Suggested issue</p><p className="mt-1 font-semibold text-text-1">{suggestedTitle}</p></div><button type="button" className="font-semibold text-accent-text underline" onClick={() => setShowIssuePicker((current) => !current)}>{showIssuePicker ? 'Keep suggestion' : 'Change'}</button></div>}
+                {suggestionState === 'unmatched' && <p className="text-sm text-text-2">Add a few words about the topic so we can match it.</p>}
+                {suggestionState === 'error' && <p className="text-sm text-text-2">We will match the topic when you post.</p>}
+              </div>}
+              {(Boolean(issue) || showIssuePicker) && <label className="block text-sm font-semibold">Agenda issue<select className="mt-2 min-h-11 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" value={selectedIssue} onChange={(event) => { setSelectedIssue(event.target.value); setSuggestedTitle(agendaIssues.find((item) => item.slug === event.target.value)?.title || ''); setSuggestionState(event.target.value ? 'ready' : 'unmatched'); }} required disabled={Boolean(issue)}><option value="">Choose an issue</option>{agendaIssues.map((agendaIssue) => <option key={agendaIssue.slug} value={agendaIssue.slug}>{agendaIssue.title}</option>)}</select></label>}
+              {showNote && <label className="block text-sm font-semibold">Your note <span className="font-normal text-text-3">(optional)</span><textarea autoFocus className="mt-2 min-h-20 w-full rounded-xl border border-border bg-bg px-4 py-3 text-text-1" maxLength={10000} placeholder="What is this about?" value={body} onChange={(event) => setBody(event.target.value)} /></label>}
+              <div className="flex flex-wrap items-center gap-4">
+                <button disabled={submitting || !videoUrl.trim()} className="min-h-12 rounded-full bg-accent px-7 py-3 font-bold text-white disabled:opacity-60">{submitting ? 'Posting…' : 'Post'}</button>
+                {!showNote && <button type="button" className="text-sm font-semibold text-accent-text underline" onClick={() => setShowNote(true)}>Add a note</button>}
+              </div>
+              <p className="text-xs leading-5 text-text-3">Posts are reviewed before appearing publicly.</p>
             </form> : <p className="mt-4"><Link className="font-semibold text-accent-text underline" to={`/login?next=${encodeURIComponent(compose ? '/discuss?compose=1#composer' : '/discuss')}`}>Sign in to start a conversation</Link></p>}
             {notice && <p role="status" className="mt-4 text-sm text-accent-text">{notice}</p>}
           </section>

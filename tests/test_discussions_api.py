@@ -20,6 +20,7 @@ from models.social_models import (
     DiscussionReport,
     DiscussionVideoLink,
 )
+from models.issue_models import Issue
 from routers.discussions import router
 from services.jwt_auth import get_current_user, get_optional_user
 from tests.test_housing_rent_loader import _fixture as housing_fixture
@@ -304,16 +305,17 @@ def test_video_post_rejects_untrusted_or_malformed_links():
             assert session.query(DiscussionVideoLink).count() == 0
 
 
-def test_social_link_requires_a_reviewed_agenda_issue():
+def test_social_link_asks_for_topic_only_when_automatic_matching_fails(monkeypatch):
     app, client, Session = _environment()
     alice_id, _ = _seed(Session)
     _as_user(app, Session, alice_id)
+    monkeypatch.setattr("routers.discussions.fetch_social_metadata", lambda provider, url: "")
     missing = client.post("/discussions", json={
         "body": "Where does this belong?",
         "video_url": "https://www.instagram.com/p/ABC_def-123/",
     })
     assert missing.status_code == 422
-    assert missing.json()["detail"] == "Choose the Agenda issue this link belongs to"
+    assert missing.json()["detail"] == "We could not match this link yet. Add a few words about its topic and try again"
     unknown = client.post("/discussions", json={
         "body": "Unknown issue",
         "video_url": "https://www.instagram.com/p/ABC_def-123/",
@@ -321,3 +323,64 @@ def test_social_link_requires_a_reviewed_agenda_issue():
     })
     assert unknown.status_code == 422
     assert unknown.json()["detail"] == "Choose a reviewed WTP issue"
+
+
+def test_link_suggestion_uses_provider_metadata_and_returns_ranked_reviewed_issue(monkeypatch):
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        session.add_all((
+            Issue(slug="health-care-reform", title="Health Care Reform"),
+            Issue(slug="health-care-costs", title="Health Care Costs"),
+        ))
+        session.commit()
+    _as_user(app, Session, alice_id)
+    monkeypatch.setattr(
+        "routers.discussions.fetch_social_metadata",
+        lambda provider, url: "Our system is so broken #healthinsurance #universalhealthcare #chronicillness",
+    )
+    response = client.post("/discussions/link-suggestion", json={
+        "video_url": "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757?sender_device=pc",
+    })
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["canonical_url"] == "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757"
+    assert payload["suggested_issue"]["slug"] == "health-care-reform"
+    assert payload["confidence"] == "high"
+
+
+def test_link_post_allows_an_empty_take_and_uses_a_neutral_system_body():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    _as_user(app, Session, alice_id)
+    response = client.post("/discussions", json={
+        "body": "",
+        "video_url": "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757",
+        "issue_slug": "housing-rent",
+    })
+    assert response.status_code == 201
+    with Session() as session:
+        post = session.get(DiscussionPost, response.json()["id"])
+        assert post.body == "Shared a Tiktok video for civic review."
+
+
+def test_link_post_automatically_attaches_the_best_issue_without_user_selection(monkeypatch):
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        session.add(Issue(slug="health-care-reform", title="Health Care Reform"))
+        session.commit()
+    _as_user(app, Session, alice_id)
+    monkeypatch.setattr(
+        "routers.discussions.fetch_social_metadata",
+        lambda provider, url: "#healthinsurance #universalhealthcare",
+    )
+    response = client.post("/discussions", json={
+        "video_url": "https://www.tiktok.com/@lemonsnlyme/video/7679228789091519757",
+    })
+    assert response.status_code == 201
+    with Session() as session:
+        post = session.get(DiscussionPost, response.json()["id"])
+        assert [(item.attachment_type, item.issue_slug) for item in post.attachments] == [
+            ("issue", "health-care-reform")
+        ]
