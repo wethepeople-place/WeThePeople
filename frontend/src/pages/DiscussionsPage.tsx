@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { createDiscussion, fetchDiscussionContinuation, fetchPublicDiscussions, suggestDiscussionIssue, type DiscussionContinuation, type PublicDiscussionPost } from '../api/civic';
@@ -7,6 +7,7 @@ import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
 
 const PAGE_SIZE = 20;
+type DiscussionSort = 'recent' | 'popular' | 'discussed';
 
 function isSupportedSocialLink(value: string) {
   try {
@@ -46,9 +47,19 @@ export default function DiscussionsPage() {
   const [suggestedTitle, setSuggestedTitle] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
+  const [sort, setSort] = useState<DiscussionSort>('recent');
   const { isAuthenticated } = useAuth();
   const hasDemoItems = items.some((item) => item.author?.is_demo);
   const socialCandidate = supportedSocialLinkIn(body);
+  const sortedItems = useMemo(() => [...items].sort((left, right) => {
+    if (sort === 'popular') {
+      const leftScore = (left.reactions?.like || 0) + (left.reactions?.insightful || 0);
+      const rightScore = (right.reactions?.like || 0) + (right.reactions?.insightful || 0);
+      return rightScore - leftScore || Date.parse(right.created_at) - Date.parse(left.created_at);
+    }
+    if (sort === 'discussed') return right.reply_count - left.reply_count || Date.parse(right.created_at) - Date.parse(left.created_at);
+    return Date.parse(right.created_at) - Date.parse(left.created_at) || right.id - left.id;
+  }), [items, sort]);
 
   useEffect(() => setSelectedIssue(issue), [issue]);
 
@@ -177,9 +188,9 @@ export default function DiscussionsPage() {
           {error && <div role="alert" className="mt-6 rounded-2xl border border-red-300 bg-red-50 p-5 text-red-800">{error}<button type="button" onClick={() => window.location.reload()} className="ml-3 font-bold underline">Try again</button></div>}
           {!loading && !error && items.length === 0 && <div className="mt-6 rounded-2xl border border-dashed border-border bg-surface p-8 text-center"><h2 className="text-xl font-semibold">No posts here yet</h2><p className="mt-2 text-text-2">{videoId ? 'No published conversation is connected to this video yet.' : 'Be the first to share a civic thought, link, or video.'}</p><Link className="mt-5 inline-block font-semibold text-accent-text underline" to="/discuss?compose=1#composer">Create a post</Link></div>}
 
-          {!loading && !error && items.length > 0 && <div className="mt-6 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Newest first</p><h2 className="mt-1 text-2xl font-semibold">{videoId ? 'Video conversation' : issue ? 'Issue conversation' : 'Latest discussions'}</h2></div><p className="shrink-0 text-sm text-text-3">{total} {total === 1 ? 'thread' : 'threads'}</p></div>}
+          {!loading && !error && items.length > 0 && <div className="mt-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">{sort === 'recent' ? 'Most recent first' : sort === 'popular' ? 'Most popular first' : 'Most discussed first'}</p><h2 className="mt-1 text-2xl font-semibold">{videoId ? 'Video conversation' : issue ? 'Issue conversation' : 'Latest discussions'}</h2></div><div className="flex items-center gap-3"><label className="text-sm font-semibold text-text-2" htmlFor="discussion-sort">Sort</label><select id="discussion-sort" value={sort} onChange={(event) => setSort(event.target.value as DiscussionSort)} className="min-h-11 rounded-xl border border-border bg-surface px-4 font-bold text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30"><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="discussed">Most discussed</option></select><p className="shrink-0 text-sm text-text-3">{total} {total === 1 ? 'thread' : 'threads'}</p></div></div>}
           {!loading && !error && hasDemoItems && <aside role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-300/10 p-4 text-sm leading-6 text-text-2"><strong className="text-text-1">Visual demo:</strong> Latin placeholder posts, numbered test users, replies, and reactions are shown here to test the civic feed. They are not real civic participation.</aside>}
-          <section aria-label="Latest civic discussions" className="mt-4 space-y-4 sm:space-y-5">{items.map((item) => <DiscussionPostCard key={item.id} item={item} isAuthenticated={isAuthenticated} />)}</section>
+          <section aria-label="Latest civic discussions" className="mt-4 space-y-4 sm:space-y-5">{sortedItems.map((item) => <DiscussionPostCard key={item.id} item={item} isAuthenticated={isAuthenticated} />)}</section>
           {items.length < total && <div className="mt-6 text-center"><button type="button" disabled={loadingMore} onClick={() => void loadMore()} className="min-h-11 rounded-full border border-border bg-surface px-6 font-bold text-text-1 disabled:opacity-60">{loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}</button></div>}
           {!issue && !videoId && continuationLoading && <p className="mt-8 text-center text-sm text-text-2">Loading more real civic material…</p>}
           {!issue && !videoId && continuationError && <div role="alert" className="mt-8 rounded-xl border border-border bg-surface p-5 text-center"><p>{continuationError} Your loaded posts remain available.</p><button className="mt-3 font-bold text-accent-text underline" onClick={() => void loadContinuation()}>Try again</button></div>}

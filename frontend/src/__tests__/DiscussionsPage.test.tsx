@@ -87,6 +87,25 @@ describe('DiscussionsPage', () => {
     expect(screen.getByRole('link', { name: 'Sign in to like' }).textContent).toContain('2');
   });
 
+  it('keeps recent posts on top by default and sorts by real engagement', async () => {
+    const post = (id: number, body: string, created_at: string, reply_count: number, like: number, insightful: number) => ({
+      id, body, author: { id, display_name: `Neighbor ${id}` }, moderation_status: 'published', reply_count, created_at, updated_at: created_at,
+      attachments: [], reactions: { like, insightful, disagree: 0 }, viewer_reactions: [], viewer_bookmarked: false,
+    });
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ total: 3, limit: 20, offset: 0, items: [
+      post(1, 'Older popular post', '2026-08-01T00:00:00Z', 1, 8, 2),
+      post(2, 'Newest post', '2026-08-30T00:00:00Z', 0, 0, 0),
+      post(3, 'Most discussed post', '2026-08-15T00:00:00Z', 9, 1, 0),
+    ] }) } as Response);
+    render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
+    const feed = await screen.findByLabelText('Latest civic discussions');
+    expect(feed.textContent?.indexOf('Newest post')).toBeLessThan(feed.textContent?.indexOf('Older popular post') || 0);
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'popular' } });
+    expect(feed.textContent?.indexOf('Older popular post')).toBeLessThan(feed.textContent?.indexOf('Newest post') || 0);
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'discussed' } });
+    expect(feed.textContent?.indexOf('Most discussed post')).toBeLessThan(feed.textContent?.indexOf('Newest post') || 0);
+  });
+
   it('labels server-identified synthetic records as a visual demo', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
