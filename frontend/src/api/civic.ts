@@ -183,8 +183,8 @@ export interface CitizenSolution {
   message?: string;
 }
 
-export function fetchSolutions(issueSlug: string) {
-  return apiFetch<{ total: number; limit: number; offset: number; items: CitizenSolution[] }>('/solutions', { params: { issue_slug: issueSlug } });
+export function fetchSolutions(issueSlug: string, offset = 0, limit = 20) {
+  return apiFetch<{ total: number; limit: number; offset: number; items: CitizenSolution[] }>('/solutions', { params: { issue_slug: issueSlug, offset, limit } });
 }
 
 export function createCitizenSolution(data: { issue_slug: string; title: string; summary: string; body: string; video_url?: string | null }) {
