@@ -1,0 +1,10 @@
+[Unit]
+Description=WeThePeople automated Polymarket forecast import and quality bot
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec wtp-api python -m jobs.sync_external_forecasts --apply
+NoNewPrivileges=true
+

@@ -134,6 +134,17 @@ export function fetchOpenForecasts(marketType?: 'bill' | 'election') {
   return apiFetch<{ items: ForecastMarket[]; privacy_threshold: number }>(`/forecasts${query}`);
 }
 
+export interface ExternalForecastMarket {
+  id: number; provider_market_id: string; question: string;
+  outcomes: Array<{ label: string; probability: number }>;
+  volume: number; liquidity: number; closes_at: string; source_url: string;
+  observed_at: string; quality_score: number; matched_market_id: number | null; label: string;
+}
+
+export function fetchExternalForecasts(limit = 50) {
+  return apiFetch<{ provider: 'polymarket'; total: number; items: ExternalForecastMarket[] }>('/forecasts/external', { params: { limit } });
+}
+
 export function fetchBillForecast(billId: string) {
   return apiFetch<ForecastMarket>(`/forecasts/bills/${encodeURIComponent(billId)}`);
 }
