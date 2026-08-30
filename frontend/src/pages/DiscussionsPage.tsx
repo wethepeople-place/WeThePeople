@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { createDiscussion, fetchDiscussionContinuation, fetchPublicDiscussions, suggestDiscussionIssue, type DiscussionContinuation, type PublicDiscussionPost } from '../api/civic';
+import { createCitizenSolution, createDiscussion, fetchDiscussionContinuation, fetchPublicDiscussions, suggestDiscussionIssue, type CommunityView, type DiscussionContinuation, type PublicDiscussionPost } from '../api/civic';
 import DiscussionPostCard from '../components/DiscussionPostCard';
 import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +32,8 @@ export default function DiscussionsPage() {
   const issue = params.get('issue') || '';
   const videoId = params.get('video') || '';
   const compose = params.get('compose') === '1';
+  const requestedView = params.get('view');
+  const view: CommunityView = requestedView === 'proposals' || requestedView === 'videos' ? requestedView : 'all';
   const composer = useRef<HTMLElement>(null);
   const [items, setItems] = useState<PublicDiscussionPost[]>([]);
   const [total, setTotal] = useState(0);
@@ -42,6 +44,7 @@ export default function DiscussionsPage() {
   const [continuationError, setContinuationError] = useState('');
   const [error, setError] = useState('');
   const [body, setBody] = useState('');
+  const [postKind, setPostKind] = useState<'discussion' | 'proposal'>(params.get('compose') === 'proposal' ? 'proposal' : 'discussion');
   const [selectedIssue, setSelectedIssue] = useState(issue);
   const [suggestionState, setSuggestionState] = useState<'idle' | 'loading' | 'ready' | 'unmatched' | 'error'>('idle');
   const [suggestedTitle, setSuggestedTitle] = useState('');
@@ -99,12 +102,12 @@ export default function DiscussionsPage() {
   useEffect(() => {
     let active = true;
     setLoading(true); setError(''); setItems([]);
-    fetchPublicDiscussions(issue || undefined, videoId || undefined, 0, PAGE_SIZE)
+    fetchPublicDiscussions(issue || undefined, videoId || undefined, 0, PAGE_SIZE, view)
       .then((result) => { if (active) { setItems(result.items); setTotal(result.total); } })
-      .catch((reason) => active && setError(reason instanceof Error ? reason.message : 'Discussions could not load.'))
+      .catch((reason) => active && setError(reason instanceof Error ? reason.message : 'Community posts could not load.'))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [issue, videoId]);
+  }, [issue, videoId, view]);
 
   useEffect(() => {
     if (!compose) return;
@@ -115,9 +118,9 @@ export default function DiscussionsPage() {
   const loadMore = async () => {
     setLoadingMore(true); setError('');
     try {
-      const result = await fetchPublicDiscussions(issue || undefined, videoId || undefined, items.length, PAGE_SIZE);
+      const result = await fetchPublicDiscussions(issue || undefined, videoId || undefined, items.length, PAGE_SIZE, view);
       setItems((current) => [...current, ...result.items]); setTotal(result.total);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'More discussions could not load.'); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'More Community posts could not load.'); }
     finally { setLoadingMore(false); }
   };
 
@@ -146,11 +149,15 @@ export default function DiscussionsPage() {
       const note = socialLink ? body.replace(socialLink, '').trim() : body.trim();
       const postBody = note;
       if (postBody.length > 10000) throw new Error('Shorten your post before adding this link.');
-      const result = await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
+      if (postKind === 'proposal' && !selectedIssue) throw new Error('Open an Agenda issue before proposing a solution.');
+      const result = postKind === 'proposal'
+        ? await createCitizenSolution({ issue_slug: selectedIssue, title: (postBody.split(/\n|[.!?]\s/)[0] || 'Community proposal').slice(0, 100), summary: postBody.slice(0, 1000), body: postBody, ...(socialLink ? { video_url: socialLink } : {}) })
+        : await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
       setBody(''); setSelectedIssue(issue); setSuggestedTitle('');
-      setNotice(result.moderation_status === 'published' ? 'Posted. It is now visible in Latest discussions.' : `${result.message}. It will appear here after review.`);
-      if (result.moderation_status === 'published') {
-        const refreshed = await fetchPublicDiscussions(issue || undefined, videoId || undefined, 0, PAGE_SIZE);
+      const published = !('moderation_status' in result) || result.moderation_status === 'published';
+      setNotice(published ? (postKind === 'proposal' ? 'Proposal published in Community.' : 'Posted in Community.') : `${'message' in result ? result.message : 'Submitted'}. It will appear here after review.`);
+      if (published) {
+        const refreshed = await fetchPublicDiscussions(issue || undefined, videoId || undefined, 0, PAGE_SIZE, view);
         setItems(refreshed.items);
         setTotal(refreshed.total);
       }
@@ -162,9 +169,9 @@ export default function DiscussionsPage() {
     <div className="mx-auto max-w-6xl">
       <header className="border-b border-border pb-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">The civic feed</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Discuss</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-7 text-text-2">Share and explore civic videos, links, ideas, and conversations—automatically organized around the People's Agenda.</p>
-        <nav aria-label="Discussion feed views" className="mt-6 flex gap-2"><span aria-current="page" className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white">Latest</span><span className="rounded-full border border-border px-5 py-2.5 text-sm text-text-3" title="Following will be enabled after its privacy and notification contracts are complete">Following — later</span></nav>
+        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Community</h1>
+        <p className="mt-3 max-w-3xl text-lg leading-7 text-text-2">One place for civic conversations, proposals, links, and videos—organized around the People's Agenda.</p>
+        <nav aria-label="Community views" className="mt-6 flex flex-wrap gap-2">{([['all', 'All'], ['proposals', 'Proposals'], ['videos', 'Videos']] as const).map(([value, label]) => <Link key={value} aria-current={view === value ? 'page' : undefined} className={`rounded-full px-5 py-2.5 text-sm font-bold ${view === value ? 'bg-accent text-white' : 'border border-border text-text-2'}`} to={`/discuss?${new URLSearchParams({ ...(issue ? { issue } : {}), ...(value !== 'all' ? { view: value } : {}) }).toString()}`}>{label}</Link>)}</nav>
         {videoId && <div className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-4"><p className="text-sm text-text-2">Showing the conversation connected to this video.</p><Link className="mt-2 inline-block font-semibold text-accent-text underline" to="/discuss">Return to the full feed</Link></div>}
         {issue && <div className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-4"><p className="text-sm text-text-2">Showing conversation connected to this issue's reviewed civic record.</p><Link className="mt-2 inline-block font-semibold text-accent-text underline" to={`/issues/${issue}`}>Return to official issue evidence</Link></div>}
       </header>
@@ -173,7 +180,9 @@ export default function DiscussionsPage() {
         <div className="min-w-0">
           <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-3 sm:p-4" aria-label="Create a civic post">
             {isAuthenticated ? <form className="space-y-3" onSubmit={submit}>
-              <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap"><div aria-hidden="true" className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-accent/15 font-bold text-accent-text">You</div><label className="sr-only" htmlFor="discussion-composer">Create a post</label><textarea id="discussion-composer" className="min-h-12 min-w-0 flex-1 resize-y rounded-2xl border-0 bg-bg px-5 py-3 text-base leading-6 text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30" maxLength={10000} rows={1} placeholder="Write something or paste a link…" value={body} onChange={(event) => setBody(event.target.value)} /><button disabled={submitting || !body.trim()} className="ml-auto min-h-12 rounded-full bg-accent px-6 py-3 font-bold text-white disabled:opacity-40">{submitting ? 'Posting…' : 'Post'}</button></div>
+              <div className="flex gap-2" aria-label="Post type"><button type="button" aria-pressed={postKind === 'discussion'} onClick={() => setPostKind('discussion')} className={`rounded-full px-4 py-2 text-sm font-bold ${postKind === 'discussion' ? 'bg-accent text-white' : 'border border-border'}`}>Start a discussion</button><button type="button" disabled={!selectedIssue} title={!selectedIssue ? 'Open an Agenda issue to propose a solution' : undefined} aria-pressed={postKind === 'proposal'} onClick={() => setPostKind('proposal')} className={`rounded-full px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45 ${postKind === 'proposal' ? 'bg-accent text-white' : 'border border-border'}`}>Propose a solution</button></div>
+              <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap"><div aria-hidden="true" className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-accent/15 font-bold text-accent-text">You</div><label className="sr-only" htmlFor="discussion-composer">Create a post</label><textarea id="discussion-composer" className="min-h-12 min-w-0 flex-1 resize-y rounded-2xl border-0 bg-bg px-5 py-3 text-base leading-6 text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30" minLength={postKind === 'proposal' ? 20 : undefined} maxLength={10000} rows={postKind === 'proposal' ? 4 : 1} placeholder={postKind === 'proposal' ? 'Describe your proposed solution…' : 'Write something or paste a link…'} value={body} onChange={(event) => setBody(event.target.value)} /><button disabled={submitting || !body.trim() || (postKind === 'proposal' && body.trim().length < 20)} className="ml-auto min-h-12 rounded-full bg-accent px-6 py-3 font-bold text-white disabled:opacity-40">{submitting ? 'Publishing…' : postKind === 'proposal' ? 'Publish proposal' : 'Post'}</button></div>
+              {postKind === 'proposal' && <p className="text-sm text-text-2">Published as a structured proposal with one Community conversation and Support/Oppose voting.</p>}
               {socialCandidate && isSupportedSocialLink(socialCandidate) && !issue && <div aria-live="polite" className="rounded-xl border border-border bg-bg p-4">
                 {suggestionState === 'loading' && <p className="text-sm text-text-2">Matching this video automatically…</p>}
                 {suggestionState === 'ready' && <p className="text-sm text-text-2">Filed automatically under <strong className="text-text-1">{suggestedTitle}</strong>.</p>}

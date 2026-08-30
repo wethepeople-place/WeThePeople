@@ -11,8 +11,9 @@ describe('IssueActionStrip', () => {
     expect(screen.getByRole('navigation', { name: 'Issue actions' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Evidence' }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
     expect(screen.getByRole('link', { name: 'Bills' }).getAttribute('href')).toBe('/issues/housing-rent#legislation');
-    expect(screen.getByRole('link', { name: 'Solutions' }).getAttribute('href')).toBe('/issues/housing-rent/solutions');
-    expect(screen.getByRole('link', { name: 'Discuss' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(screen.getByRole('link', { name: 'Community' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(screen.queryByRole('link', { name: 'Solutions' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Discuss' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');

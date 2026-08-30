@@ -9,9 +9,8 @@ it('connects every top-level civic journey destination', () => {
   const expected = {
     Agenda: '/civic',
     Issues: '/issues/housing-rent',
-    Discuss: '/discuss',
+    Community: '/discuss',
     Elections: '/elections',
-    Solutions: '/issues/housing-rent/solutions',
     Representatives: '/politics/find-rep',
     ACT: '/act',
     Jobs: 'https://research.wethepeople.place/gov-salaries',
@@ -27,7 +26,7 @@ it('connects every top-level civic journey destination', () => {
 
 it('keeps the six main phone-first destinations directly reachable', () => {
   render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
-  for (const label of ['Discuss', 'Agenda', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
+  for (const label of ['Community', 'Agenda', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
     expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
   }
   expect(screen.queryByRole('link', { name: 'Watch' })).toBeNull();

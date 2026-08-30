@@ -19,7 +19,7 @@ describe('DiscussionsPage', () => {
     await waitFor(() => expect(screen.getByText('No posts here yet')).toBeTruthy());
     expect(screen.queryByLabelText('Loading latest discussions')).toBeNull();
     expect(screen.getByRole('link', { name: 'Create a post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
-    expect(screen.getByText('Latest').getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'All' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('requests and preserves issue context', async () => {
@@ -65,7 +65,7 @@ describe('DiscussionsPage', () => {
       }],
     }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
-    expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
+    expect(await screen.findByText('Posted in Community.')).toBeTruthy();
     expect(await screen.findByText('Shared a Tiktok video.')).toBeTruthy();
   });
 
@@ -137,7 +137,7 @@ describe('DiscussionsPage', () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, moderation_status: 'published', message: 'Posted' }) } as Response);
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
-    expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
+    expect(await screen.findByText('Posted in Community.')).toBeTruthy();
     const [, request] = vi.mocked(fetch).mock.calls.find(([url, options]) => options?.method === 'POST' && new URL(String(url)).pathname.endsWith('/discussions')) || [];
     const payload = JSON.parse(String(request?.body));
     expect(payload.video_url).toContain('tiktok.com/@person/video/7579560442230508831');

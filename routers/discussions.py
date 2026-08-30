@@ -401,6 +401,7 @@ def create_discussion(
 def list_discussions(
     issue_slug: Optional[str] = Query(default=None, min_length=1, max_length=100),
     video_id: Optional[str] = Query(default=None, min_length=1, max_length=100),
+    content: Literal["all", "proposals", "videos"] = Query(default="all"),
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     user: Optional[User] = Depends(get_optional_user),
@@ -409,12 +410,17 @@ def list_discussions(
     blocked = _blocked_ids(user, db)
     query = _base_query(db)
     if issue_slug:
-        query = query.join(DiscussionAttachment).filter(DiscussionAttachment.issue_slug == issue_slug)
+        query = query.filter(DiscussionPost.attachments.any(DiscussionAttachment.issue_slug == issue_slug))
     if video_id:
-        query = query.join(DiscussionAttachment).filter(
-            DiscussionAttachment.attachment_type == "video",
-            DiscussionAttachment.video_id == video_id,
-        )
+        query = query.filter(DiscussionPost.attachments.any(
+            (DiscussionAttachment.attachment_type == "video") & (DiscussionAttachment.video_id == video_id)
+        ))
+    if content == "proposals":
+        query = query.filter(DiscussionPost.attachments.any(
+            DiscussionAttachment.attachment_type == "solution"
+        ))
+    elif content == "videos":
+        query = query.filter(DiscussionPost.video_link.has())
     if blocked:
         query = query.filter((DiscussionPost.author_id.is_(None)) | (~DiscussionPost.author_id.in_(blocked)))
     total = query.count()
@@ -442,6 +448,7 @@ def list_video_comments(
     return list_discussions(
         issue_slug=None,
         video_id=video_id,
+        content="all",
         limit=limit,
         offset=offset,
         user=user,

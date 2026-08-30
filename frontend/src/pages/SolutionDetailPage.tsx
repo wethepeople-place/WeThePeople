@@ -46,7 +46,7 @@ export default function SolutionDetailPage() {
   const issueName = slug.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
   const returnPath = `/issues/${slug}/solutions/${item.id}`;
   return <main className="min-h-screen bg-bg px-5 py-12 text-text-1"><article className="mx-auto max-w-4xl">
-    <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">{issueName} · Citizen solution</p>
+    <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">{issueName} · Community proposal</p>
     <h1 className="mt-4 font-display text-4xl sm:text-6xl">{item.title}</h1><p className="mt-4 text-sm text-text-3">By {item.creator_display_name} · Revision {item.latest_revision_number}</p>
     <p className="mt-7 text-xl leading-8 text-text-2">{item.summary}</p><div className="mt-8 whitespace-pre-wrap rounded-card border border-border bg-surface p-6 leading-8">{item.body}</div>
     {item.video_link && item.discussion_post_id && <DiscussionVideoEmbed video={item.video_link} title={item.title} postId={item.discussion_post_id} />}

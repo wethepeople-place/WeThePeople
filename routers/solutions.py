@@ -157,20 +157,22 @@ def create_solution(body: SolutionCreate, request: Request, user: User = Depends
     db.add(row)
     db.flush()
     video_link = _social_link(body.video_url) if body.video_url else None
+    # A proposal is a structured Community post, not a second, isolated product.
+    # Every publication gets exactly one canonical discussion identity; media is optional.
+    discussion = DiscussionPost(
+        author_id=user.id, author_label=user.display_name or "Community member",
+        body=body.body, moderation_status="published",
+    )
     if video_link:
         provider, provider_video_id, canonical_url = video_link
-        discussion = DiscussionPost(
-            author_id=user.id, author_label=user.display_name or "Community member",
-            body=body.body, moderation_status="published",
-            video_link=DiscussionVideoLink(
-                provider=provider, provider_video_id=provider_video_id, canonical_url=canonical_url,
-            ),
+        discussion.video_link = DiscussionVideoLink(
+            provider=provider, provider_video_id=provider_video_id, canonical_url=canonical_url,
         )
-        discussion.attachments.extend([
-            DiscussionAttachment(attachment_type="issue", issue_slug=row.issue_slug, label=db.get(Issue, row.issue_slug).title),
-            DiscussionAttachment(attachment_type="solution", solution_id=row.id, label=row.title),
-        ])
-        db.add(discussion)
+    discussion.attachments.extend([
+        DiscussionAttachment(attachment_type="issue", issue_slug=row.issue_slug, label=db.get(Issue, row.issue_slug).title),
+        DiscussionAttachment(attachment_type="solution", solution_id=row.id, label=row.title),
+    ])
+    db.add(discussion)
     db.add(SolutionRevision(solution_id=row.id, editor_user_id=user.id, revision_number=1, title=row.title,
                             summary=row.summary, body=row.body, change_note="Initial publication"))
     db.commit()
