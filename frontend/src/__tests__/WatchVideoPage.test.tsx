@@ -146,6 +146,35 @@ describe('WatchVideoPage', () => {
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
   })
 
+  it('starts the selected provider video after an explicit play link click', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total: 1, next_cursor: null, has_more: false,
+        videos: [{
+          video_id: 'community-42', content_origin: 'community', creator_label: 'Community member',
+          caption: 'Housing video', transcript: null,
+          media_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', published_at: '2026-08-29T00:00:00Z',
+          delivery: { mode: 'official_embed', provider: 'youtube', provider_video_id: 'ssTeslcxXbY', canonical_url: 'https://www.youtube.com/shorts/ssTeslcxXbY', source_label: 'YouTube', development_only: false },
+          accessibility: null, source: { url: 'https://www.youtube.com/shorts/ssTeslcxXbY', publisher: 'YouTube' },
+          issue: { slug: 'housing-rent', title: 'Housing & Rent' }, bills: [], discussion_post_id: 42,
+          like_count: 0, discussion_count: 1, liked: false, saved: false,
+        }],
+      }),
+    }))
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/watch/community-42?play=1']}>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(container.querySelectorAll('iframe')).toHaveLength(1))
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain('autoplay=1')
+    expect(container.querySelector('iframe')?.getAttribute('allow')).toContain('autoplay')
+    expect(screen.queryByRole('button', { name: 'Play video from YouTube' })).toBeNull()
+  })
+
   it('opens the shared video conversation without leaving Watch', async () => {
     const video = {
       video_id: 'housing-rent-road-act-explained', creator_label: 'Money Instructor',

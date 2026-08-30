@@ -133,8 +133,8 @@ function NarrativePanel({ item, dark = false }: { item: Video; dark?: boolean })
   </details>;
 }
 
-function OfficialEmbedCard({ item, active, embed, position, total, onChange, onComments }: { item: Video; active: boolean; embed: Delivery; position: number; total: number; onChange: (next: Video) => void; onComments: () => void }) {
-  const [consented, setConsented] = useState(false);
+function OfficialEmbedCard({ item, active, autoPlayRequested, embed, position, total, onChange, onComments }: { item: Video; active: boolean; autoPlayRequested: boolean; embed: Delivery; position: number; total: number; onChange: (next: Video) => void; onComments: () => void }) {
+  const [consented, setConsented] = useState(autoPlayRequested);
   const [failed, setFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
   const provider = getValidatedProvider(embed);
@@ -153,7 +153,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
           src={embedUrl}
           title={`${item.caption} — ${embed.source_label}`}
           referrerPolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onError={() => setFailed(true)}
         /> : <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-800 to-slate-950 p-8">
@@ -226,13 +226,13 @@ function NativeVideoCard({ item, active, reducedMotion, onActive, position, tota
   </article>;
 }
 
-function VideoCard(props: { item: Video; active: boolean; reducedMotion: boolean; onActive: () => void; onChange: (next: Video) => void; onComments: () => void; position: number; total: number }) {
+function VideoCard(props: { item: Video; active: boolean; autoPlayRequested: boolean; reducedMotion: boolean; onActive: () => void; onChange: (next: Video) => void; onComments: () => void; position: number; total: number }) {
   const delivery = props.item.delivery;
   if (delivery?.mode === 'official_embed') {
     const authorized = (!delivery.development_only || DEVELOPMENT_EMBED_AUTHORIZED)
       && Boolean(getOfficialEmbedUrl(delivery));
     return authorized
-      ? <OfficialEmbedCard item={props.item} active={props.active} embed={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />
+      ? <OfficialEmbedCard item={props.item} active={props.active} autoPlayRequested={props.autoPlayRequested} embed={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />
       : <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />;
   }
   if (delivery?.mode === 'link_out') return <LinkOutCard item={props.item} delivery={delivery} position={props.position} total={props.total} onChange={props.onChange} onComments={props.onComments} />;
@@ -269,6 +269,7 @@ export default function WatchVideoPage() {
   const { videoId } = useParams();
   const location = useLocation();
   const initialVideoId = useRef(videoId || '');
+  const autoPlayVideoId = useRef(new URLSearchParams(location.search).get('play') === '1' ? (videoId || '') : '');
   const observerRouteId = useRef('');
   const lastScrolledRouteId = useRef('');
   const navigate = useNavigate();
@@ -403,5 +404,5 @@ export default function WatchVideoPage() {
   if (!videos.length && !fallbacks.length && loadingContinuation) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading real civic material…</main>;
   if (!videos.length && !fallbacks.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">Civic material is temporarily unavailable.</h1><p className="max-w-xl text-slate-300">Nothing synthetic will be inserted. Try the live civic records again.</p><button type="button" className="rounded-full bg-amber-300 px-5 py-3 font-bold text-slate-950" onClick={() => void loadContinuation()}>Try again</button></main>;
   const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
-  return <><main onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/civic">Explore the full Civic Hub</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
+  return <><main onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} autoPlayRequested={autoPlayVideoId.current === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/civic">Explore the full Civic Hub</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }

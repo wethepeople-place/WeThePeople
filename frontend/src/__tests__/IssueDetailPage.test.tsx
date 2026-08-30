@@ -29,7 +29,7 @@ describe('IssueDetailPage journey actions', () => {
     expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
-    expect(screen.getAllByRole('link', { name: /Housing explained/ })[0].getAttribute('href')).toBe('/watch/housing-video');
+    expect(screen.getAllByRole('link', { name: /Housing explained/ })[0].getAttribute('href')).toBe('/watch/housing-video?play=1');
     expect(screen.getByText('Community shared')).toBeTruthy();
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/videos?limit=25&issue_slug=housing-rent'))).toBe(true);
     const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
