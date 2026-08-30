@@ -52,6 +52,51 @@ class ForecastPrediction(Base):
     __table_args__ = (UniqueConstraint("market_id", "user_id", name="uq_forecast_prediction_user"),)
 
 
+class ExternalForecastMarket(Base):
+    """Read-only market signal imported from a third-party provider."""
+    __tablename__ = "external_forecast_markets"
+
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(30), nullable=False, index=True)
+    provider_market_id = Column(String(255), nullable=False)
+    provider_event_id = Column(String(255), index=True)
+    slug = Column(String(500))
+    question = Column(String(1000), nullable=False)
+    description = Column(Text)
+    outcomes_json = Column(JSON, nullable=False)
+    implied_probabilities_json = Column(JSON, nullable=False)
+    volume = Column(String(60))
+    liquidity = Column(String(60))
+    closes_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    source_url = Column(String(1000), nullable=False)
+    category = Column(String(100))
+    quality_status = Column(String(30), nullable=False, server_default="published", index=True)
+    quality_score = Column(Integer, nullable=False, server_default="0")
+    quality_reasons_json = Column(JSON, nullable=False)
+    matched_market_id = Column(Integer, ForeignKey("forecast_markets.id", ondelete="SET NULL"), index=True)
+    last_observed_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    published_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_market_id", name="uq_external_forecast_provider_market"),
+        CheckConstraint("quality_status IN ('published','quarantined','closed')", name="ck_external_forecast_quality_status"),
+    )
+
+
+class ExternalForecastAudit(Base):
+    __tablename__ = "external_forecast_audits"
+
+    id = Column(Integer, primary_key=True)
+    external_market_id = Column(Integer, ForeignKey("external_forecast_markets.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(40), nullable=False, index=True)
+    score = Column(Integer, nullable=False)
+    reasons_json = Column(JSON, nullable=False)
+    observed_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class ForecastResolutionProposal(Base):
     """Append-only proposal requiring review by a different administrator."""
     __tablename__ = "forecast_resolution_proposals"

@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from models.auth_models import User
 from models.database import Base, Bill, get_db
-from models.forecast_models import ForecastMarket, ForecastPrediction, ForecastResolutionReceipt
+from models.forecast_models import ExternalForecastMarket, ForecastMarket, ForecastPrediction, ForecastResolutionReceipt
 from jobs.forecast_retention import expire_forecast_predictions
 from routers.forecasts import router
 from services.forecast_tokens import sign_election_contest
@@ -60,6 +60,25 @@ def test_bill_forecast_requires_sign_in_and_has_no_money_contract():
     assert payload["response_count"] is None
     assert "No money" in payload["rules"]
     assert {item["key"] for item in payload["options"]} == {"yes", "no"}
+
+
+def test_external_forecast_endpoint_only_exposes_quality_checked_published_rows():
+    _, client, Session = _environment()
+    now = datetime.now(timezone.utc)
+    with Session() as session:
+        session.add_all([
+            ExternalForecastMarket(provider="polymarket", provider_market_id="good", question="Will it pass?",
+                outcomes_json=["Yes", "No"], implied_probabilities_json=[.6, .4], volume="5000", liquidity="2000",
+                closes_at=now + timedelta(days=30), source_url="https://polymarket.com/event/good", category="Politics",
+                quality_status="published", quality_score=100, quality_reasons_json=[], last_observed_at=now),
+            ExternalForecastMarket(provider="polymarket", provider_market_id="bad", question="Unclear",
+                outcomes_json=["Yes", "No"], implied_probabilities_json=[.5, .5], volume="1", liquidity="1",
+                closes_at=now + timedelta(days=30), source_url="https://polymarket.com/event/bad", category="Politics",
+                quality_status="quarantined", quality_score=20, quality_reasons_json=["low_volume"], last_observed_at=now),
+        ]); session.commit()
+    payload = client.get("/forecasts/external").json()
+    assert payload["total"] == 1 and payload["items"][0]["provider_market_id"] == "good"
+    assert payload["items"][0]["label"] == "Polymarket market-implied probability"
 
 
 def test_one_changeable_prediction_and_privacy_threshold():

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from models.auth_models import User
 from models.database import Bill, get_db
 from models.forecast_models import (
-    ForecastMarket, ForecastPrediction, ForecastResolutionProposal, ForecastResolutionReceipt,
+    ExternalForecastMarket, ForecastMarket, ForecastPrediction, ForecastResolutionProposal, ForecastResolutionReceipt,
     ForecastResolutionAppeal,
     ReviewedCivicPromise,
 )
@@ -216,6 +216,32 @@ def open_forecasts(response: Response, market_type: Literal["bill", "election"] 
         query = query.filter(ForecastMarket.market_type == market_type)
     markets = query.order_by(ForecastMarket.closes_at.asc(), ForecastMarket.id.asc()).limit(limit).all()
     return {"items": [_market_payload(market, db, user) for market in markets], "privacy_threshold": MIN_PUBLIC_RESPONSES}
+
+
+@router.get("/external")
+def external_forecasts(response: Response, provider: Literal["polymarket"] = "polymarket",
+                       limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
+                       db: Session = Depends(get_db)):
+    """Published read-only signals that passed the automated quality bot."""
+    _protect_private_forecast_response(response)
+    now = datetime.now(timezone.utc)
+    query = db.query(ExternalForecastMarket).filter(
+        ExternalForecastMarket.provider == provider,
+        ExternalForecastMarket.quality_status == "published",
+        ExternalForecastMarket.closes_at > now,
+    )
+    total = query.count()
+    rows = query.order_by(ExternalForecastMarket.quality_score.desc(), ExternalForecastMarket.last_observed_at.desc()).offset(offset).limit(limit).all()
+    return {"provider": provider, "total": total, "limit": limit, "offset": offset, "items": [{
+        "id": row.id, "provider_market_id": row.provider_market_id, "question": row.question,
+        "outcomes": [{"label": label, "probability": round(float(row.implied_probabilities_json[index]) * 100, 1)}
+                     for index, label in enumerate(row.outcomes_json)],
+        "volume": float(row.volume or 0), "liquidity": float(row.liquidity or 0),
+        "closes_at": row.closes_at.isoformat(), "source_url": row.source_url,
+        "observed_at": row.last_observed_at.isoformat(), "quality_score": row.quality_score,
+        "matched_market_id": row.matched_market_id,
+        "label": "Polymarket market-implied probability",
+    } for row in rows]}
 
 
 @router.get("/bills/{bill_id}")

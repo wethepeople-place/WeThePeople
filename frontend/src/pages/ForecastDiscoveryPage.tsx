@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, ExternalLink, Landmark, ShieldCheck, Vote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { fetchOpenForecasts, type ForecastMarket } from '../api/civic';
+import { fetchExternalForecasts, fetchOpenForecasts, type ExternalForecastMarket, type ForecastMarket } from '../api/civic';
 
 type Filter = 'all' | 'bill' | 'election';
 
@@ -10,11 +10,20 @@ const closeLabel = (value: string) => new Intl.DateTimeFormat('en-US', {
   month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
 }).format(new Date(value));
 
+const observedLabel = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'recently' : new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  }).format(date);
+};
+
 export default function ForecastDiscoveryPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [markets, setMarkets] = useState<ForecastMarket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [external, setExternal] = useState<ExternalForecastMarket[]>([]);
+  const [externalError, setExternalError] = useState(false);
 
   useEffect(() => {
     setLoading(true); setError('');
@@ -23,6 +32,11 @@ export default function ForecastDiscoveryPage() {
       .catch((reason) => { setMarkets([]); setError(reason instanceof Error ? reason.message : 'Forecasts could not be loaded.'); })
       .finally(() => setLoading(false));
   }, [filter]);
+
+  useEffect(() => {
+    fetchExternalForecasts().then((data) => { setExternal(data.items.filter((item) => Array.isArray(item.outcomes))); setExternalError(false); })
+      .catch(() => { setExternal([]); setExternalError(true); });
+  }, []);
 
   return <main className="min-h-screen bg-[#eef1f5] pb-28 text-slate-950 md:pb-16">
     <header className="bg-[#153d7a] px-5 py-7 text-white"><div className="mx-auto max-w-5xl"><p className="text-xs font-black uppercase tracking-[.18em] text-blue-100">Civic Forecasts</p><h1 className="mt-1 text-3xl font-black sm:text-5xl">Open questions</h1><p className="mt-3 max-w-2xl leading-7 text-blue-50">Explore real civic questions already opened by participants. Civic Forecasts are free predictions for civic learning—not bets or financial contracts.</p></div></header>
@@ -48,6 +62,21 @@ export default function ForecastDiscoveryPage() {
           {market.market_type === 'bill' ? <Link to={destination} className="mt-4 inline-flex min-h-11 items-center font-bold text-[#174f80] underline">Open tracked bill</Link> : <a href={destination} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-2 font-bold text-[#174f80] underline">Official election source <ExternalLink className="h-4 w-4" /></a>}
         </article>;
       })}</section>
+
+      <section className="mt-9" aria-labelledby="external-forecast-heading">
+        <p className="text-xs font-black uppercase tracking-[.18em] text-[#214f78]">External market signal</p>
+        <h2 id="external-forecast-heading" className="mt-1 text-2xl font-black">Polymarket probabilities</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Automatically imported public market data. These prices reflect trading activity—not a poll, endorsement, fact, or WeThePeople prediction. An automated quality bot continuously checks activity, rules, dates, and price consistency and removes failing markets.</p>
+        {externalError && <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">External market data is temporarily unavailable. Community Forecasts are unaffected.</p>}
+        {!externalError && external.length === 0 && <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-slate-600">No external markets currently pass the automated quality checks.</p>}
+        <div className="mt-4 grid gap-4 md:grid-cols-2">{external.map((market) => <article key={market.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-widest text-[#214f78]">Polymarket</span><span className="text-xs text-slate-500">Checked {observedLabel(market.observed_at)}</span></div>
+          <h3 className="mt-3 text-xl font-black leading-7">{market.question}</h3>
+          <div className="mt-4 space-y-2">{market.outcomes.map((outcome) => <div key={outcome.label} className="rounded-xl bg-slate-50 px-3 py-2"><div className="flex justify-between gap-3 text-sm"><strong>{outcome.label}</strong><span>{outcome.probability}%</span></div><div role="progressbar" aria-label={`${outcome.label} market-implied probability`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={outcome.probability} className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-[#dda91f]" style={{ width: `${outcome.probability}%` }} /></div></div>)}</div>
+          <p className="mt-4 text-sm text-slate-600">Volume ${Math.round(market.volume).toLocaleString()} · Liquidity ${Math.round(market.liquidity).toLocaleString()} · Closes {closeLabel(market.closes_at)}</p>
+          <a href={market.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 font-bold text-[#174f80] underline">View market and resolution rules <ExternalLink className="h-4 w-4" /></a>
+        </article>)}</div>
+      </section>
       <Link to="/act" className="mt-8 flex min-h-12 items-center justify-center rounded-xl border border-[#214f78] font-bold text-[#214f78]">Back to ACT</Link>
     </div>
   </main>;
