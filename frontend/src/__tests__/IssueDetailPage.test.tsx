@@ -127,4 +127,24 @@ describe('IssueDetailPage journey actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show fewer bills' }));
     expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(3);
   });
+
+  it('stacks previews vertically and clearly fills empty layouts with five demo cards', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
+      const url = String(input);
+      const payload = url.includes('/evidence') ? { issue_slug: 'housing-rent', series: [] }
+        : url.includes('/bills') ? { issue_slug: 'housing-rent', total: 0, bills: [] }
+          : url.includes('/videos') ? { total: 0, videos: [] }
+            : url.includes('/solutions?') || url.includes('/discussions?') ? { total: 0, limit: 3, offset: 0, items: [] }
+              : { slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' };
+      return Promise.resolve({ ok: true, json: async () => payload });
+    }));
+
+    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
+    const solutionsPreview = screen.getByLabelText('Citizen solutions preview');
+    expect(within(solutionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(3);
+    fireEvent.click(within(solutionsPreview).getByRole('button', { name: 'See 2 more' }));
+    expect(within(solutionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(5);
+    expect(within(solutionsPreview).getByRole('button', { name: 'Show fewer' }).getAttribute('aria-expanded')).toBe('true');
+  });
 });
