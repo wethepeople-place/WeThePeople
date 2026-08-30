@@ -55,8 +55,18 @@ describe('DiscussionsPage', () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
       id: 10, moderation_status: 'published', message: 'Posted',
     }) } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({
+      total: 1, limit: 20, offset: 0, items: [{
+        id: 10, body: 'Shared a Tiktok video.', author: { id: 2, display_name: 'You' },
+        moderation_status: 'published', reply_count: 0, created_at: '2026-08-30T10:48:01Z', updated_at: '2026-08-30T10:48:01Z',
+        attachments: [{ type: 'issue', reference_id: 'housing-rent', label: 'Housing & Rent evidence' }],
+        video_link: { provider: 'tiktok', provider_video_id: '7679228789091519757', canonical_url: 'https://www.tiktok.com/@person/video/7679228789091519757' },
+        reactions: { like: 0, insightful: 0, disagree: 0 }, viewer_reactions: [], viewer_bookmarked: false,
+      }],
+    }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
     expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
+    expect(await screen.findByText('Shared a Tiktok video.')).toBeTruthy();
   });
 
   it('renders a chronological civic post card with public counts', async () => {
@@ -106,9 +116,10 @@ describe('DiscussionsPage', () => {
     fireEvent.change(message, { target: { value: 'https://www.tiktok.com/@person/video/7579560442230508831?tracking=1' } });
     await waitFor(() => expect(screen.getByText(/Filed automatically under/)).toBeTruthy(), { timeout: 2000 });
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, moderation_status: 'published', message: 'Posted' }) } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
     expect(await screen.findByText('Posted. It is now visible in Latest discussions.')).toBeTruthy();
-    const [, request] = vi.mocked(fetch).mock.calls.at(-1) || [];
+    const [, request] = vi.mocked(fetch).mock.calls.find(([url, options]) => options?.method === 'POST' && new URL(String(url)).pathname.endsWith('/discussions')) || [];
     const payload = JSON.parse(String(request?.body));
     expect(payload.video_url).toContain('tiktok.com/@person/video/7579560442230508831');
     expect(payload.body).toBe('');

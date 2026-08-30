@@ -138,6 +138,11 @@ export default function DiscussionsPage() {
       const result = await createDiscussion({ body: postBody, ...(socialLink ? { video_url: socialLink } : {}), ...(selectedIssue ? { issue_slug: selectedIssue } : {}) });
       setBody(''); setSelectedIssue(issue); setSuggestedTitle('');
       setNotice(result.moderation_status === 'published' ? 'Posted. It is now visible in Latest discussions.' : `${result.message}. It will appear here after review.`);
+      if (result.moderation_status === 'published') {
+        const refreshed = await fetchPublicDiscussions(issue || undefined, videoId || undefined, 0, PAGE_SIZE);
+        setItems(refreshed.items);
+        setTotal(refreshed.total);
+      }
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to submit post.'); }
     finally { setSubmitting(false); }
   };
