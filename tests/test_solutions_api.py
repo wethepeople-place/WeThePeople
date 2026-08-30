@@ -64,6 +64,7 @@ def test_solution_submission_is_canonical_issue_linked_and_revisioned():
     assert item["issue_slug"] == "housing-rent" and item["status"] == "published"
     assert item["vote_totals"] == {"support": 0, "oppose": 0, "total_ballots": 0}
     assert item["vote_rule"] == VOTE_RULE and item["vote_choices"] == ["support", "oppose"]
+    assert item["discussion_post_id"] is not None
     with Session() as session:
         assert session.query(SolutionRevision).filter_by(solution_id=item["id"]).one().change_note == "Initial publication"
         assert session.get(Proposal, item["id"]).author_id == users["alice@example.test"]
@@ -94,7 +95,8 @@ def test_solution_can_attach_a_normalized_consent_gated_provider_video():
 def test_solution_list_is_issue_scoped_public_and_not_hot_ranked():
     app, client, Session, users = _environment()
     _as_user(app, Session, users["alice@example.test"])
-    solution_id = client.post("/solutions", json=_payload()).json()["id"]
+    created = client.post("/solutions", json=_payload()).json()
+    solution_id = created["id"]
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_optional_user, None)
     feed = client.get("/solutions?issue_slug=housing-rent").json()
@@ -107,7 +109,8 @@ def test_solution_list_is_issue_scoped_public_and_not_hot_ranked():
 def test_vote_is_equal_weight_idempotent_changeable_removable_and_private():
     app, client, Session, users = _environment()
     _as_user(app, Session, users["alice@example.test"])
-    solution_id = client.post("/solutions", json=_payload()).json()["id"]
+    created = client.post("/solutions", json=_payload()).json()
+    solution_id = created["id"]
     first = client.put(f"/solutions/{solution_id}/vote", json={"choice": "support"}).json()
     second = client.put(f"/solutions/{solution_id}/vote", json={"choice": "support"}).json()
     assert first["vote_totals"] == second["vote_totals"] == {"support": 1, "oppose": 0, "total_ballots": 1}
@@ -165,7 +168,8 @@ def test_solution_vote_constraints_enforce_relational_contract():
 def test_solution_detail_rejects_issue_mismatch_and_exposes_normalized_discussion():
     app, client, Session, users = _environment()
     _as_user(app, Session, users["alice@example.test"])
-    solution_id = client.post("/solutions", json=_payload()).json()["id"]
+    created = client.post("/solutions", json=_payload()).json()
+    solution_id = created["id"]
     from models.social_models import DiscussionAttachment, DiscussionPost
     with Session() as session:
         post = DiscussionPost(author_label="WeThePeople.place", body="Sourced Housing discussion")
@@ -174,7 +178,8 @@ def test_solution_detail_rejects_issue_mismatch_and_exposes_normalized_discussio
         session.commit(); post_id = post.id
     assert client.get(f"/solutions/{solution_id}?issue_slug=other").status_code == 404
     detail = client.get(f"/solutions/{solution_id}?issue_slug=housing-rent").json()
-    assert detail["discussion_post_id"] == post_id and detail["creator_display_name"] == "Alice"
+    assert detail["discussion_post_id"] == created["discussion_post_id"] and detail["discussion_post_id"] != post_id
+    assert detail["creator_display_name"] == "Alice"
     assert "moderation_reason" not in detail
 
 

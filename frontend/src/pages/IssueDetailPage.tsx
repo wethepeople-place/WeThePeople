@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
-import { fetchPublicDiscussions, fetchSolutions, type CitizenSolution, type PublicDiscussionPost } from '../api/civic';
+import { fetchPublicDiscussions, type PublicDiscussionPost } from '../api/civic';
 import { getApiBaseUrl } from '../api/client';
 import IssueActionStrip from '../components/IssueActionStrip';
 
@@ -80,7 +80,6 @@ export default function IssueDetailPage() {
   const { slug = 'housing-rent' } = useParams();
   const { hash } = useLocation();
   const [data, setData] = useState<State | null>(null);
-  const [solutions, setSolutions] = useState<CitizenSolution[]>([]);
   const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const [showAllBills, setShowAllBills] = useState(false);
@@ -97,14 +96,9 @@ export default function IssueDetailPage() {
   useEffect(() => {
     if (!data) return;
     let active = true;
-    setSolutions([]);
     setDiscussions([]);
-    Promise.all([
-      fetchSolutions(slug, 0, 3).catch(() => ({ items: [] as CitizenSolution[] })),
-      fetchPublicDiscussions(slug, undefined, 0, 3).catch(() => ({ items: [] as PublicDiscussionPost[] })),
-    ]).then(([solutionResult, discussionResult]) => {
+    fetchPublicDiscussions(slug, undefined, 0, 5).catch(() => ({ items: [] as PublicDiscussionPost[] })).then((discussionResult) => {
       if (!active) return;
-      setSolutions(solutionResult.items);
       setDiscussions(discussionResult.items);
     });
     return () => { active = false; };
@@ -145,21 +139,19 @@ export default function IssueDetailPage() {
         <div><p className="text-lg font-black text-[#245b87]">{data.videoTotal}</p><p className="text-[.7rem] text-slate-500">linked videos</p></div>
       </section>
 
-      <div className="mt-2"><Link to={`/issues/${slug}/solutions`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><Lightbulb className="h-5 w-5" />Explore and propose solutions</Link></div>
+      <div className="mt-2"><Link to={`/discuss?issue=${encodeURIComponent(slug)}`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><MessageCircle className="h-5 w-5" />Join this community</Link></div>
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
         <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
         <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/watch/${video.video_id}`, imageUrl: videoThumbnail(video) }))} />
         <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
         <HubPreview label="Sourced evidence" items={data.evidence.map((series) => ({ key: series.key, title: series.title, detail: series.observations.length ? `${number(series.observations.at(-1)!.value)} ${series.unit}` : series.source.publisher, to: `/issues/${slug}#evidence` }))} />
-        <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
-        <HubPreview label="Citizen solutions" items={solutions.map((solution) => ({ key: String(solution.id), title: solution.title, detail: solution.summary, to: `/issues/${slug}/solutions/${solution.id}` }))} />
+        <HubRow icon={MessageCircle} label="Community" detail="Conversations, proposals, links, and videos" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
+        <HubPreview label="Community" items={discussions.map((post) => ({ key: String(post.id), title: post.body || `${post.video_link?.provider || 'Civic'} video`, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
         <HubPreview label="Legislation" items={data.bills.map((bill) => ({ key: bill.bill_id, title: bill.title || bill.bill_id.toUpperCase(), detail: `${bill.bill_type.toUpperCase()} ${bill.bill_number}`, to: `/politics/bill/${bill.bill_id}` }))} />
         <HubRow icon={Flag} label="Elections" detail="Make a private voting plan" to={`/elections?issue=${encodeURIComponent(slug)}`} />
-        <HubRow icon={MessageCircle} label="Discuss" detail="Join the evidence-linked conversation" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
-        <HubPreview label="Discuss" items={discussions.map((post) => ({ key: String(post.id), title: post.body || `${post.video_link?.provider || 'Civic'} video discussion`, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
       </nav>
 
       <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}`} className="mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-4 font-black text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-200"><Scale className="h-5 w-5" />Take action on this issue</Link>

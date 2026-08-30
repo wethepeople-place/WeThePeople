@@ -22,13 +22,16 @@ const reactionMeta: Array<{ value: DiscussionReaction; label: string; Icon: type
   { value: 'disagree', label: 'Disagree', Icon: ThumbsDown },
 ];
 
-function attachmentUrl(attachment: PublicDiscussionPost['attachments'][number]): string | null {
+function attachmentUrl(attachment: PublicDiscussionPost['attachments'][number], attachments: PublicDiscussionPost['attachments']): string | null {
   switch (attachment.type) {
     case 'video': return `/discuss?video=${encodeURIComponent(attachment.reference_id)}`;
     case 'issue': return `/issues/${attachment.reference_id}`;
     case 'bill': return `/politics/bill/${attachment.reference_id}`;
     case 'politician': return `/politics/people/${attachment.reference_id}`;
-    case 'solution': return `/issues/housing-rent/solutions/${attachment.reference_id}`;
+    case 'solution': {
+      const issue = attachments.find((value) => value.type === 'issue');
+      return issue ? `/issues/${issue.reference_id}/solutions/${attachment.reference_id}` : null;
+    }
     default: return null;
   }
 }
@@ -45,6 +48,7 @@ function linkedText(body: string, postId: number) {
 }
 
 export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
+  const proposal = item.attachments.find((attachment) => attachment.type === 'solution');
   const location = useLocation();
   const [reactions, setReactions] = useState(item.reactions || { like: 0, insightful: 0, disagree: 0 });
   const [viewerReactions, setViewerReactions] = useState<DiscussionReaction[]>(item.viewer_reactions || []);
@@ -103,13 +107,14 @@ export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
         {item.author.is_demo && <span className="rounded-full border border-amber-500/50 bg-amber-300/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Demo data</span>}
         <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-text-3">Published</span>
       </header>
+      {proposal && <p className="mt-4 inline-flex rounded-full bg-accent/15 px-3 py-1 text-xs font-black uppercase tracking-wider text-accent-text">Community proposal</p>}
 
       <div id={`discussion-${item.id}`} className="mt-4 whitespace-pre-wrap text-lg leading-8 text-text-1">{linkedText(item.body, item.id)}</div>
       {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`Video shared by ${item.author.display_name}`} postId={item.id} />}
       {reviewedVideo && <Link aria-label={`Open video conversation, ${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`} className="mt-4 flex min-h-12 w-full items-center justify-between gap-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm sm:inline-flex sm:w-auto sm:rounded-full" to={`/discuss?video=${encodeURIComponent(reviewedVideo.reference_id)}`}><span className="inline-flex items-center gap-2"><Play className="h-4 w-4 fill-current" />Open video conversation</span><span className="whitespace-nowrap text-xs font-semibold text-white/80">{item.reply_count} {item.reply_count === 1 ? 'reply' : 'replies'}</span></Link>}
 
       {item.attachments.length > 0 && <aside aria-label="Civic context" className="mt-4 flex flex-wrap gap-2">{item.attachments.map((attachment) => {
-        const url = attachmentUrl(attachment);
+        const url = attachmentUrl(attachment, item.attachments);
         const label = attachment.label || attachment.source?.publisher || `${attachment.type}: ${attachment.reference_id}`;
         if (attachment.type === 'source' && attachment.source) return <a key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-accent/40 px-3 py-1 text-sm font-semibold text-accent-text" href={attachment.source.url} target="_blank" rel="noreferrer">{label}<ExternalLink className="h-3.5 w-3.5" /></a>;
         return url ? <Link key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center rounded-full border border-accent/40 px-3 py-1 text-sm font-semibold text-accent-text" to={url}>{label}</Link> : <span key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center rounded-full border border-border px-3 py-1 text-sm text-text-2">{label}</span>;

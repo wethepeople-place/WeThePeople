@@ -99,6 +99,23 @@ def test_curated_thread_is_idempotent_paginated_and_source_backed():
     assert {"DiscussionFeedResponse", "DiscussionDetailResponse", "ReplyCreatedResponse"} <= set(schemas)
 
 
+def test_community_feed_filters_structured_proposals_and_videos_without_duplicate_stores():
+    _, client, Session = _environment()
+    _seed(Session)
+    with Session() as session:
+        proposal = DiscussionPost(author_label="Alice", body="Build more homes near transit", moderation_status="published")
+        proposal.attachments.extend([
+            DiscussionAttachment(attachment_type="issue", issue_slug="housing-rent", label="Housing & Rent"),
+            DiscussionAttachment(attachment_type="solution", solution_id=42, label="Build near transit"),
+        ])
+        session.add(proposal)
+        session.commit()
+    proposals = client.get("/discussions", params={"issue_slug": "housing-rent", "content": "proposals"}).json()
+    videos = client.get("/discussions", params={"issue_slug": "housing-rent", "content": "videos"}).json()
+    assert proposals["total"] == 1 and proposals["items"][0]["body"] == "Build more homes near transit"
+    assert videos["total"] == 0
+
+
 def test_discuss_continuation_reuses_reviewed_records_without_duplicating_community_posts():
     _, client, Session = _environment()
     _seed(Session)

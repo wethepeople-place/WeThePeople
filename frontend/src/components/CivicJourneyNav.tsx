@@ -2,7 +2,7 @@ import { BarChart3, BriefcaseBusiness, Landmark, List, MessageCircle, SquarePen,
 import { NavLink } from 'react-router-dom';
 
 const primary = [
-  { label: 'Discuss', to: '/discuss', Icon: MessageCircle },
+  { label: 'Community', to: '/discuss', Icon: MessageCircle },
   { label: 'Agenda', to: '/civic', Icon: List },
   { label: 'ACT', to: '/act', Icon: Landmark },
   { label: 'Reps', to: '/politics/find-rep', Icon: Users },
@@ -11,11 +11,10 @@ const primary = [
 ] as const;
 
 const desktop = [
-  { label: 'Discuss', to: '/discuss' }, { label: 'Agenda', to: '/civic' },
+  { label: 'Community', to: '/discuss' }, { label: 'Agenda', to: '/civic' },
   { label: 'Issues', to: '/issues/housing-rent' },
   { label: 'Post', to: '/discuss?compose=1#composer' },
   { label: 'Elections', to: '/elections' }, { label: 'ACT', to: '/act' },
-  { label: 'Solutions', to: '/issues/housing-rent/solutions' },
   { label: 'Representatives', to: '/politics/find-rep' },
   { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries' },
   { label: 'Forecasts', to: '/forecasts' },
