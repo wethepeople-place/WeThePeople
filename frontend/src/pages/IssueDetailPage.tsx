@@ -3,6 +3,7 @@ import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLin
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
 import { fetchPublicDiscussions, fetchSolutions, type CitizenSolution, type PublicDiscussionPost } from '../api/civic';
+import { getApiBaseUrl } from '../api/client';
 import IssueActionStrip from '../components/IssueActionStrip';
 
 type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; billTotal: number; videos: IssueVideo[]; videoTotal: number; federalJobs: FederalJob[]; federalJobTotal: number; federalJobsSource: IssueSource | null; availability: { evidence: boolean; bills: boolean; videos: boolean; federalJobs: boolean } };
@@ -12,6 +13,13 @@ const date = (value: string) => new Intl.DateTimeFormat('en-US', {
 }).format(new Date(value));
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 const phaseLabel = { past: 'Resolved', current: 'In progress', upcoming: 'Upcoming', enacted: 'Enacted' } as const;
+
+function videoThumbnail(video: IssueVideo) {
+  const poster = video.delivery?.poster_url;
+  if (poster) return poster.startsWith('/') ? `${getApiBaseUrl()}${poster}` : poster;
+  if (video.delivery?.provider === 'youtube' && video.delivery.provider_video_id) return `https://i.ytimg.com/vi/${video.delivery.provider_video_id}/hqdefault.jpg`;
+  return null;
+}
 
 function Sparkline({ series }: { series: EvidenceSeries | undefined }) {
   const values = series?.observations.map((item) => item.value) || [];
@@ -30,7 +38,7 @@ function HubRow({ icon: Icon, label, detail, to }: { icon: typeof Play; label: s
   </Link>;
 }
 
-function HubPreview({ label, items }: { label: string; items: Array<{ key: string; title: string; detail?: string; to: string }> }) {
+function HubPreview({ label, items }: { label: string; items: Array<{ key: string; title: string; detail?: string; to: string; imageUrl?: string | null }> }) {
   const [expanded, setExpanded] = useState(false);
   const demoCount = Math.max(0, 5 - items.length);
   const entries = [
@@ -40,13 +48,14 @@ function HubPreview({ label, items }: { label: string; items: Array<{ key: strin
       title: ['Lorem ipsum dolor sit amet', 'Consectetur adipiscing elit', 'Sed do eiusmod tempor', 'Incididunt ut labore', 'Dolore magna aliqua'][index % 5],
       detail: 'Layout demo · Not civic activity',
       to: '',
+      imageUrl: null,
       demo: true,
     })),
   ];
   const visibleEntries = expanded ? entries : entries.slice(0, 3);
   const cardClass = 'flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 text-left outline-none';
   const content = (item: (typeof entries)[number]) => <>
-    <span aria-hidden="true" className={`grid h-14 w-20 shrink-0 place-items-center rounded-md text-[10px] font-black uppercase tracking-wider ${item.demo ? 'border border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'bg-[#245b87] text-white'}`}>{item.demo ? 'Demo' : label.replace('Sourced ', '').slice(0, 10)}</span>
+    {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-16 w-24 shrink-0 rounded-md bg-slate-200 object-cover" loading="lazy" /> : <span aria-hidden="true" className={`grid h-16 w-24 shrink-0 place-items-center rounded-md text-[10px] font-black uppercase tracking-wider ${item.demo ? 'border border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'bg-[#245b87] text-white'}`}>{item.demo ? 'Demo' : label.replace('Sourced ', '').slice(0, 10)}</span>}
     <span className="min-w-0 flex-1"><span className="block line-clamp-2 text-sm font-bold leading-5 text-slate-900">{item.title}</span><span className="mt-1 block truncate text-xs text-slate-500">{item.detail}</span></span>
   </>;
   return <div aria-label={`${label} preview`} className="-mt-1 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
@@ -73,11 +82,13 @@ export default function IssueDetailPage() {
   const [data, setData] = useState<State | null>(null);
   const [solutions, setSolutions] = useState<CitizenSolution[]>([]);
   const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
+  const [showAllVideos, setShowAllVideos] = useState(false);
   const [showAllBills, setShowAllBills] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
+    setShowAllVideos(false);
     setShowAllBills(false);
     fetchIssueDetail(slug).then((result) => active && setData(result)).catch((reason) => active && setError(reason.message));
     return () => { active = false; };
@@ -138,7 +149,7 @@ export default function IssueDetailPage() {
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
         <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
-        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/watch/${video.video_id}` }))} />
+        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/watch/${video.video_id}`, imageUrl: videoThumbnail(video) }))} />
         <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
         <HubPreview label="Sourced evidence" items={data.evidence.map((series) => ({ key: series.key, title: series.title, detail: series.observations.length ? `${number(series.observations.at(-1)!.value)} ${series.unit}` : series.source.publisher, to: `/issues/${slug}#evidence` }))} />
         <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
@@ -158,15 +169,20 @@ export default function IssueDetailPage() {
         <div className="mt-4 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.billTotal} /></div>
       </details>
 
-      <section id="watch" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 className="text-2xl font-black">Civic videos</h2></div>
+      <section id="watch" aria-labelledby="civic-videos-heading" className="mt-14 scroll-mt-24">
+        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 id="civic-videos-heading" className="text-2xl font-black">Civic videos</h2></div>
         {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
           : data.videos.length === 0 ? <p className="mt-5 text-text-2">No linked civic videos are connected to this issue yet.</p>
-            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.map((video) => <Link key={video.video_id} className="rounded-card border border-border bg-surface p-5 transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
-              <p className="text-xs font-bold uppercase tracking-wider text-accent-text">{video.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</p>
-              <h3 className="mt-2 text-lg font-semibold leading-6">{video.caption}</h3>
-              <p className="mt-3 text-sm text-text-2">{video.creator_label}</p>
-            </Link>)}</div>{data.videoTotal > data.videos.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.videos.length} of {data.videoTotal} linked videos.</p>}</>}
+            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="overflow-hidden rounded-card border border-border bg-surface transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}`}>
+              {videoThumbnail(video) ? <img src={videoThumbnail(video)!} alt="" className="aspect-video w-full bg-slate-800 object-cover" loading="lazy" /> : <span aria-hidden="true" className="grid aspect-video w-full place-items-center bg-slate-800 text-slate-300"><Play className="h-10 w-10" /></span>}
+              <span className="block p-5"><span className="block text-xs font-bold uppercase tracking-wider text-accent-text">{video.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
+              <span className="mt-2 block text-lg font-semibold leading-6">{video.caption}</span>
+              <span className="mt-3 block text-sm text-text-2">{video.creator_label}</span></span>
+            </Link>)}</div>
+            {data.videos.length > 3 && <button type="button" aria-expanded={showAllVideos} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllVideos((current) => !current)}>
+              {showAllVideos ? <><ChevronUp className="h-5 w-5" />Show fewer videos</> : <><ChevronDown className="h-5 w-5" />View {data.videos.length - 3} more videos</>}
+            </button>}
+            {data.videoTotal > data.videos.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.videos.length} of {data.videoTotal} linked videos.</p>}</>}
       </section>
 
       {slug === 'jobs-unemployment' && <section id="federal-jobs" className="mt-14 scroll-mt-24">

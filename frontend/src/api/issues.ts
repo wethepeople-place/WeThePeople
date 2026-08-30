@@ -38,6 +38,7 @@ export type IssueBill = {
 };
 export type IssueVideo = {
   video_id: string; content_origin: 'reviewed' | 'community'; caption: string; creator_label: string;
+  delivery?: { provider: string | null; provider_video_id: string | null; poster_url: string | null } | null;
   issue: { slug: string; title: string };
 };
 export type FederalJob = {
