@@ -80,7 +80,7 @@ describe('IssueDetailPage journey actions', () => {
   });
 
   it('shows at most three real related records in each hub preview', async () => {
-    const videos = Array.from({ length: 4 }, (_, index) => ({ video_id: `video-${index + 1}`, content_origin: 'community', caption: `Video ${index + 1}`, creator_label: 'Community member', issue: { slug: 'housing-rent', title: 'Housing & Rent' } }));
+    const videos = Array.from({ length: 4 }, (_, index) => ({ video_id: `video-${index + 1}`, content_origin: 'community', caption: `Video ${index + 1}`, creator_label: 'Community member', delivery: { provider: 'youtube', provider_video_id: `youtube-${index + 1}`, poster_url: `/videos/community/${index + 1}/poster` }, issue: { slug: 'housing-rent', title: 'Housing & Rent' } }));
     const bills = Array.from({ length: 4 }, (_, index) => ({ bill_id: `hr-${index + 1}-119`, bill_type: 'hr', bill_number: String(index + 1), congress: 119, title: `Bill ${index + 1}`, phase: 'current', source: { url: 'https://congress.gov', publisher: 'Congress.gov', retrieved_at: '2026-08-30T00:00:00Z' } }));
     const solutions = Array.from({ length: 4 }, (_, index) => ({ id: index + 1, title: `Solution ${index + 1}`, summary: 'A real published proposal.' }));
     const discussions = Array.from({ length: 4 }, (_, index) => ({ id: index + 1, body: `Discussion ${index + 1}`, author: { display_name: 'Neighbor' }, reply_count: index }));
@@ -98,6 +98,14 @@ describe('IssueDetailPage journey actions', () => {
     render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
     expect(within(screen.getByLabelText('Videos preview')).getAllByRole('link')).toHaveLength(3);
+    expect(screen.getByLabelText('Videos preview').querySelectorAll('img')).toHaveLength(3);
+    const civicVideos = screen.getByRole('region', { name: 'Civic videos' });
+    expect(within(civicVideos).getAllByRole('link')).toHaveLength(3);
+    expect(civicVideos.querySelectorAll('img')).toHaveLength(3);
+    fireEvent.click(within(civicVideos).getByRole('button', { name: 'View 1 more videos' }));
+    expect(within(civicVideos).getAllByRole('link')).toHaveLength(4);
+    fireEvent.click(within(civicVideos).getByRole('button', { name: 'Show fewer videos' }));
+    expect(within(civicVideos).getAllByRole('link')).toHaveLength(3);
     expect(within(screen.getByLabelText('Legislation preview')).getAllByRole('link')).toHaveLength(3);
     await waitFor(() => expect(within(screen.getByLabelText('Citizen solutions preview')).getAllByRole('link')).toHaveLength(3));
     expect(within(screen.getByLabelText('Discuss preview')).getAllByRole('link')).toHaveLength(3);
