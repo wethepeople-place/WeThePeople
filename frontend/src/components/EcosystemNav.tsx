@@ -98,31 +98,24 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
   },
 };
 
-const SWITCHER_ORDER: Exclude<EcosystemSite, 'core'>[] = ['civic', 'verify', 'research', 'journal'];
+const NETWORK_ORDER: Exclude<EcosystemSite, 'core' | 'civic'>[] = ['verify', 'research', 'journal'];
 
 // Tokenless palette — baked so the nav looks identical across all sites.
-const T1 = '#EBE5D5';
 const T2 = 'rgba(235,229,213,0.5)';
-const T3 = 'rgba(235,229,213,0.22)';
 const BORDER = 'rgba(255,255,255,0.06)';
 const GOLD = '#C5A028';
 
 const PLAYFAIR = "'Playfair Display', Georgia, serif";
 const INTER = "'Inter', sans-serif";
 
-export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
+export default function EcosystemNav(_props: EcosystemNavProps) {
   const { isAuthenticated } = useAuth();
-  const activeSite = SITES[active];
 
   return (
     <>
-      <style>{`
-        @keyframes wtp-eco-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
-      `}</style>
-
       <nav
         aria-label="WeThePeople ecosystem"
-        className="sticky top-0 z-[60] w-full overflow-hidden px-2 sm:px-7"
+        className="sticky top-0 z-[60] w-full overflow-visible px-2 sm:px-7"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -172,45 +165,12 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
           </span>
         </a>
 
-        {/* Site switcher */}
-        <div role="tablist" className="hidden min-w-0 flex-1 overflow-x-auto md:flex" style={{ gap: 2 }}>
-          {SWITCHER_ORDER.map((key) => {
-            const site = SITES[key];
-            const isActive = active === key;
-            return (
-              <a
-                key={key}
-                href={site.href}
-                role="tab"
-                aria-selected={isActive}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: 6,
-                  border: 'none',
-                  fontFamily: INTER,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  textDecoration: 'none',
-                  background: isActive ? site.dim : 'transparent',
-                  color: isActive ? site.text : T3,
-                  transition: 'all 0.15s',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.color = T2;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.color = T3;
-                }}
-              >
-                {site.name}
-              </a>
-            );
-          })}
-        </div>
-
-        <span className="ml-2 text-sm font-semibold text-[#EBE5D5] md:hidden">Civic</span>
+        <details className="group relative ml-1">
+          <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold text-[#B9B4A8] outline-none hover:bg-white/5 hover:text-[#EBE5D5] focus-visible:ring-2 focus-visible:ring-[#C5A028]">More</summary>
+          <div className="absolute left-0 top-[calc(100%+.5rem)] z-[80] min-w-48 rounded-xl border border-white/10 bg-[#0b0e13] p-2 shadow-2xl shadow-black/50">
+            {NETWORK_ORDER.map((key) => <a key={key} href={SITES[key].href} className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#B9B4A8] no-underline hover:bg-white/5 hover:text-white">{SITES[key].name}</a>)}
+          </div>
+        </details>
 
         {/* Right cluster:
               - Active-site identifier badge (mark + display name +
@@ -227,50 +187,6 @@ export default function EcosystemNav({ active = 'core' }: EcosystemNavProps) {
             gap: 16,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <div
-              aria-hidden
-              style={{
-                width: 28,
-                height: 28,
-                border: `1.5px solid ${activeSite.accent}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: INTER,
-                fontSize: 9,
-                fontWeight: 700,
-                color: activeSite.accent,
-                letterSpacing: '0.05em',
-              }}
-            >
-              {activeSite.mark}
-            </div>
-            <span
-              className="hidden sm:inline"
-              style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: T1 }}
-            >
-              {activeSite.display}
-            </span>
-            <span
-              aria-hidden
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: activeSite.accent,
-                marginLeft: 4,
-                animation: 'wtp-eco-pulse 2s ease-in-out infinite',
-              }}
-            />
-          </div>
-
           {isAuthenticated ? (
             <UserMenu />
           ) : (
