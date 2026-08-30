@@ -104,4 +104,27 @@ describe('IssueDetailPage journey actions', () => {
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/solutions?') && String(input).includes('limit=3'))).toBe(true);
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/discussions?') && String(input).includes('limit=3'))).toBe(true);
   });
+
+  it('shows three legislation cards before expanding the related bills', async () => {
+    const bills = Array.from({ length: 5 }, (_, index) => ({ bill_id: `hr-${index + 1}-119`, bill_type: 'hr', bill_number: String(index + 1), congress: 119, title: `Legislation card ${index + 1}`, phase: 'current', source: { url: 'https://congress.gov', publisher: 'Congress.gov', retrieved_at: '2026-08-30T00:00:00Z' } }));
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
+      const url = String(input);
+      const payload = url.includes('/evidence') ? { issue_slug: 'housing-rent', series: [] }
+        : url.includes('/bills') ? { issue_slug: 'housing-rent', total: 5, bills }
+          : url.includes('/videos') ? { total: 0, videos: [] }
+            : url.includes('/solutions?') || url.includes('/discussions?') ? { total: 0, limit: 3, offset: 0, items: [] }
+              : { slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' };
+      return Promise.resolve({ ok: true, json: async () => payload });
+    }));
+
+    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
+    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(3);
+    const seeMore = screen.getByRole('button', { name: 'See 2 more related bills' });
+    expect(seeMore.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(seeMore);
+    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(5);
+    fireEvent.click(screen.getByRole('button', { name: 'Show fewer bills' }));
+    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(3);
+  });
 });
