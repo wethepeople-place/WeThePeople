@@ -1,7 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import DiscussionDetailPage from '../pages/DiscussionDetailPage';
+
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -13,6 +15,7 @@ it('derives evidence, solution, and related context links from attachments', asy
       body: 'What should government do next?',
       author: { display_name: 'Civic neighbor' },
       created_at: '2026-08-09T00:00:00Z',
+      reply_total: 0,
       replies: [],
       attachments: [
         { type: 'issue', reference_id: 'transit-access', label: 'Transit Access' },
@@ -30,4 +33,29 @@ it('derives evidence, solution, and related context links from attachments', asy
   expect(screen.getByRole('link', { name: 'Official evidence' }).getAttribute('href')).toBe('/issues/transit-access');
   expect(screen.getByRole('link', { name: 'H.R. 8' }).getAttribute('href')).toBe('/politics/bill/hr8-119');
   expect(screen.getByRole('link', { name: 'Congress.gov' }).getAttribute('href')).toContain('congress.gov');
+  expect(screen.getByText('No replies yet. Be the first to join this conversation.')).toBeTruthy();
+  expect(screen.getByRole('textbox', { name: 'Write a reply' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Start a discussion' }).getAttribute('href')).toBe('/discuss?issue=transit-access&compose=1#composer');
+  expect(screen.getByRole('link', { name: 'Propose a solution' }).getAttribute('href')).toBe('/discuss?issue=transit-access&compose=proposal#composer');
+  expect(screen.getByRole('link', { name: 'Share link or video' }).getAttribute('href')).toBe('/discuss?issue=transit-access&compose=1#composer');
+  expect(screen.getByRole('button', { name: /Image/ }).hasAttribute('disabled')).toBe(true);
+});
+
+it('posts a reply on the web and refreshes the conversation', async () => {
+  const detail = (replies: Array<{ id: number; body: string; author: { display_name: string } }>) => ({
+    id: 7, body: 'What should government do next?', author: { display_name: 'Civic neighbor' },
+    created_at: '2026-08-09T00:00:00Z', reply_total: replies.length, replies, attachments: [],
+  });
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => detail([]) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 12, post_id: 7, moderation_status: 'published' }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => detail([{ id: 12, body: 'Evidence should guide the next step.', author: { display_name: 'You' } }]) }));
+
+  render(<MemoryRouter initialEntries={['/discuss/7']}><Routes><Route path="/discuss/:postId" element={<DiscussionDetailPage />} /></Routes></MemoryRouter>);
+  const reply = await screen.findByRole('textbox', { name: 'Write a reply' });
+  fireEvent.change(reply, { target: { value: 'Evidence should guide the next step.' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Post reply' }));
+  await waitFor(() => expect(screen.getByText('Evidence should guide the next step.')).toBeTruthy());
+  expect(screen.getByRole('status').textContent).toBe('Reply posted.');
+  expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({ method: 'POST' });
 });

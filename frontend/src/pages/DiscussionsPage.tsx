@@ -31,7 +31,7 @@ export default function DiscussionsPage() {
   const [params] = useSearchParams();
   const issue = params.get('issue') || '';
   const videoId = params.get('video') || '';
-  const compose = params.get('compose') === '1';
+  const compose = params.get('compose') === '1' || params.get('compose') === 'proposal';
   const requestedView = params.get('view');
   const view: CommunityView = requestedView === 'proposals' || requestedView === 'videos' ? requestedView : 'all';
   const composer = useRef<HTMLElement>(null);
