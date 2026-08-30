@@ -394,7 +394,8 @@ export default function WatchVideoPage() {
     }
     if (lastScrolledRouteId.current === videoId) return;
     const requested = Array.from(document.querySelectorAll<HTMLElement>('[data-video-id]')).find((node) => node.dataset.videoId === videoId);
-    requested?.scrollIntoView({ block: 'start' });
+    const feedViewport = requested?.closest<HTMLElement>('[aria-label="Civic video feed"]');
+    if (requested && feedViewport) feedViewport.scrollTo({ top: requested.offsetTop, behavior: 'auto' });
     lastScrolledRouteId.current = videoId;
   }, [loaded, videoId, videos]);
   if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
