@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
+import { fetchPublicDiscussions, fetchSolutions, type CitizenSolution, type PublicDiscussionPost } from '../api/civic';
 import IssueActionStrip from '../components/IssueActionStrip';
 
 type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; billTotal: number; videos: IssueVideo[]; videoTotal: number; federalJobs: FederalJob[]; federalJobTotal: number; federalJobsSource: IssueSource | null; availability: { evidence: boolean; bills: boolean; videos: boolean; federalJobs: boolean } };
@@ -29,6 +30,16 @@ function HubRow({ icon: Icon, label, detail, to }: { icon: typeof Play; label: s
   </Link>;
 }
 
+function HubPreview({ label, items }: { label: string; items: Array<{ key: string; title: string; detail?: string; to: string }> }) {
+  if (items.length === 0) return null;
+  return <div aria-label={`${label} preview`} className="-mt-1 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-3">
+    {items.slice(0, 3).map((item) => <Link key={item.key} to={item.to} className="min-w-0 rounded-lg bg-white px-3 py-2.5 outline-none hover:ring-2 hover:ring-[#245b87]/30 focus-visible:ring-4 focus-visible:ring-sky-200">
+      <span className="block line-clamp-2 text-sm font-bold leading-5 text-slate-900">{item.title}</span>
+      {item.detail && <span className="mt-1 block truncate text-xs text-slate-500">{item.detail}</span>}
+    </Link>)}
+  </div>;
+}
+
 function Source({ source }: { source: { url: string; publisher: string; retrieved_at: string } }) {
   return <p className="mt-4 text-xs text-text-2">
     Source: <a className="text-accent-text hover:underline" href={source.url} target="_blank" rel="noreferrer">
@@ -41,6 +52,8 @@ export default function IssueDetailPage() {
   const { slug = 'housing-rent' } = useParams();
   const { hash } = useLocation();
   const [data, setData] = useState<State | null>(null);
+  const [solutions, setSolutions] = useState<CitizenSolution[]>([]);
+  const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -48,6 +61,22 @@ export default function IssueDetailPage() {
     fetchIssueDetail(slug).then((result) => active && setData(result)).catch((reason) => active && setError(reason.message));
     return () => { active = false; };
   }, [slug]);
+
+  useEffect(() => {
+    if (!data) return;
+    let active = true;
+    setSolutions([]);
+    setDiscussions([]);
+    Promise.all([
+      fetchSolutions(slug, 0, 3).catch(() => ({ items: [] as CitizenSolution[] })),
+      fetchPublicDiscussions(slug, undefined, 0, 3).catch(() => ({ items: [] as PublicDiscussionPost[] })),
+    ]).then(([solutionResult, discussionResult]) => {
+      if (!active) return;
+      setSolutions(solutionResult.items);
+      setDiscussions(discussionResult.items);
+    });
+    return () => { active = false; };
+  }, [data, slug]);
 
   useEffect(() => {
     if (!data || !hash) return;
@@ -88,12 +117,17 @@ export default function IssueDetailPage() {
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
         <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
+        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/watch/${video.video_id}` }))} />
         <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
+        <HubPreview label="Sourced evidence" items={data.evidence.map((series) => ({ key: series.key, title: series.title, detail: series.observations.length ? `${number(series.observations.at(-1)!.value)} ${series.unit}` : series.source.publisher, to: `/issues/${slug}#evidence` }))} />
         <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
+        <HubPreview label="Citizen solutions" items={solutions.map((solution) => ({ key: String(solution.id), title: solution.title, detail: solution.summary, to: `/issues/${slug}/solutions/${solution.id}` }))} />
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
+        <HubPreview label="Legislation" items={data.bills.map((bill) => ({ key: bill.bill_id, title: bill.title || bill.bill_id.toUpperCase(), detail: `${bill.bill_type.toUpperCase()} ${bill.bill_number}`, to: `/politics/bill/${bill.bill_id}` }))} />
         <HubRow icon={Flag} label="Elections" detail="Make a private voting plan" to={`/elections?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={MessageCircle} label="Discuss" detail="Join the evidence-linked conversation" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
+        <HubPreview label="Discuss" items={discussions.map((post) => ({ key: String(post.id), title: post.body || `${post.video_link?.provider || 'Civic'} video discussion`, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
       </nav>
 
       <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}`} className="mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-4 font-black text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-200"><Scale className="h-5 w-5" />Take action on this issue</Link>
