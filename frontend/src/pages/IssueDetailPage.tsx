@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { fetchIssueDetail, type EvidenceSeries, type IssueBill, type IssueSummary, type IssueVideo } from '../api/issues';
+import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
 import IssueActionStrip from '../components/IssueActionStrip';
 
-type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; videos: IssueVideo[]; videoTotal: number; availability: { evidence: boolean; bills: boolean; videos: boolean } };
+type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; billTotal: number; videos: IssueVideo[]; videoTotal: number; federalJobs: FederalJob[]; federalJobTotal: number; federalJobsSource: IssueSource | null; availability: { evidence: boolean; bills: boolean; videos: boolean; federalJobs: boolean } };
 
 const date = (value: string) => new Intl.DateTimeFormat('en-US', {
   year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
@@ -14,7 +14,7 @@ const phaseLabel = { past: 'Resolved', current: 'In progress', upcoming: 'Upcomi
 
 function Sparkline({ series }: { series: EvidenceSeries | undefined }) {
   const values = series?.observations.map((item) => item.value) || [];
-  if (values.length < 2) return <div className="grid h-16 place-items-center rounded-xl bg-slate-50 text-xs font-semibold text-slate-500">Trend appears when two reviewed observations are available</div>;
+  if (values.length < 2) return <div className="grid h-16 place-items-center rounded-xl bg-slate-50 text-xs font-semibold text-slate-500">Trend appears when two sourced observations are available</div>;
   const min = Math.min(...values);
   const range = Math.max(...values) - min || 1;
   const points = values.map((value, index) => `${(index / (values.length - 1)) * 300},${58 - ((value - min) / range) * 48}`).join(' ');
@@ -73,14 +73,14 @@ export default function IssueDetailPage() {
 
     <div className="mx-auto max-w-3xl px-3 py-3 sm:px-6 md:py-7">
       <section aria-labelledby="issue-snapshot" className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">Reviewed snapshot</p><h2 id="issue-snapshot" className="mt-1 font-black">{leadSeries?.title || 'Official evidence'}</h2></div><span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[.65rem] font-black uppercase tracking-wide text-emerald-800">Sourced data</span></div>
+        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">Sourced snapshot</p><h2 id="issue-snapshot" className="mt-1 font-black">{leadSeries?.title || 'Sourced evidence'}</h2></div><span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[.65rem] font-black uppercase tracking-wide text-emerald-800">Sourced data</span></div>
         <div className="mt-3"><Sparkline series={leadSeries} /></div>
-        {leadSeries ? <p className="mt-2 text-xs text-slate-500">{leadSeries.observations.length} reviewed observations · {leadSeries.source.publisher}</p> : <p className="mt-2 text-xs text-slate-500">No reviewed observations are connected yet.</p>}
+        {leadSeries ? <p className="mt-2 text-xs text-slate-500">{leadSeries.observations.length} sourced {leadSeries.observations.length === 1 ? 'observation' : 'observations'} · {leadSeries.source.publisher}</p> : <p className="mt-2 text-xs text-slate-500">No sourced observations are connected yet.</p>}
       </section>
 
       <section aria-label="Issue coverage" className="mt-2 grid grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white py-3 text-center">
         <div><p className="text-lg font-black text-[#245b87]">{data.evidence.length}</p><p className="text-[.7rem] text-slate-500">evidence series</p></div>
-        <div><p className="text-lg font-black text-[#245b87]">{data.bills.length}</p><p className="text-[.7rem] text-slate-500">reviewed bills</p></div>
+        <div><p className="text-lg font-black text-[#245b87]">{data.billTotal}</p><p className="text-[.7rem] text-slate-500">official bills</p></div>
         <div><p className="text-lg font-black text-[#245b87]">{data.videoTotal}</p><p className="text-[.7rem] text-slate-500">linked videos</p></div>
       </section>
 
@@ -88,10 +88,10 @@ export default function IssueDetailPage() {
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
         <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}` : `/issues/${slug}#watch`} />
-        <HubRow icon={BarChart3} label="Official data" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
+        <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
         <HubRow icon={Lightbulb} label="Citizen solutions" detail="Review proposals and their evidence" to={`/issues/${slug}/solutions`} />
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
-        <HubRow icon={Landmark} label="Legislation" detail={`${data.bills.length} reviewed ${data.bills.length === 1 ? 'bill' : 'bills'} to follow`} to={`/issues/${slug}#legislation`} />
+        <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
         <HubRow icon={Flag} label="Elections" detail="Make a private voting plan" to={`/elections?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={MessageCircle} label="Discuss" detail="Join the evidence-linked conversation" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
       </nav>
@@ -100,7 +100,7 @@ export default function IssueDetailPage() {
 
       <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
         <summary className="cursor-pointer font-black text-[#245b87]">All issue links</summary>
-        <div className="mt-4 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.bills.length} /></div>
+        <div className="mt-4 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.billTotal} /></div>
       </details>
 
       <section id="watch" className="mt-14 scroll-mt-24">
@@ -114,10 +114,25 @@ export default function IssueDetailPage() {
             </Link>)}</div>{data.videoTotal > data.videos.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.videos.length} of {data.videoTotal} linked videos.</p>}</>}
       </section>
 
+      {slug === 'jobs-unemployment' && <section id="federal-jobs" className="mt-14 scroll-mt-24">
+        <div className="flex items-center gap-3"><Users className="text-[#245b87]" /><h2 className="text-2xl font-black">Federal jobs now open</h2></div>
+        {!data.availability.federalJobs && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">USAJOBS is temporarily unavailable. Other issue connections remain accessible.</p>}
+        {data.availability.federalJobs && <>
+          <p className="mt-2 text-sm text-text-2">{data.federalJobTotal.toLocaleString()} current USAJOBS listings. Showing {data.federalJobs.length} official listings.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">{data.federalJobs.map((job) => <article key={`${job.url}-${job.position_title}`} className="rounded-card border border-border bg-surface p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-accent-text">{job.organization_name || job.department_name}</p>
+            <h3 className="mt-2 text-lg font-semibold">{job.position_title}</h3>
+            <p className="mt-2 text-sm text-text-2">{job.location || 'Location listed on USAJOBS'}{job.schedule_type ? ` · ${job.schedule_type}` : ''}</p>
+            <a className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-accent-text hover:underline" href={job.url} target="_blank" rel="noreferrer">View official listing <ExternalLink className="ml-1 h-4 w-4" /></a>
+          </article>)}</div>
+          {data.federalJobsSource && <Source source={data.federalJobsSource} />}
+        </>}
+      </section>}
+
       <section id="evidence" className="mt-14 scroll-mt-24">
         <div className="flex items-center gap-3"><TrendingUp className="text-[#245b87]" /><h2 className="text-2xl font-black">What the evidence shows</h2></div>
         {!data.availability.evidence && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Evidence is temporarily unavailable. Other issue connections remain accessible.</p>}
-        {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No reviewed evidence series are connected yet.</p>}
+        {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No sourced evidence series are connected yet.</p>}
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           {data.evidence.map((series) => {
             const latest = series.observations.at(-1);
@@ -134,7 +149,7 @@ export default function IssueDetailPage() {
       <section id="legislation" className="mt-14 scroll-mt-24">
         <div className="flex items-center gap-3"><Landmark className="text-[#245b87]" /><h2 className="text-2xl font-black">Legislation to follow</h2></div>
         {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
-        {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No reviewed bills are connected yet.</p>}
+        {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No official bills are connected yet.</p>}
         <div className="mt-6 space-y-4">
           {data.bills.map((bill) => <article key={bill.bill_id} className="rounded-card border border-border bg-surface p-5 sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row">
@@ -145,6 +160,7 @@ export default function IssueDetailPage() {
             <div className="flex flex-wrap items-end justify-between gap-3"><Source source={bill.source} /><Link className="text-sm text-accent-text hover:underline" to={`/politics/bill/${bill.bill_id}`}>Bill details <FileText className="inline h-4 w-4" /></Link></div>
           </article>)}
         </div>
+        {data.billTotal > data.bills.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.bills.length} of {data.billTotal} connected Congress.gov bills.</p>}
       </section>
     </div>
   </main>;

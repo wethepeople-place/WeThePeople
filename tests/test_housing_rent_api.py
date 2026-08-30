@@ -50,12 +50,12 @@ def test_issue_api_empty_state_and_missing_issue():
         session.commit()
 
     summary = client.get("/issues/housing-rent").json()
-    assert summary["evidence_series_count"] == 0
+    assert summary["evidence_series_count"] == 1
     assert summary["bill_count"] == 0
     assert client.get("/issues/housing-rent/evidence").json() == {
         "issue_slug": "housing-rent",
-        "total": 0,
-        "series": [],
+        "total": 1,
+        "series": [client.get("/issues/housing-rent/evidence").json()["series"][0]],
     }
     assert client.get("/issues/housing-rent/bills").json() == {
         "issue_slug": "housing-rent",
@@ -80,11 +80,11 @@ def test_housing_rent_api_preserves_exact_scope_identifiers_and_provenance():
         "slug": "housing-rent",
         "title": "Housing & Rent",
         "summary": None,
-        "evidence_series_count": 3,
+        "evidence_series_count": 4,
         "bill_count": 7,
     }
-    assert evidence["total"] == 3
-    assert {item["key"] for item in evidence["series"]} == {"hud_fmr_2br_proxy", "rent_cpi", "avg_wage"}
+    assert evidence["total"] == 4
+    assert {item["key"] for item in evidence["series"]} == {"apnorc-2026-public-priority-share", "hud_fmr_2br_proxy", "rent_cpi", "avg_wage"}
     assert bills["total"] == 7
     assert {item["bill_id"] for item in bills["bills"]} == {
         "hr1-119", "hr6644-119", "s968-119", "hr6124-119",
@@ -132,7 +132,7 @@ def test_issue_agenda_uses_reviewed_poll_ranks_without_wtp_popularity_claims():
     housing = next(item for item in payload["items"] if item["slug"] == "housing-rent")
     assert housing["rank"] == 6
     assert housing["priority_share"] == 17
-    assert housing["evidence_series_count"] == 3
+    assert housing["evidence_series_count"] == 4
     assert housing["bill_count"] == 7
     assert housing["community_score"] is None
     assert housing["evidence_note"]

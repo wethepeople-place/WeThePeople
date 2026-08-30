@@ -68,7 +68,8 @@ def test_watch_to_evidence_to_government_to_discuss_to_solution():
     assert issue.json()["slug"] == "housing-rent"
 
     evidence = client.get("/issues/housing-rent/evidence").json()
-    assert len(evidence["series"]) == 2
+    assert len(evidence["series"]) == 4
+    assert evidence["series"][0]["key"] == "apnorc-2026-public-priority-share"
     assert all(series["source"]["url"].startswith("https://") for series in evidence["series"])
 
     government = client.get("/issues/housing-rent/bills").json()

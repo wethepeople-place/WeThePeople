@@ -11,7 +11,7 @@ export default function IssueActionStrip({ issueSlug, evidenceCount, billCount, 
   const state = returnToVideoId ? { returnToVideoId } : undefined;
   const actions = [
     { label: evidenceCount === undefined ? 'Evidence' : `${evidenceCount} evidence series`, to: `/issues/${issueSlug}#evidence` },
-    { label: billCount === undefined ? 'Bills' : `${billCount} reviewed bills`, to: `/issues/${issueSlug}#legislation` },
+    { label: billCount === undefined ? 'Bills' : `${billCount} official bills`, to: `/issues/${issueSlug}#legislation` },
     { label: 'Solutions', to: `/issues/${issueSlug}/solutions` },
     { label: 'Discuss', to: `/discuss?issue=${encodeURIComponent(issueSlug)}` },
     { label: 'Government', to: `/government?issue=${encodeURIComponent(issueSlug)}` },
