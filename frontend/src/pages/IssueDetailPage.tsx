@@ -31,12 +31,31 @@ function HubRow({ icon: Icon, label, detail, to }: { icon: typeof Play; label: s
 }
 
 function HubPreview({ label, items }: { label: string; items: Array<{ key: string; title: string; detail?: string; to: string }> }) {
-  if (items.length === 0) return null;
-  return <div aria-label={`${label} preview`} className="-mt-1 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-3">
-    {items.slice(0, 3).map((item) => <Link key={item.key} to={item.to} className="min-w-0 rounded-lg bg-white px-3 py-2.5 outline-none hover:ring-2 hover:ring-[#245b87]/30 focus-visible:ring-4 focus-visible:ring-sky-200">
-      <span className="block line-clamp-2 text-sm font-bold leading-5 text-slate-900">{item.title}</span>
-      {item.detail && <span className="mt-1 block truncate text-xs text-slate-500">{item.detail}</span>}
-    </Link>)}
+  const [expanded, setExpanded] = useState(false);
+  const demoCount = Math.max(0, 5 - items.length);
+  const entries = [
+    ...items.map((item) => ({ ...item, demo: false })),
+    ...Array.from({ length: demoCount }, (_, index) => ({
+      key: `demo-${label}-${index}`,
+      title: ['Lorem ipsum dolor sit amet', 'Consectetur adipiscing elit', 'Sed do eiusmod tempor', 'Incididunt ut labore', 'Dolore magna aliqua'][index % 5],
+      detail: 'Layout demo · Not civic activity',
+      to: '',
+      demo: true,
+    })),
+  ];
+  const visibleEntries = expanded ? entries : entries.slice(0, 3);
+  const cardClass = 'flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 text-left outline-none';
+  const content = (item: (typeof entries)[number]) => <>
+    <span aria-hidden="true" className={`grid h-14 w-20 shrink-0 place-items-center rounded-md text-[10px] font-black uppercase tracking-wider ${item.demo ? 'border border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'bg-[#245b87] text-white'}`}>{item.demo ? 'Demo' : label.replace('Sourced ', '').slice(0, 10)}</span>
+    <span className="min-w-0 flex-1"><span className="block line-clamp-2 text-sm font-bold leading-5 text-slate-900">{item.title}</span><span className="mt-1 block truncate text-xs text-slate-500">{item.detail}</span></span>
+  </>;
+  return <div aria-label={`${label} preview`} className="-mt-1 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+    {visibleEntries.map((item) => item.demo
+      ? <div key={item.key} className={`${cardClass} opacity-75`}>{content(item)}</div>
+      : <Link key={item.key} to={item.to} className={`${cardClass} hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200`}>{content(item)}</Link>)}
+    {entries.length > 3 && <button type="button" aria-expanded={expanded} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[#164d78] outline-none hover:bg-white focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setExpanded((current) => !current)}>
+      {expanded ? <><ChevronUp className="h-4 w-4" />Show fewer</> : <><ChevronDown className="h-4 w-4" />See {entries.length - 3} more</>}
+    </button>}
   </div>;
 }
 
