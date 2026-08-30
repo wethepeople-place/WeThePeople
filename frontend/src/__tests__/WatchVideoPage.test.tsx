@@ -11,7 +11,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 describe('WatchVideoPage', () => {
   let observerCallback: IntersectionObserverCallback | undefined
-  const scrollIntoView = vi.fn()
+  const scrollTo = vi.fn()
 
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -23,16 +23,16 @@ describe('WatchVideoPage', () => {
       value: vi.fn().mockReturnValue({ matches: false }),
     })
     observerCallback = undefined
-    scrollIntoView.mockReset()
+    scrollTo.mockReset()
     vi.stubGlobal('IntersectionObserver', class {
       constructor(callback: IntersectionObserverCallback) { observerCallback = callback }
       observe() {}
       unobserve() {}
       disconnect() {}
     })
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
       configurable: true,
-      value: scrollIntoView,
+      value: scrollTo,
     })
   })
 
@@ -230,12 +230,12 @@ describe('WatchVideoPage', () => {
     )
 
     await waitFor(() => expect(container.querySelectorAll('[data-video-id]')).toHaveLength(2))
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenCalledTimes(1)
     const second = container.querySelector<HTMLElement>('[data-video-id="two"]')!
     await act(async () => {
       observerCallback?.([{ isIntersecting: true, intersectionRatio: 1, target: second } as unknown as IntersectionObserverEntry], {} as IntersectionObserver)
     })
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenCalledTimes(1)
     expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).includes('/videos?')).length).toBe(1)
   })
 })
