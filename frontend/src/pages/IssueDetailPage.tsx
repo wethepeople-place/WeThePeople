@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BarChart3, ChevronRight, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
 import { fetchPublicDiscussions, fetchSolutions, type CitizenSolution, type PublicDiscussionPost } from '../api/civic';
@@ -54,10 +54,12 @@ export default function IssueDetailPage() {
   const [data, setData] = useState<State | null>(null);
   const [solutions, setSolutions] = useState<CitizenSolution[]>([]);
   const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
+  const [showAllBills, setShowAllBills] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
+    setShowAllBills(false);
     fetchIssueDetail(slug).then((result) => active && setData(result)).catch((reason) => active && setError(reason.message));
     return () => { active = false; };
   }, [slug]);
@@ -185,7 +187,7 @@ export default function IssueDetailPage() {
         {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
         {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No official bills are connected yet.</p>}
         <div className="mt-6 space-y-4">
-          {data.bills.map((bill) => <article key={bill.bill_id} className="rounded-card border border-border bg-surface p-5 sm:p-6">
+          {data.bills.slice(0, showAllBills ? data.bills.length : 3).map((bill) => <article key={bill.bill_id} className="rounded-card border border-border bg-surface p-5 sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row">
               <div><p className="font-mono text-xs uppercase text-accent-text">{bill.bill_type.toUpperCase()} {bill.bill_number} · {bill.congress}th Congress</p><h3 className="mt-2 text-lg font-semibold">{bill.title || bill.bill_id}</h3>{bill.relevance_note && <p className="mt-2 text-sm leading-6 text-text-2">{bill.relevance_note}</p>}</div>
               <span className="h-fit shrink-0 rounded-pill bg-accent-dim px-3 py-1 text-xs font-semibold text-accent-text">{phaseLabel[bill.phase]}</span>
@@ -194,6 +196,9 @@ export default function IssueDetailPage() {
             <div className="flex flex-wrap items-end justify-between gap-3"><Source source={bill.source} /><Link className="text-sm text-accent-text hover:underline" to={`/politics/bill/${bill.bill_id}`}>Bill details <FileText className="inline h-4 w-4" /></Link></div>
           </article>)}
         </div>
+        {data.bills.length > 3 && <button type="button" aria-expanded={showAllBills} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllBills((current) => !current)}>
+          {showAllBills ? <><ChevronUp className="h-5 w-5" />Show fewer bills</> : <><ChevronDown className="h-5 w-5" />See {data.bills.length - 3} more related bills</>}
+        </button>}
         {data.billTotal > data.bills.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.bills.length} of {data.billTotal} connected Congress.gov bills.</p>}
       </section>
     </div>
