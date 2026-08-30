@@ -154,6 +154,15 @@ def test_watch_automatically_includes_published_community_provider_videos(tmp_pa
     assert client.get(f"/videos/community-{post_id}").json() == item
     assert all(not video["delivery"] or video["delivery"].get("provider_video_id") != "KUpIEDqbVyk" for video in feed["videos"])
 
+    filtered = client.get("/videos", params={"issue_slug": "housing-rent"}).json()
+    assert filtered["total"] == 2
+    assert {video["video_id"] for video in filtered["videos"]} == {
+        "housing-rent-why-rents-move", f"community-{post_id}",
+    }
+    assert client.get("/videos", params={"issue_slug": "immigration"}).json() == {
+        "total": 0, "videos": [], "next_cursor": None, "has_more": False,
+    }
+
     class ThumbnailResponse:
         content = b"jpeg-thumbnail"
         def raise_for_status(self):
