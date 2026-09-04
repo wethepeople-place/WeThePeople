@@ -1,17 +1,17 @@
-import { BarChart3, BriefcaseBusiness, Landmark, List, MessageCircle, SquarePen, Users } from 'lucide-react';
+import { BarChart3, Landmark, List, MessageCircle, Play, SquarePen, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const primary = [
-  { label: 'Community', to: '/discuss', Icon: MessageCircle },
+  { label: 'Discuss', to: '/discuss', Icon: MessageCircle },
+  { label: 'Videos', to: '/videos', Icon: Play },
   { label: 'Agenda', to: '/civic', Icon: List },
   { label: 'ACT', to: '/act', Icon: Landmark },
   { label: 'Reps', to: '/politics/find-rep', Icon: Users },
-  { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries', Icon: BriefcaseBusiness, external: true },
   { label: 'Forecasts', to: '/forecasts', Icon: BarChart3 },
 ] as const;
 
 const desktop = [
-  { label: 'Community', to: '/discuss' }, { label: 'Agenda', to: '/civic' },
+  { label: 'Discuss', to: '/discuss' }, { label: 'Videos', to: '/videos' }, { label: 'Proposals', to: '/proposals' }, { label: 'Agenda', to: '/civic' },
   { label: 'Issues', to: '/issues/housing-rent' },
   { label: 'Post', to: '/discuss?compose=1#composer' },
   { label: 'Elections', to: '/elections' }, { label: 'ACT', to: '/act' },

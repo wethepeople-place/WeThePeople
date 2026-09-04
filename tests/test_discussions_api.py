@@ -112,8 +112,12 @@ def test_community_feed_filters_structured_proposals_and_videos_without_duplicat
         session.commit()
     proposals = client.get("/discussions", params={"issue_slug": "housing-rent", "content": "proposals"}).json()
     videos = client.get("/discussions", params={"issue_slug": "housing-rent", "content": "videos"}).json()
+    discussions = client.get("/discussions", params={"issue_slug": "housing-rent", "content": "discussions"}).json()
     assert proposals["total"] == 1 and proposals["items"][0]["body"] == "Build more homes near transit"
     assert videos["total"] == 0
+    assert discussions["total"] == 1
+    assert all(item["video_link"] is None for item in discussions["items"])
+    assert all(not any(attachment["type"] == "solution" for attachment in item["attachments"]) for item in discussions["items"])
 
 
 def test_discuss_continuation_reuses_reviewed_records_without_duplicating_community_posts():

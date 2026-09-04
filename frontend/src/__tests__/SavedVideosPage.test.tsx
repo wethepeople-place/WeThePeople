@@ -34,7 +34,7 @@ describe('SavedVideosPage', () => {
     render(<MemoryRouter initialEntries={['/saved']}><Routes><Route path="/saved" element={<SavedVideosPage />} /></Routes></MemoryRouter>)
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Senate Passes Housing Bill' })).toBeTruthy())
-    expect(screen.getByRole('link', { name: /Senate Passes Housing Bill/ }).getAttribute('href')).toBe('/watch/housing-rent-road-act-explained')
+    expect(screen.getByRole('link', { name: /Senate Passes Housing Bill/ }).getAttribute('href')).toBe('/videos/housing-rent-road-act-explained')
     expect(screen.getByText(/Only you can see this collection\./)).toBeTruthy()
     expect(auth.authedFetch).toHaveBeenCalledWith(expect.stringMatching(/\/videos\/saved$/), { cache: 'no-store' })
   })

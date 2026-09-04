@@ -218,9 +218,12 @@ const App: React.FC = () => (
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
           <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />
           <Route path="/discuss" element={<DiscussionsPage />} />
+          <Route path="/proposals" element={<DiscussionsPage />} />
           <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
           <Route path="/watch" element={<WatchVideoPage />} />
           <Route path="/watch/:videoId" element={<WatchVideoPage />} />
+          <Route path="/videos" element={<WatchVideoPage />} />
+          <Route path="/videos/:videoId" element={<WatchVideoPage />} />
           <Route path="/government" element={<GovernmentPage />} />
           <Route path="/courts" element={<CourtsPage />} />
           <Route path="/courts/:caseId" element={<CourtCasePage />} />

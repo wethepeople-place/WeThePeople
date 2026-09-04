@@ -7,7 +7,7 @@ import IssueDetailPage from '../pages/IssueDetailPage';
 describe('IssueDetailPage journey actions', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('carries issue context into one Community destination and representative lookup', async () => {
+  it('carries issue context into separate participation destinations and representative lookup', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
@@ -23,13 +23,15 @@ describe('IssueDetailPage journey actions', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
     expect(screen.getByRole('link', { name: '0 evidence series' }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
     expect(screen.getByRole('link', { name: '0 official bills' }).getAttribute('href')).toBe('/issues/housing-rent#legislation');
-    expect(screen.getAllByRole('link', { name: /Community/ }).some((link) => link.getAttribute('href') === '/discuss?issue=housing-rent')).toBe(true);
+    const participationNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
+    expect(within(participationNavigation).getByRole('link', { name: /Discussions/ }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(within(participationNavigation).getByRole('link', { name: /Proposals/ }).getAttribute('href')).toBe('/proposals?issue=housing-rent');
     expect(screen.queryByRole('link', { name: 'Solutions' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Discuss' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
     expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
-    expect(screen.getAllByRole('link', { name: /Housing explained/ })[0].getAttribute('href')).toBe('/watch/housing-video?play=1');
+    expect(screen.getAllByRole('link', { name: /Housing explained/ })[0].getAttribute('href')).toBe('/videos/housing-video?play=1');
     expect(screen.getByText('Community shared')).toBeTruthy();
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/videos?limit=25&issue_slug=housing-rent'))).toBe(true);
     const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
@@ -106,7 +108,8 @@ describe('IssueDetailPage journey actions', () => {
     fireEvent.click(within(civicVideos).getByRole('button', { name: 'Show fewer videos' }));
     expect(within(civicVideos).getAllByRole('link')).toHaveLength(3);
     expect(within(screen.getByLabelText('Legislation preview')).getAllByRole('link')).toHaveLength(3);
-    await waitFor(() => expect(within(screen.getByLabelText('Community preview')).getAllByRole('link')).toHaveLength(3));
+    await waitFor(() => expect(within(screen.getByLabelText('Discussions preview')).getAllByRole('link')).toHaveLength(3));
+    expect(within(screen.getByLabelText('Proposals preview')).getAllByRole('link')).toHaveLength(3);
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/discussions?') && String(input).includes('limit=5'))).toBe(true);
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/solutions?'))).toBe(false);
   });
@@ -147,10 +150,10 @@ describe('IssueDetailPage journey actions', () => {
 
     render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    const communityPreview = screen.getByLabelText('Community preview');
-    expect(within(communityPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(3);
-    fireEvent.click(within(communityPreview).getByRole('button', { name: 'See 2 more' }));
-    expect(within(communityPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(5);
-    expect(within(communityPreview).getByRole('button', { name: 'Show fewer' }).getAttribute('aria-expanded')).toBe('true');
+    const discussionsPreview = screen.getByLabelText('Discussions preview');
+    expect(within(discussionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(3);
+    fireEvent.click(within(discussionsPreview).getByRole('button', { name: 'See 2 more' }));
+    expect(within(discussionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(5);
+    expect(within(discussionsPreview).getByRole('button', { name: 'Show fewer' }).getAttribute('aria-expanded')).toBe('true');
   });
 });

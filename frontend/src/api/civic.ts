@@ -249,7 +249,7 @@ export interface PublicDiscussionPost {
   viewer_bookmarked: boolean;
 }
 
-export type CommunityView = 'all' | 'proposals' | 'videos';
+export type CommunityView = 'all' | 'discussions' | 'proposals' | 'videos';
 
 export function fetchPublicDiscussions(issueSlug?: string, videoId?: string, offset = 0, limit = 20, content: CommunityView = 'all') {
   return apiFetch<{ total: number; limit: number; offset: number; items: PublicDiscussionPost[] }>('/discussions', { params: { ...(issueSlug ? { issue_slug: issueSlug } : {}), ...(videoId ? { video_id: videoId } : {}), ...(content !== 'all' ? { content } : {}), offset, limit } });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
 import { fetchPublicDiscussions, type PublicDiscussionPost } from '../api/civic';
@@ -81,6 +81,7 @@ export default function IssueDetailPage() {
   const { hash } = useLocation();
   const [data, setData] = useState<State | null>(null);
   const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
+  const [proposals, setProposals] = useState<PublicDiscussionPost[]>([]);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const [showAllBills, setShowAllBills] = useState(false);
   const [error, setError] = useState('');
@@ -97,9 +98,13 @@ export default function IssueDetailPage() {
     if (!data) return;
     let active = true;
     setDiscussions([]);
-    fetchPublicDiscussions(slug, undefined, 0, 5).catch(() => ({ items: [] as PublicDiscussionPost[] })).then((discussionResult) => {
+    fetchPublicDiscussions(slug, undefined, 0, 5, 'discussions').catch(() => ({ items: [] as PublicDiscussionPost[] })).then((discussionResult) => {
       if (!active) return;
-      setDiscussions(discussionResult.items);
+      setDiscussions(discussionResult.items || []);
+    });
+    fetchPublicDiscussions(slug, undefined, 0, 5, 'proposals').catch(() => ({ items: [] as PublicDiscussionPost[] })).then((proposalResult) => {
+      if (!active) return;
+      setProposals(proposalResult.items || []);
     });
     return () => { active = false; };
   }, [data, slug]);
@@ -142,12 +147,14 @@ export default function IssueDetailPage() {
       <div className="mt-2"><Link to={`/discuss?issue=${encodeURIComponent(slug)}`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><MessageCircle className="h-5 w-5" />Join this community</Link></div>
 
       <nav aria-label="Explore this issue" className="mt-3 space-y-2">
-        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/watch/${firstVideo.video_id}?play=1` : `/issues/${slug}#watch`} />
-        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/watch/${video.video_id}?play=1`, imageUrl: videoThumbnail(video) }))} />
+        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/videos/${firstVideo.video_id}?play=1` : `/issues/${slug}#watch`} />
+        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/videos/${video.video_id}?play=1`, imageUrl: videoThumbnail(video) }))} />
         <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
         <HubPreview label="Sourced evidence" items={data.evidence.map((series) => ({ key: series.key, title: series.title, detail: series.observations.length ? `${number(series.observations.at(-1)!.value)} ${series.unit}` : series.source.publisher, to: `/issues/${slug}#evidence` }))} />
-        <HubRow icon={MessageCircle} label="Community" detail="Conversations, proposals, links, and videos" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
-        <HubPreview label="Community" items={discussions.map((post) => ({ key: String(post.id), title: post.body || `${post.video_link?.provider || 'Civic'} video`, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
+        <HubRow icon={MessageCircle} label="Discussions" detail="Text conversations and shared links" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
+        <HubPreview label="Discussions" items={discussions.map((post) => ({ key: String(post.id), title: post.body, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
+        <HubRow icon={Lightbulb} label="Proposals" detail="Structured citizen solutions" to={`/proposals?issue=${encodeURIComponent(slug)}`} />
+        <HubPreview label="Proposals" items={proposals.map((post) => ({ key: String(post.id), title: post.body, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
         <HubPreview label="Legislation" items={data.bills.map((bill) => ({ key: bill.bill_id, title: bill.title || bill.bill_id.toUpperCase(), detail: `${bill.bill_type.toUpperCase()} ${bill.bill_number}`, to: `/politics/bill/${bill.bill_id}` }))} />
@@ -165,7 +172,7 @@ export default function IssueDetailPage() {
         <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 id="civic-videos-heading" className="text-2xl font-black">Civic videos</h2></div>
         {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
           : data.videos.length === 0 ? <p className="mt-5 text-text-2">No linked civic videos are connected to this issue yet.</p>
-            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="overflow-hidden rounded-card border border-border bg-surface transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/watch/${video.video_id}?play=1`}>
+            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="overflow-hidden rounded-card border border-border bg-surface transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/videos/${video.video_id}?play=1`}>
               {videoThumbnail(video) ? <img src={videoThumbnail(video)!} alt="" className="aspect-video w-full bg-slate-800 object-cover" loading="lazy" /> : <span aria-hidden="true" className="grid aspect-video w-full place-items-center bg-slate-800 text-slate-300"><Play className="h-10 w-10" /></span>}
               <span className="block p-5"><span className="block text-xs font-bold uppercase tracking-wider text-accent-text">{video.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
               <span className="mt-2 block text-lg font-semibold leading-6">{video.caption}</span>

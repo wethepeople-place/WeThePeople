@@ -9,7 +9,9 @@ it('connects every top-level civic journey destination', () => {
   const expected = {
     Agenda: '/civic',
     Issues: '/issues/housing-rent',
-    Community: '/discuss',
+    Discuss: '/discuss',
+    Videos: '/videos',
+    Proposals: '/proposals',
     Elections: '/elections',
     Representatives: '/politics/find-rep',
     ACT: '/act',
@@ -26,8 +28,8 @@ it('connects every top-level civic journey destination', () => {
 
 it('keeps the six main phone-first destinations directly reachable', () => {
   render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
-  for (const label of ['Community', 'Agenda', 'ACT', 'Reps', 'Jobs', 'Forecasts']) {
+  for (const label of ['Discuss', 'Videos', 'Agenda', 'ACT', 'Reps', 'Forecasts']) {
     expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
   }
-  expect(screen.queryByRole('link', { name: 'Watch' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Community' })).toBeNull();
 });
