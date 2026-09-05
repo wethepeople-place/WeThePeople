@@ -34,6 +34,7 @@ const SolutionsPage = React.lazy(() => import("./pages/SolutionsPage"));
 const SolutionDetailPage = React.lazy(() => import("./pages/SolutionDetailPage"));
 const DiscussionsPage = React.lazy(() => import("./pages/DiscussionsPage"));
 const DiscussionDetailPage = React.lazy(() => import("./pages/DiscussionDetailPage"));
+const DiscussionReplyPage = React.lazy(() => import("./pages/DiscussionReplyPage"));
 const WatchVideoPage = React.lazy(() => import("./pages/WatchVideoPage"));
 const SavedVideosPage = React.lazy(() => import("./pages/SavedVideosPage"));
 const GovernmentPage = React.lazy(() => import("./pages/GovernmentPage"));
@@ -220,6 +221,7 @@ const App: React.FC = () => (
           <Route path="/discuss" element={<DiscussionsPage />} />
           <Route path="/proposals" element={<DiscussionsPage />} />
           <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
+          <Route path="/discuss/:postId/reply" element={<DiscussionReplyPage />} />
           <Route path="/watch" element={<WatchVideoPage />} />
           <Route path="/watch/:videoId" element={<WatchVideoPage />} />
           <Route path="/videos" element={<WatchVideoPage />} />

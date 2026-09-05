@@ -18,6 +18,7 @@ from models.social_models import (
     DiscussionAttachment,
     DiscussionBookmark,
     DiscussionBlock,
+    DiscussionFollow,
     DiscussionPost,
     DiscussionReaction,
     DiscussionReply,
@@ -197,6 +198,10 @@ class ReactionResponse(BaseModel):
 
 class BookmarkResponse(BaseModel):
     bookmarked: bool
+
+
+class FollowResponse(BaseModel):
+    following: bool
 
 
 def _rate_limit(request: Request, user: User, endpoint: str, maximum: int, db: Session) -> None:
@@ -711,6 +716,30 @@ def remove_bookmark(
         db.delete(row)
         db.commit()
     return {"bookmarked": False}
+
+
+@router.get("/users/{followed_user_id}/follow", response_model=FollowResponse)
+def get_follow_status(followed_user_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return {"following": db.query(DiscussionFollow.id).filter_by(follower_id=user.id, followed_id=followed_user_id).first() is not None}
+
+
+@router.put("/users/{followed_user_id}/follow", response_model=FollowResponse)
+def follow_user(followed_user_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if followed_user_id == user.id:
+        raise HTTPException(status_code=400, detail="You cannot follow yourself")
+    if db.get(User, followed_user_id) is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db.query(DiscussionFollow.id).filter_by(follower_id=user.id, followed_id=followed_user_id).first() is None:
+        db.add(DiscussionFollow(follower_id=user.id, followed_id=followed_user_id))
+        db.commit()
+    return {"following": True}
+
+
+@router.delete("/users/{followed_user_id}/follow", response_model=FollowResponse)
+def unfollow_user(followed_user_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(DiscussionFollow).filter_by(follower_id=user.id, followed_id=followed_user_id).delete()
+    db.commit()
+    return {"following": False}
 
 
 @router.post("/reports", status_code=status.HTTP_201_CREATED, response_model=StatusResponse)
