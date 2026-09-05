@@ -102,8 +102,11 @@ describe('WatchVideoPage', () => {
     )
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Play video from YouTube' })).toBeTruthy())
-    expect(screen.getByRole('link', { name: 'Apply for a job' }).getAttribute('href')).toBe('/issues/jobs-unemployment#federal-jobs')
-    expect(screen.getByRole('link', { name: 'Place your forecast' }).getAttribute('href')).toBe('/forecasts')
+    expect(screen.queryByRole('link', { name: 'Apply for a job' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Place your forecast' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Take action' })).toBeNull()
+    expect(screen.queryByText('Scroll for next video')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Watch at the official source instead' })).toBeNull()
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/watch-thumbnails/housing-rent-road-act-explained.jpg')
     expect(container.querySelector('img')?.parentElement?.className).toContain('absolute inset-0')
     expect(container.querySelectorAll('iframe')).toHaveLength(0)
