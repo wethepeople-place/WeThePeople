@@ -417,7 +417,7 @@ def list_discussions(
         ))
     if content == "discussions":
         query = query.filter(~DiscussionPost.video_link.has()).filter(~DiscussionPost.attachments.any(
-            DiscussionAttachment.attachment_type == "solution"
+            DiscussionAttachment.attachment_type.in_(("solution", "video"))
         ))
     elif content == "proposals":
         query = query.filter(DiscussionPost.attachments.any(

@@ -10,6 +10,7 @@ const item: PublicDiscussionPost = {
   author: { id: 3, display_name: 'Civic Neighbor' }, moderation_status: 'published', reply_count: 4,
   created_at: '2026-08-15T12:00:00Z', updated_at: '2026-08-15T12:00:00Z',
   attachments: [
+    { type: 'issue', reference_id: 'housing-rent', label: 'Housing & Rent' },
     { type: 'video', reference_id: 'housing-video', label: 'Reviewed housing video' },
     { type: 'bill', reference_id: 'hr6644-119', label: 'H.R. 6644' },
     { type: 'source', reference_id: '9', label: 'Congress.gov source', source: { url: 'https://www.congress.gov/bill/119th-congress/house-bill/6644', publisher: 'Congress.gov' } },
@@ -20,12 +21,12 @@ const item: PublicDiscussionPost = {
 describe('DiscussionPostCard', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('keeps video and civic-record journeys inside the discussion feed', () => {
+  it('keeps standalone discussion cards simple and text-first', () => {
     render(<MemoryRouter initialEntries={['/discuss']}><DiscussionPostCard item={item} isAuthenticated={false} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: 'Open video conversation, 4 replies' }).getAttribute('href')).toBe('/discuss?video=housing-video');
-    expect(screen.getByRole('link', { name: 'Reviewed housing video' }).getAttribute('href')).toBe('/discuss?video=housing-video');
-    expect(screen.getByRole('link', { name: 'H.R. 6644' }).getAttribute('href')).toBe('/politics/bill/hr6644-119');
-    expect(screen.getByRole('link', { name: /Congress.gov source/ }).getAttribute('href')).toContain('congress.gov');
+    expect(screen.queryByText('Published')).toBeNull();
+    expect(screen.queryByText('Reviewed housing video')).toBeNull();
+    expect(screen.queryByText('H.R. 6644')).toBeNull();
+    expect(screen.getByRole('link', { name: 'About Housing & Rent' }).getAttribute('href')).toBe('/issues/housing-rent');
     expect(screen.getByRole('link', { name: '4 replies' }).getAttribute('href')).toBe('/discuss/42');
     expect(screen.getByRole('link', { name: 'Sign in to save privately' }).getAttribute('href')).toContain('next=%2Fdiscuss');
     expect(screen.queryByText('Demo data')).toBeNull();
@@ -33,7 +34,7 @@ describe('DiscussionPostCard', () => {
 
   it('shows a demo badge only from the server-issued flag', () => {
     render(<MemoryRouter><DiscussionPostCard item={{ ...item, author: { ...item.author, display_name: 'Ordinary name', is_demo: true } }} isAuthenticated={false} /></MemoryRouter>);
-    expect(screen.getByText('Demo data')).toBeTruthy();
+    expect(screen.getByText('Demo')).toBeTruthy();
   });
 
   it('updates reactions, private saves, and private reports honestly', async () => {

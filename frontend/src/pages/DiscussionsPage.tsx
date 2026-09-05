@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
-import { createCitizenSolution, createDiscussion, fetchDiscussionContinuation, fetchPublicDiscussions, suggestDiscussionIssue, type CommunityView, type DiscussionContinuation, type PublicDiscussionPost } from '../api/civic';
+import { createCitizenSolution, createDiscussion, fetchPublicDiscussions, suggestDiscussionIssue, type CommunityView, type PublicDiscussionPost } from '../api/civic';
 import DiscussionPostCard from '../components/DiscussionPostCard';
 import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,9 +41,6 @@ export default function DiscussionsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [continuation, setContinuation] = useState<DiscussionContinuation | null>(null);
-  const [continuationLoading, setContinuationLoading] = useState(false);
-  const [continuationError, setContinuationError] = useState('');
   const [error, setError] = useState('');
   const [body, setBody] = useState('');
   const [postKind, setPostKind] = useState<'discussion' | 'proposal'>(proposalsOnly || params.get('compose') === 'proposal' ? 'proposal' : 'discussion');
@@ -127,20 +124,6 @@ export default function DiscussionsPage() {
     finally { setLoadingMore(false); }
   };
 
-  const loadContinuation = async () => {
-    if (continuationLoading || continuation) return;
-    setContinuationLoading(true); setContinuationError('');
-    try {
-      const result = await fetchDiscussionContinuation();
-      setContinuation({
-        reviewed_videos: result.reviewed_videos || [], agenda: result.agenda || [],
-        bills: result.bills || [], bill_total: result.bill_total || 0,
-      });
-    }
-    catch (reason) { setContinuationError(reason instanceof Error ? reason.message : 'More civic material could not load.'); }
-    finally { setContinuationLoading(false); }
-  };
-
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(''); setNotice(''); setSubmitting(true);
     try {
@@ -165,21 +148,17 @@ export default function DiscussionsPage() {
   };
 
   return <main className="min-h-screen bg-bg px-4 py-8 text-text-1 sm:px-6 sm:py-12">
-    <div className="mx-auto max-w-6xl">
-      <header className="border-b border-border pb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">{proposalsOnly ? 'Citizen proposals' : 'Public conversation'}</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">{proposalsOnly ? 'Proposals' : 'Discussions'}</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-7 text-text-2">{proposalsOnly ? 'Structured ideas for solving issues on the People’s Agenda.' : 'Text conversations and shared links, separate from the video feed and structured proposals.'}</p>
-        <nav aria-label="Participation destinations" className="mt-6 flex flex-wrap gap-2"><Link aria-current={!proposalsOnly ? 'page' : undefined} className={`rounded-full px-5 py-2.5 text-sm font-bold ${!proposalsOnly ? 'bg-accent text-white' : 'border border-border text-text-2'}`} to={`/discuss${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`}>Discussions</Link><Link aria-current={proposalsOnly ? 'page' : undefined} className={`rounded-full px-5 py-2.5 text-sm font-bold ${proposalsOnly ? 'bg-accent text-white' : 'border border-border text-text-2'}`} to={`/proposals${issue ? `?issue=${encodeURIComponent(issue)}` : ''}`}>Proposals</Link><Link className="rounded-full border border-border px-5 py-2.5 text-sm font-bold text-text-2" to="/videos">Videos</Link></nav>
+    <div className="mx-auto max-w-3xl">
+      <header className="border-b border-border pb-5">
+        <h1 className="font-display text-4xl sm:text-5xl">{proposalsOnly ? 'Proposals' : 'Discussions'}</h1>
         {videoId && <div className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-4"><p className="text-sm text-text-2">Showing the conversation connected to this video.</p><Link className="mt-2 inline-block font-semibold text-accent-text underline" to="/discuss">Return to the full feed</Link></div>}
         {issue && <div className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-4"><p className="text-sm text-text-2">Showing conversation connected to this issue's reviewed civic record.</p><Link className="mt-2 inline-block font-semibold text-accent-text underline" to={`/issues/${issue}`}>Return to official issue evidence</Link></div>}
       </header>
 
-      <div className="mt-7 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="mt-5">
         <div className="min-w-0">
-          <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-3 sm:p-4" aria-label="Create a civic post">
+          <section ref={composer} id="composer" className="scroll-mt-20 rounded-2xl border border-border bg-surface p-3" aria-label="Create a civic post">
             {isAuthenticated ? <form className="space-y-3" onSubmit={submit}>
-              <p className="text-sm font-bold text-accent-text">{proposalsOnly ? 'Propose a solution' : 'Start a discussion'}</p>
               <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap"><div aria-hidden="true" className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-accent/15 font-bold text-accent-text">You</div><label className="sr-only" htmlFor="discussion-composer">Create a post</label><textarea id="discussion-composer" className="min-h-12 min-w-0 flex-1 resize-y rounded-2xl border-0 bg-bg px-5 py-3 text-base leading-6 text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30" minLength={postKind === 'proposal' ? 20 : undefined} maxLength={10000} rows={postKind === 'proposal' ? 4 : 1} placeholder={postKind === 'proposal' ? 'Describe your proposed solution…' : 'Write something or paste a link…'} value={body} onChange={(event) => setBody(event.target.value)} /><button disabled={submitting || !body.trim() || (postKind === 'proposal' && body.trim().length < 20)} className="ml-auto min-h-12 rounded-full bg-accent px-6 py-3 font-bold text-white disabled:opacity-40">{submitting ? 'Publishing…' : postKind === 'proposal' ? 'Publish proposal' : 'Post'}</button></div>
               {postKind === 'proposal' && <p className="text-sm text-text-2">Published as a structured proposal with one Community conversation and Support/Oppose voting.</p>}
               {!proposalsOnly && socialCandidate && <p className="text-sm text-text-2">Video links are published to Videos, not the Discussions feed.</p>}
@@ -197,21 +176,11 @@ export default function DiscussionsPage() {
           {error && <div role="alert" className="mt-6 rounded-2xl border border-red-300 bg-red-50 p-5 text-red-800">{error}<button type="button" onClick={() => window.location.reload()} className="ml-3 font-bold underline">Try again</button></div>}
           {!loading && !error && items.length === 0 && <div className="mt-6 rounded-2xl border border-dashed border-border bg-surface p-8 text-center"><h2 className="text-xl font-semibold">No {proposalsOnly ? 'proposals' : 'discussions'} here yet</h2><p className="mt-2 text-text-2">{videoId ? 'No published conversation is connected to this video yet.' : proposalsOnly ? 'Open an Agenda issue to propose a solution.' : 'Be the first to start a text conversation or share a supporting link.'}</p><Link className="mt-5 inline-block font-semibold text-accent-text underline" to={proposalsOnly ? '/civic' : '/discuss?compose=1#composer'}>{proposalsOnly ? 'Explore the Agenda' : 'Start a discussion'}</Link></div>}
 
-          {!loading && !error && items.length > 0 && <div className="mt-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">{sort === 'recent' ? 'Most recent first' : sort === 'popular' ? 'Most popular first' : 'Most discussed first'}</p><h2 className="mt-1 text-2xl font-semibold">{videoId ? 'Video conversation' : issue ? `Issue ${proposalsOnly ? 'proposals' : 'discussions'}` : proposalsOnly ? 'Latest proposals' : 'Latest discussions'}</h2></div><div className="flex items-center gap-3"><label className="text-sm font-semibold text-text-2" htmlFor="discussion-sort">Sort</label><select id="discussion-sort" value={sort} onChange={(event) => setSort(event.target.value as DiscussionSort)} className="min-h-11 rounded-xl border border-border bg-surface px-4 font-bold text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30"><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="discussed">Most discussed</option></select><p className="shrink-0 text-sm text-text-3">{total} {total === 1 ? (proposalsOnly ? 'proposal' : 'thread') : (proposalsOnly ? 'proposals' : 'threads')}</p></div></div>}
+          {!loading && !error && items.length > 0 && <div className="mt-5 flex items-center justify-between gap-3"><p className="shrink-0 text-sm text-text-3">{total} {total === 1 ? (proposalsOnly ? 'proposal' : 'thread') : (proposalsOnly ? 'proposals' : 'threads')}</p><label className="sr-only" htmlFor="discussion-sort">Sort</label><select id="discussion-sort" value={sort} onChange={(event) => setSort(event.target.value as DiscussionSort)} className="min-h-10 rounded-xl border border-border bg-surface px-3 text-sm font-semibold text-text-1 outline-none focus-visible:ring-4 focus-visible:ring-accent/30"><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="discussed">Most discussed</option></select></div>}
           {!loading && !error && hasDemoItems && <aside role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-300/10 p-4 text-sm leading-6 text-text-2"><strong className="text-text-1">Visual demo:</strong> Latin placeholder posts, numbered test users, replies, and reactions are shown here to test the civic feed. They are not real civic participation.</aside>}
-          <section aria-label="Latest civic discussions" className="mt-4 space-y-4 sm:space-y-5">{sortedItems.map((item) => <DiscussionPostCard key={item.id} item={item} isAuthenticated={isAuthenticated} />)}</section>
+          <section aria-label="Latest civic discussions" className="mt-4 space-y-4 sm:space-y-5">{sortedItems.map((item) => <DiscussionPostCard key={item.id} item={item} isAuthenticated={isAuthenticated} mode={proposalsOnly ? 'proposal' : 'discussion'} />)}</section>
           {items.length < total && <div className="mt-6 text-center"><button type="button" disabled={loadingMore} onClick={() => void loadMore()} className="min-h-11 rounded-full border border-border bg-surface px-6 font-bold text-text-1 disabled:opacity-60">{loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}</button></div>}
-          {!issue && !videoId && continuationLoading && <p className="mt-8 text-center text-sm text-text-2">Loading more real civic material…</p>}
-          {!issue && !videoId && continuationError && <div role="alert" className="mt-8 rounded-xl border border-border bg-surface p-5 text-center"><p>{continuationError} Your loaded posts remain available.</p><button className="mt-3 font-bold text-accent-text underline" onClick={() => void loadContinuation()}>Try again</button></div>}
-          {continuation && <section className="mt-10 space-y-5" aria-label="More civic material">
-            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Continue exploring</p><h2 className="mt-1 text-2xl font-semibold">Reviewed videos and civic context</h2></div>
-            {continuation.reviewed_videos.map((video) => <article key={`video:${video.video_id}`} className="rounded-2xl border border-border bg-surface p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-text">Reviewed video · {video.issue.title}</p><h3 className="mt-2 text-xl font-semibold">{video.caption}</h3><p className="mt-1 text-sm text-text-3">{video.creator_label} · Source: {video.source.publisher}</p>{video.delivery?.provider && video.delivery.provider_video_id ? <DiscussionVideoEmbed title={video.caption} video={{ provider: video.delivery.provider as 'youtube' | 'tiktok' | 'facebook' | 'instagram', provider_video_id: video.delivery.provider_video_id, canonical_url: video.delivery.canonical_url }} /> : <a className="mt-4 inline-block font-semibold text-accent-text underline" href={video.source.url} target="_blank" rel="noreferrer">Open the reviewed source</a>}<div className="mt-4 flex gap-4"><Link className="font-semibold text-accent-text underline" to={`/issues/${video.issue.slug}`}>Explore {video.issue.title}</Link><Link className="font-semibold text-accent-text underline" to={`/discuss?video=${encodeURIComponent(video.video_id)}`}>Conversation</Link></div></article>)}
-            {continuation.agenda.map((item) => <article key={`agenda:${item.slug}`} className="rounded-2xl border border-border bg-surface p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-text">People's Agenda</p><h3 className="mt-2 text-xl font-semibold">{item.title}</h3>{item.summary && <p className="mt-2 leading-7 text-text-2">{item.summary}</p>}<p className="mt-3 text-sm text-text-3">{item.priority_note} · {item.bill_count} linked bills</p><Link className="mt-4 inline-block font-semibold text-accent-text underline" to={`/issues/${item.slug}`}>Explore this issue</Link></article>)}
-            {continuation.bills.map((bill) => <article key={`bill:${bill.bill_id}`} className="rounded-2xl border border-border bg-surface p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-text">Current legislation</p><h3 className="mt-2 text-xl font-semibold">{bill.title || bill.bill_id.toUpperCase()}</h3>{bill.latest_action_text && <p className="mt-2 leading-7 text-text-2">{bill.latest_action_text}</p>}<Link className="mt-4 inline-block font-semibold text-accent-text underline" to={`/politics/bill/${bill.bill_id}`}>Read the bill record</Link></article>)}
-          </section>}
         </div>
-
-        <aside className="rounded-2xl border border-border bg-surface p-5 lg:sticky lg:top-6" aria-label="About this feed"><h2 className="font-semibold">How this feed works</h2><ul className="mt-3 space-y-3 text-sm leading-6 text-text-2"><li>{proposalsOnly ? 'Each proposal is a structured solution with its own discussion.' : 'This feed contains discussions, not video posts or proposals.'}</li><li>Videos have their own dedicated feed.</li><li>Agenda labels connect participation to civic context and evidence.</li><li>Bookmarks are private. Reactions show totals, never participant lists.</li><li>Reports go privately to moderation.</li></ul></aside>
       </div>
     </div>
   </main>;
