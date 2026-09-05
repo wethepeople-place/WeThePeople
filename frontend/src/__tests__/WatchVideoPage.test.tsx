@@ -139,6 +139,8 @@ describe('WatchVideoPage', () => {
     )
 
     await waitFor(() => expect(screen.getByText('Community shared')).toBeTruthy())
+    expect(screen.queryByText('Watch ·')).toBeNull()
+    expect(screen.queryByText('YouTube', { selector: 'span' })).toBeNull()
     expect(screen.getByRole('link', { name: /Share a civic video, link, or thought/ }).getAttribute('href')).toBe('/discuss?compose=1#composer')
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/videos/community/42/poster')
     expect(screen.queryByText('Reviewed source')).toBeNull()

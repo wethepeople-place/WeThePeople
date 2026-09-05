@@ -101,12 +101,10 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   </aside>;
 }
 
-function WatchStatus({ item, provider, position, total }: { item: Video; provider: string; position: number; total: number }) {
+function WatchStatus({ item, position, total }: { item: Video; position: number; total: number }) {
   return <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest">
-    <span className="rounded-full bg-white/10 px-3 py-1.5 text-white">{provider}</span>
     <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">{item.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
     <span className="ml-auto text-slate-400" aria-label={`Video ${position} of ${total}`}>{position} / {total}</span>
-    <span className="basis-full text-amber-300">Watch · <Link className="underline decoration-amber-300/60 underline-offset-4 outline-none hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>{item.issue.title}</Link></span>
   </div>;
 }
 
@@ -159,7 +157,7 @@ function OfficialEmbedCard({ item, active, autoPlayRequested, embed, position, t
         </div>}
       </div>
       <div className="min-w-0 py-3 lg:py-6">
-        <WatchStatus item={item} provider={providerLabel} position={position} total={total} />
+        <WatchStatus item={item} position={position} total={total} />
         <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
         <NarrativePanel item={item} />
         <CivicActions item={item} />
@@ -172,7 +170,7 @@ function LinkOutCard({ item, delivery, position, total, onChange, onComments }: 
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-4 py-8 pr-24 sm:px-8 sm:pr-28">
       <ActionRail item={item} onChange={onChange} onComments={onComments} />
-      <WatchStatus item={item} provider={delivery.source_label || 'Official source'} position={position} total={total} />
+      <WatchStatus item={item} position={position} total={total} />
       <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">{delivery.development_only ? 'Development Watch fixture' : item.content_origin === 'community' ? 'Shared by a community member' : 'Reviewed production source'}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
       <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
@@ -199,7 +197,7 @@ function NativeVideoCard({ item, active, reducedMotion, onActive, position, tota
       <div className="absolute inset-0 grid place-content-center p-8 text-center" role="alert"><h2 className="text-2xl font-bold">Video unavailable</h2><p className="mt-2 text-slate-300">The transcript and official evidence remain available.</p></div>}
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10" />
     <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl p-6 pb-12 sm:p-10">
-      <WatchStatus item={item} provider="Hosted video" position={position} total={total} />
+      <WatchStatus item={item} position={position} total={total} />
       <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-300">Development Watch fixture</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
       <NarrativePanel item={item} dark />
