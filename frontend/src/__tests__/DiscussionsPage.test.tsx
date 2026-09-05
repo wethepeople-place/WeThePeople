@@ -19,8 +19,8 @@ describe('DiscussionsPage', () => {
     await waitFor(() => expect(screen.getByText('No discussions here yet')).toBeTruthy());
     expect(screen.queryByLabelText('Loading latest discussions')).toBeNull();
     expect(screen.getByRole('link', { name: 'Start a discussion' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
-    expect(screen.getByRole('link', { name: 'Discussions' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Videos' }).getAttribute('href')).toBe('/videos');
+    expect(screen.getAllByRole('heading', { name: 'Discussions' })).toHaveLength(1);
+    expect(screen.queryByRole('navigation', { name: 'Participation destinations' })).toBeNull();
     expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('content=discussions');
   });
 
@@ -34,8 +34,7 @@ describe('DiscussionsPage', () => {
   it('keeps proposals in their own destination', async () => {
     render(<MemoryRouter initialEntries={['/proposals?issue=housing-rent']}><DiscussionsPage /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Proposals' })).toBeTruthy());
-    expect(screen.getByRole('link', { name: 'Proposals' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Discussions' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(screen.queryByRole('navigation', { name: 'Participation destinations' })).toBeNull();
     expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('content=proposals');
   });
 
@@ -90,7 +89,7 @@ describe('DiscussionsPage', () => {
     } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('What should Congress do next?')).toBeTruthy());
-    expect(screen.getByRole('link', { name: 'Housing & Rent evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
+    expect(screen.getByRole('link', { name: 'About Housing & Rent' }).getAttribute('href')).toBe('/issues/housing-rent');
     expect(screen.getByText('Civic neighbor')).toBeTruthy();
     expect(screen.getByRole('link', { name: '1 reply' }).getAttribute('href')).toBe('/discuss/7');
     expect(screen.getByRole('link', { name: 'Sign in to like' }).textContent).toContain('2');
@@ -127,7 +126,7 @@ describe('DiscussionsPage', () => {
     } as Response);
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('note').textContent).toContain('not real civic participation'));
-    expect(screen.getByText('Demo data')).toBeTruthy();
+    expect(screen.getByText('Demo')).toBeTruthy();
   });
 
   it('recognizes a supported provider URL pasted directly into the main composer', async () => {

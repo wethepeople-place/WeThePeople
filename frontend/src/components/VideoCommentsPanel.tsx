@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowUpRight, ChevronDown, ChevronUp, MessageCircle, Send, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Heart, MessageCircle, Send, ThumbsDown, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -7,6 +7,8 @@ import {
   createVideoComment,
   fetchPublicDiscussion,
   fetchVideoComments,
+  setDiscussionReaction,
+  type DiscussionReaction,
   type PublicDiscussionDetail,
   type PublicDiscussionPost,
 } from '../api/civic';
@@ -19,13 +21,28 @@ type Props = {
   onClose: () => void;
 };
 
-function ReplyThread({ post, onReplyCreated }: { post: PublicDiscussionPost; onReplyCreated: () => void }) {
+function ReplyThread({ post, videoId, onReplyCreated }: { post: PublicDiscussionPost; videoId: string; onReplyCreated: () => void }) {
   const { isAuthenticated } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<PublicDiscussionDetail | null>(null);
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [reactions, setReactions] = useState(post.reactions || { like: 0, insightful: 0, disagree: 0 });
+  const [viewerReactions, setViewerReactions] = useState<DiscussionReaction[]>(post.viewer_reactions || []);
+  const [reactionBusy, setReactionBusy] = useState('');
+  const loginUrl = `/login?next=${encodeURIComponent(`/videos/${videoId}?comments=1`)}`;
+
+  const toggleReaction = async (reaction: DiscussionReaction) => {
+    const enabled = !viewerReactions.includes(reaction);
+    setReactionBusy(reaction); setError('');
+    try {
+      const result = await setDiscussionReaction(post.id, reaction, enabled);
+      setReactions(result.reactions);
+      setViewerReactions((current) => enabled ? [...current, reaction] : current.filter((value) => value !== reaction));
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Reaction could not be saved.'); }
+    finally { setReactionBusy(''); }
+  };
 
   const toggle = async () => {
     if (expanded) { setExpanded(false); return; }
@@ -59,7 +76,8 @@ function ReplyThread({ post, onReplyCreated }: { post: PublicDiscussionPost; onR
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             {post.reply_count ? `${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}` : 'Reply'}
           </button>
-          <Link className="inline-flex min-h-11 items-center rounded-full px-2 text-sm font-semibold text-amber-300 outline-none hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/discuss/${post.id}`}>Open full discussion</Link>
+          {isAuthenticated ? <button type="button" disabled={Boolean(reactionBusy)} aria-pressed={viewerReactions.includes('like')} onClick={() => void toggleReaction('like')} className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm ${viewerReactions.includes('like') ? 'text-amber-300' : 'text-slate-300'}`} aria-label={`Like comment, ${reactions.like || 0}`}><Heart className={`h-4 w-4 ${viewerReactions.includes('like') ? 'fill-current' : ''}`} />{reactions.like || 0}</button> : <Link to={loginUrl} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm text-slate-300" aria-label="Sign in to like comment"><Heart className="h-4 w-4" />{reactions.like || 0}</Link>}
+          {isAuthenticated ? <button type="button" disabled={Boolean(reactionBusy)} aria-pressed={viewerReactions.includes('disagree')} onClick={() => void toggleReaction('disagree')} className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm ${viewerReactions.includes('disagree') ? 'text-amber-300' : 'text-slate-300'}`} aria-label={`Disagree with comment, ${reactions.disagree || 0}`}><ThumbsDown className="h-4 w-4" />{reactions.disagree || 0}</button> : <Link to={loginUrl} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm text-slate-300" aria-label="Sign in to disagree with comment"><ThumbsDown className="h-4 w-4" />{reactions.disagree || 0}</Link>}
         </div>
       </div>
     </div>
@@ -117,15 +135,11 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
         <div><h2 className="text-xl font-bold">Comments <span className="text-slate-400">{items.reduce((sum, item) => sum + 1 + item.reply_count, 0)}</span></h2><p className="mt-1 line-clamp-1 text-xs text-slate-400">{videoCaption}</p></div>
         <button autoFocus type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-content-center rounded-full bg-white/10 outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-label="Close comments"><X className="h-5 w-5" /></button>
       </header>
-      <Link className="flex min-h-11 items-center justify-between border-b border-white/10 bg-white/[0.03] px-5 text-sm font-semibold text-amber-300 outline-none hover:bg-white/[0.06] hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-amber-300/70" to={`/discuss?video=${encodeURIComponent(videoId)}`}>
-        View this video's full conversation
-        <ArrowUpRight className="h-4 w-4" />
-      </Link>
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {loading && <p className="p-6 text-slate-400">Loading comments…</p>}
         {error && <p role="alert" className="m-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-200">{error}</p>}
         {!loading && !error && items.length === 0 && <div className="grid min-h-64 place-content-center px-8 text-center"><MessageCircle className="mx-auto h-9 w-9 text-slate-500" /><h3 className="mt-4 text-lg font-semibold">No published comments yet</h3><p className="mt-2 text-sm leading-6 text-slate-400">Start a sourced, civil conversation. Nothing is posted automatically.</p></div>}
-        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} onReplyCreated={() => void load()} />)}
+        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} onReplyCreated={() => void load()} />)}
       </div>
       <footer className="border-t border-white/10 bg-[#090d16] p-4">
         {isAuthenticated ? <form onSubmit={submit} className="flex items-end gap-2">

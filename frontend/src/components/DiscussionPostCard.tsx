@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bookmark, ExternalLink, Flag, Heart, Lightbulb, MessageCircle, Play, Share2, ThumbsDown } from 'lucide-react';
+import { Bookmark, ExternalLink, Flag, Heart, Lightbulb, MessageCircle, MoreHorizontal, Share2, ThumbsDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 import {
@@ -14,6 +14,7 @@ import DiscussionVideoEmbed from './DiscussionVideoEmbed';
 type Props = {
   item: PublicDiscussionPost;
   isAuthenticated: boolean;
+  mode?: 'discussion' | 'proposal';
 };
 
 const reactionMeta: Array<{ value: DiscussionReaction; label: string; Icon: typeof Heart }> = [
@@ -47,7 +48,7 @@ function linkedText(body: string, postId: number) {
     : part ? <Link key={`text-${index}`} to={`/discuss/${postId}`} className="hover:text-accent-text">{part}</Link> : null);
 }
 
-export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
+export default function DiscussionPostCard({ item, isAuthenticated, mode = 'discussion' }: Props) {
   const proposal = item.attachments.find((attachment) => attachment.type === 'solution');
   const location = useLocation();
   const [reactions, setReactions] = useState(item.reactions || { like: 0, insightful: 0, disagree: 0 });
@@ -60,8 +61,9 @@ export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
   const [reportReason, setReportReason] = useState('misinformation');
   const [reportDetails, setReportDetails] = useState('');
   const loginUrl = `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
-  const created = useMemo(() => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.created_at)), [item.created_at]);
-  const reviewedVideo = item.attachments.find((attachment) => attachment.type === 'video');
+  const created = useMemo(() => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(item.created_at)), [item.created_at]);
+  const issue = item.attachments.find((attachment) => attachment.type === 'issue');
+  const issueLabel = (issue?.label || issue?.reference_id || '').replace(/\s*[·-]\s*demo context$/i, '').replace(/\s+evidence$/i, '');
 
   const toggleReaction = async (reaction: DiscussionReaction) => {
     const enabled = !viewerReactions.includes(reaction);
@@ -100,32 +102,30 @@ export default function DiscussionPostCard({ item, isAuthenticated }: Props) {
   };
 
   return <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-labelledby={`discussion-${item.id}`}>
-    <div className="p-5 sm:p-6">
+    <div className="p-4 sm:p-5">
       <header className="flex items-start gap-3">
-        <div aria-hidden="true" className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-accent/15 text-sm font-bold text-accent-text">{initials(item.author.display_name)}</div>
-        <div className="min-w-0 flex-1"><p className="truncate font-semibold text-text-1">{item.author.display_name}</p><time className="text-xs text-text-3" dateTime={item.created_at}>{created}</time></div>
-        {item.author.is_demo && <span className="rounded-full border border-amber-500/50 bg-amber-300/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Demo data</span>}
-        <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-text-3">Published</span>
+        <div aria-hidden="true" className="grid h-10 w-10 shrink-0 place-content-center rounded-full bg-accent/15 text-sm font-bold text-accent-text">{initials(item.author.display_name)}</div>
+        <div className="min-w-0 flex-1"><p className="break-words font-semibold leading-5 text-text-1">{item.author.display_name}</p><div className="mt-1 flex flex-wrap items-center gap-2"><time className="whitespace-nowrap text-xs text-text-3" dateTime={item.created_at}>{created}</time>{item.author.is_demo && <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Demo</span>}</div></div>
       </header>
-      {proposal && <p className="mt-4 inline-flex rounded-full bg-accent/15 px-3 py-1 text-xs font-black uppercase tracking-wider text-accent-text">Community proposal</p>}
+      {mode === 'proposal' && proposal && <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent-text">Proposal</p>}
 
-      <div id={`discussion-${item.id}`} className="mt-4 whitespace-pre-wrap text-lg leading-8 text-text-1">{linkedText(item.body, item.id)}</div>
-      {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`Video shared by ${item.author.display_name}`} postId={item.id} />}
-      {reviewedVideo && <Link aria-label={`Open video conversation, ${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`} className="mt-4 flex min-h-12 w-full items-center justify-between gap-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm sm:inline-flex sm:w-auto sm:rounded-full" to={`/discuss?video=${encodeURIComponent(reviewedVideo.reference_id)}`}><span className="inline-flex items-center gap-2"><Play className="h-4 w-4 fill-current" />Open video conversation</span><span className="whitespace-nowrap text-xs font-semibold text-white/80">{item.reply_count} {item.reply_count === 1 ? 'reply' : 'replies'}</span></Link>}
+      <div id={`discussion-${item.id}`} className="mt-3 whitespace-pre-wrap text-base leading-7 text-text-1 sm:text-lg">{linkedText(item.body, item.id)}</div>
+      {mode === 'proposal' && item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`Video shared by ${item.author.display_name}`} postId={item.id} />}
 
-      {item.attachments.length > 0 && <aside aria-label="Civic context" className="mt-4 flex flex-wrap gap-2">{item.attachments.map((attachment) => {
+      {mode === 'proposal' && item.attachments.length > 0 && <aside aria-label="Civic context" className="mt-4 flex flex-wrap gap-2">{item.attachments.map((attachment) => {
         const url = attachmentUrl(attachment, item.attachments);
         const label = attachment.label || attachment.source?.publisher || `${attachment.type}: ${attachment.reference_id}`;
         if (attachment.type === 'source' && attachment.source) return <a key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-accent/40 px-3 py-1 text-sm font-semibold text-accent-text" href={attachment.source.url} target="_blank" rel="noreferrer">{label}<ExternalLink className="h-3.5 w-3.5" /></a>;
         return url ? <Link key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center rounded-full border border-accent/40 px-3 py-1 text-sm font-semibold text-accent-text" to={url}>{label}</Link> : <span key={`${attachment.type}-${attachment.reference_id}`} className="inline-flex min-h-9 items-center rounded-full border border-border px-3 py-1 text-sm text-text-2">{label}</span>;
       })}</aside>}
+      {mode === 'discussion' && issue && <Link className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline" to={`/issues/${issue.reference_id}`}>About {issueLabel}</Link>}
 
-      <div className="mt-5 flex flex-wrap items-center gap-1 border-t border-border pt-3" aria-label="Discussion actions">
-        <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2 hover:bg-bg hover:text-accent-text" to={`/discuss/${item.id}`} aria-label={`${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`}><MessageCircle className="h-4 w-4" />{item.reply_count}</Link>
-        {reactionMeta.map(({ value, label, Icon }) => isAuthenticated ? <button key={value} type="button" disabled={Boolean(busy)} aria-pressed={viewerReactions.includes(value)} onClick={() => void toggleReaction(value)} className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm hover:bg-bg ${viewerReactions.includes(value) ? 'font-bold text-accent-text' : 'text-text-2'}`} aria-label={`${label}: ${reactions[value] || 0}`}><Icon className={`h-4 w-4 ${value === 'like' && viewerReactions.includes(value) ? 'fill-current' : ''}`} />{reactions[value] || 0}</button> : <Link key={value} to={loginUrl} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2" aria-label={`Sign in to ${label.toLowerCase()}`}><Icon className="h-4 w-4" />{reactions[value] || 0}</Link>)}
-        {isAuthenticated ? <button type="button" disabled={Boolean(busy)} aria-pressed={bookmarked} onClick={() => void toggleBookmark()} className={`ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm hover:bg-bg ${bookmarked ? 'font-bold text-accent-text' : 'text-text-2'}`} aria-label={bookmarked ? 'Remove private save' : 'Save privately'}><Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />Save</button> : <Link to={loginUrl} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2" aria-label="Sign in to save privately"><Bookmark className="h-4 w-4" />Save</Link>}
-        <button type="button" onClick={() => void share()} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2 hover:bg-bg" aria-label="Share discussion"><Share2 className="h-4 w-4" />Share</button>
-        {isAuthenticated ? <button type="button" onClick={() => setReporting((value) => !value)} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2 hover:bg-bg" aria-expanded={reporting} aria-controls={`report-${item.id}`}><Flag className="h-4 w-4" />Report</button> : <Link to={loginUrl} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm text-text-2"><Flag className="h-4 w-4" />Report</Link>}
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-2" aria-label="Discussion actions">
+        <Link className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm text-text-2 hover:text-accent-text" to={`/discuss/${item.id}`} aria-label={`${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`}><MessageCircle className="h-4 w-4" />{item.reply_count}</Link>
+        {reactionMeta.map(({ value, label, Icon }) => isAuthenticated ? <button key={value} type="button" disabled={Boolean(busy)} aria-pressed={viewerReactions.includes(value)} onClick={() => void toggleReaction(value)} className={`inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm ${viewerReactions.includes(value) ? 'font-bold text-accent-text' : 'text-text-2'}`} aria-label={`${label}: ${reactions[value] || 0}`}><Icon className={`h-4 w-4 ${value === 'like' && viewerReactions.includes(value) ? 'fill-current' : ''}`} />{reactions[value] || 0}</button> : <Link key={value} to={loginUrl} className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm text-text-2" aria-label={`Sign in to ${label.toLowerCase()}`}><Icon className="h-4 w-4" />{reactions[value] || 0}</Link>)}
+        {isAuthenticated ? <button type="button" disabled={Boolean(busy)} aria-pressed={bookmarked} onClick={() => void toggleBookmark()} className={`grid min-h-10 min-w-10 place-content-center ${bookmarked ? 'text-accent-text' : 'text-text-2'}`} aria-label={bookmarked ? 'Remove private save' : 'Save privately'}><Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} /></button> : <Link to={loginUrl} className="grid min-h-10 min-w-10 place-content-center text-text-2" aria-label="Sign in to save privately"><Bookmark className="h-4 w-4" /></Link>}
+        <button type="button" onClick={() => void share()} className="grid min-h-10 min-w-10 place-content-center text-text-2 hover:text-accent-text" aria-label="Share discussion"><Share2 className="h-4 w-4" /></button>
+        <details className="relative"><summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-content-center text-text-2" aria-label="More discussion actions"><MoreHorizontal className="h-5 w-5" /></summary><div className="absolute bottom-11 right-0 z-10 rounded-xl border border-border bg-surface p-1 shadow-xl">{isAuthenticated ? <button type="button" onClick={() => setReporting((value) => !value)} className="inline-flex min-h-10 items-center gap-2 whitespace-nowrap px-3 text-sm text-text-2" aria-expanded={reporting} aria-controls={`report-${item.id}`}><Flag className="h-4 w-4" />Report</button> : <Link to={loginUrl} className="inline-flex min-h-10 items-center gap-2 whitespace-nowrap px-3 text-sm text-text-2"><Flag className="h-4 w-4" />Report</Link>}</div></details>
       </div>
 
       {reporting && <div id={`report-${item.id}`} className="mt-3 rounded-xl border border-border bg-bg p-4"><label className="text-sm font-semibold">Why are you reporting this?<select value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-surface px-3 py-2"><option value="misinformation">Potential misinformation</option><option value="harassment">Harassment</option><option value="privacy">Private information</option><option value="spam">Spam</option><option value="other">Other</option></select></label><label className="mt-3 block text-sm font-semibold">Optional context<textarea maxLength={2000} value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} className="mt-2 min-h-20 w-full rounded-lg border border-border bg-surface px-3 py-2" /></label><div className="mt-3 flex gap-2"><button type="button" disabled={busy === 'report'} onClick={() => void submitReport()} className="min-h-11 rounded-full bg-accent px-4 font-bold text-white">Send private report</button><button type="button" onClick={() => setReporting(false)} className="min-h-11 rounded-full border border-border px-4">Cancel</button></div></div>}
