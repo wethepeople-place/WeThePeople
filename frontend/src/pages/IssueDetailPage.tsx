@@ -61,7 +61,7 @@ function HubPreview({ label, items }: { label: string; items: Array<{ key: strin
   return <div aria-label={`${label} preview`} className="-mt-1 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
     {visibleEntries.map((item) => item.demo
       ? <div key={item.key} className={`${cardClass} opacity-75`}>{content(item)}</div>
-      : <Link key={item.key} to={item.to} className={`${cardClass} hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200`}>{content(item)}</Link>)}
+      : <Link key={item.key} to={item.to} state={item.to.startsWith('/discuss/') ? { returnAfterReply: true } : undefined} className={`${cardClass} hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200`}>{content(item)}</Link>)}
     {entries.length > 3 && <button type="button" aria-expanded={expanded} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[#164d78] outline-none hover:bg-white focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setExpanded((current) => !current)}>
       {expanded ? <><ChevronUp className="h-4 w-4" />Show fewer</> : <><ChevronDown className="h-4 w-4" />See {entries.length - 3} more</>}
     </button>}

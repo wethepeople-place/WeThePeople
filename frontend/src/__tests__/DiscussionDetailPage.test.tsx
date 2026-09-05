@@ -59,3 +59,24 @@ it('posts a reply on the web and refreshes the conversation', async () => {
   expect(screen.getByRole('status').textContent).toBe('Reply posted.');
   expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({ method: 'POST' });
 });
+
+it('returns to the previous screen after replying when opened from the app', async () => {
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({
+      id: 7, body: 'What should government do next?', author: { display_name: 'Civic neighbor' },
+      created_at: '2026-08-09T00:00:00Z', reply_total: 0, replies: [], attachments: [],
+    }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 12, post_id: 7, moderation_status: 'published' }) }));
+
+  render(<MemoryRouter initialEntries={['/discuss', { pathname: '/discuss/7', state: { returnAfterReply: true } }]} initialIndex={1}><Routes>
+    <Route path="/discuss" element={<h1>Discussions feed</h1>} />
+    <Route path="/discuss/:postId" element={<DiscussionDetailPage />} />
+  </Routes></MemoryRouter>);
+
+  const reply = await screen.findByRole('textbox', { name: 'Write a reply' });
+  fireEvent.change(reply, { target: { value: 'Return me to the feed.' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Post reply' }));
+
+  expect(await screen.findByRole('heading', { name: 'Discussions feed' })).toBeTruthy();
+  expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+});
