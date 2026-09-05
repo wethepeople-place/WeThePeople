@@ -1,22 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Image as ImageIcon, Lightbulb, Link2, MessageCircle, Send, Video } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { createDiscussionReply, fetchPublicDiscussion, PublicDiscussionDetail } from '../api/civic';
+import { Link, useParams } from 'react-router-dom';
+import { createDiscussionReply, fetchPublicDiscussion, getDiscussionUserFollow, setDiscussionUserFollow, PublicDiscussionDetail } from '../api/civic';
 import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function DiscussionDetailPage() {
   const { postId = '' } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [item, setItem] = useState<PublicDiscussionDetail | null>(null);
   const [error, setError] = useState('');
   const [replyBody, setReplyBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
   const [replyError, setReplyError] = useState('');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [following, setFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   useEffect(() => { fetchPublicDiscussion(Number(postId)).then(setItem).catch((reason) => setError(reason.message)); }, [postId]);
+  useEffect(() => { if (isAuthenticated && item?.author.id) getDiscussionUserFollow(item.author.id).then((value) => setFollowing(value.following)).catch(() => undefined); }, [isAuthenticated, item?.author.id]);
   if (error) return <main className="min-h-screen bg-bg p-12 text-text-1"><div role="alert">{error}</div></main>;
   if (!item) return <main className="min-h-screen bg-bg p-16 text-center text-text-2">Loading discussion…</main>;
 
@@ -37,10 +38,6 @@ export default function DiscussionDetailPage() {
     try {
       await createDiscussionReply(item.id, body);
       setReplyBody('');
-      if ((location.state as { returnAfterReply?: boolean } | null)?.returnAfterReply) {
-        navigate(-1);
-        return;
-      }
       setItem(await fetchPublicDiscussion(item.id));
       setNotice('Reply posted.');
     } catch (reason) { setReplyError(reason instanceof Error ? reason.message : 'Unable to post reply.'); }
@@ -51,7 +48,7 @@ export default function DiscussionDetailPage() {
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-text">Citizen discussion</p>
     {item.author.is_demo && <aside role="note" className="mt-4 rounded-xl border border-amber-500/40 bg-amber-300/10 p-4 text-sm text-text-2"><strong className="text-text-1">Visual demo:</strong> This thread uses Latin placeholder text and numbered test users. It is not real civic participation.</aside>}
     <h1 className="mt-4 font-display text-4xl">{item.body}</h1>
-    <p className="mt-3 text-sm text-text-3">{item.author.display_name}</p>
+    <div className="mt-3 flex items-center gap-3"><p className="text-sm text-text-3">{item.author.display_name}</p>{isAuthenticated && item.author.id && user?.id !== item.author.id && <button type="button" disabled={followBusy} onClick={async () => { setFollowBusy(true); try { const result = await setDiscussionUserFollow(item.author.id!, !following); setFollowing(result.following); } finally { setFollowBusy(false); } }} className="min-h-9 rounded-full border border-accent/50 px-4 text-sm font-bold text-accent-text disabled:opacity-50">{following ? 'Following' : 'Follow'}</button>}</div>
     {item.video_link && <DiscussionVideoEmbed video={item.video_link} title={`Video shared by ${item.author.display_name}`} postId={item.id} />}
     <Link className="mt-4 inline-flex min-h-11 items-center rounded-full border border-amber-300/40 bg-amber-300/10 px-4 font-bold text-amber-300" to={`/act?target_type=discussion&target_id=${item.id}`}>ACT on this conversation</Link>
     {related.length > 0 && <aside aria-label="Related civic context" className="mt-8 flex flex-wrap gap-2">{related.map((attachment) => {

@@ -15,6 +15,7 @@ from models.social_models import (
     DiscussionAttachment,
     DiscussionBookmark,
     DiscussionBlock,
+    DiscussionFollow,
     DiscussionPost,
     DiscussionReaction,
     DiscussionReply,
@@ -285,6 +286,18 @@ def test_post_reactions_are_public_and_bookmarks_remain_private_and_idempotent()
     _as_user(app, Session, alice_id)
     assert client.delete(f"/discussions/{post_id}/reactions/like").json()["reactions"]["like"] == 0
     assert client.delete(f"/discussions/{post_id}/bookmark").json() == {"bookmarked": False}
+
+
+def test_users_can_follow_and_unfollow_discussion_authors():
+    app, client, Session = _environment()
+    alice_id, bob_id = _seed(Session)
+    _as_user(app, Session, alice_id)
+    assert client.get(f"/discussions/users/{bob_id}/follow").json() == {"following": False}
+    assert client.put(f"/discussions/users/{bob_id}/follow").json() == {"following": True}
+    assert client.put(f"/discussions/users/{bob_id}/follow").json() == {"following": True}
+    with Session() as session:
+        assert session.query(DiscussionFollow).filter_by(follower_id=alice_id, followed_id=bob_id).count() == 1
+    assert client.delete(f"/discussions/users/{bob_id}/follow").json() == {"following": False}
     with Session() as session:
         assert session.query(DiscussionReaction).count() == 0
         assert session.query(DiscussionBookmark).count() == 0

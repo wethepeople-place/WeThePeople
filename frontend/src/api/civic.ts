@@ -448,6 +448,14 @@ export function setDiscussionBookmark(postId: number, bookmarked: boolean) {
   return apiFetch<{ bookmarked: boolean }>(`/discussions/${postId}/bookmark`, { method: bookmarked ? 'PUT' : 'DELETE' });
 }
 
+export function getDiscussionUserFollow(userId: number) {
+  return apiFetch<{ following: boolean }>(`/discussions/users/${userId}/follow`);
+}
+
+export function setDiscussionUserFollow(userId: number, following: boolean) {
+  return apiFetch<{ following: boolean }>(`/discussions/users/${userId}/follow`, { method: following ? 'PUT' : 'DELETE' });
+}
+
 export function reportDiscussionPost(postId: number, reason: string, details?: string) {
   return apiFetch<{ status: 'received' }>('/discussions/reports', { method: 'POST', body: { target_type: 'post', target_id: postId, reason, ...(details ? { details } : {}) } });
 }

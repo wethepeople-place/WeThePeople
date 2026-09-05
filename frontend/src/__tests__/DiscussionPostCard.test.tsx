@@ -27,7 +27,7 @@ describe('DiscussionPostCard', () => {
     expect(screen.queryByText('Reviewed housing video')).toBeNull();
     expect(screen.queryByText('H.R. 6644')).toBeNull();
     expect(screen.getByRole('link', { name: 'About Housing & Rent' }).getAttribute('href')).toBe('/issues/housing-rent');
-    expect(screen.getByRole('link', { name: '4 replies' }).getAttribute('href')).toBe('/discuss/42');
+    expect(screen.getByRole('link', { name: 'Sign in to reply' }).getAttribute('href')).toContain('%2Fdiscuss%2F42%2Freply');
     expect(screen.getByRole('link', { name: 'Sign in to save privately' }).getAttribute('href')).toContain('next=%2Fdiscuss');
     expect(screen.queryByText('Demo data')).toBeNull();
   });
@@ -46,6 +46,7 @@ describe('DiscussionPostCard', () => {
       throw new Error(`Unexpected request: ${url}`);
     }));
     render(<MemoryRouter initialEntries={['/discuss']}><DiscussionPostCard item={item} isAuthenticated /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Reply to discussion, 4 replies' }).getAttribute('href')).toBe('/discuss/42/reply');
     fireEvent.click(screen.getByRole('button', { name: 'Like: 0' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Like: 1' }).getAttribute('aria-pressed')).toBe('true'));
     fireEvent.click(screen.getByRole('button', { name: 'Save privately' }));
