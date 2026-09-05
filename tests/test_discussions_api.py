@@ -17,6 +17,7 @@ from models.social_models import (
     DiscussionBlock,
     DiscussionPost,
     DiscussionReaction,
+    DiscussionReply,
     DiscussionReport,
     DiscussionVideoLink,
 )
@@ -142,6 +143,33 @@ def test_video_comments_endpoint_uses_the_shared_published_conversation():
     assert payload["total"] == 1
     assert payload["items"][0]["body"].startswith("What should Congress prioritize")
     assert client.get("/discussions/videos/not-a-video").status_code == 404
+
+
+def test_community_video_comments_use_the_canonical_post_without_a_second_page():
+    app, client, Session = _environment()
+    alice_id, _ = _seed(Session)
+    with Session() as session:
+        post = DiscussionPost(author_id=alice_id, author_label="Alice", body="A community video", moderation_status="published")
+        post.video_link = DiscussionVideoLink(
+            provider="youtube", provider_video_id="abcdefghijk",
+            canonical_url="https://www.youtube.com/watch?v=abcdefghijk",
+        )
+        session.add(post)
+        session.commit()
+        post_id = post.id
+
+    response = client.get(f"/discussions/videos/community-{post_id}")
+    assert response.status_code == 200
+    assert response.json()["items"][0]["id"] == post_id
+
+    _as_user(app, Session, alice_id)
+    created = client.post(f"/discussions/videos/community-{post_id}/comments", json={"body": "Keep this with the video."})
+    assert created.status_code == 201
+    assert created.json()["moderation_status"] == "pending"
+    with Session() as session:
+        reply = session.get(DiscussionReply, created.json()["id"])
+        assert reply.post_id == post_id
+        assert reply.body == "Keep this with the video."
 
 
 def test_video_comment_requires_auth_and_is_attached_for_moderation():

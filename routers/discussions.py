@@ -447,6 +447,20 @@ def list_video_comments(
     db: Session = Depends(get_db),
 ):
     """Return the canonical public conversation attached to one Watch video."""
+    community_match = re.fullmatch(r"community-(\d+)", video_id)
+    if community_match:
+        post_id = int(community_match.group(1))
+        blocked = _blocked_ids(user, db)
+        row = _base_query(db).join(DiscussionVideoLink).filter(
+            DiscussionPost.id == post_id,
+            DiscussionPost.moderation_status == "published",
+        ).first()
+        if row is None or (row.author_id is not None and row.author_id in blocked):
+            raise HTTPException(status_code=404, detail="Video not found")
+        reply_count = db.query(DiscussionReply).filter_by(post_id=row.id, moderation_status="published").filter(
+            (DiscussionReply.author_id.notin_(blocked)) if blocked else True
+        ).count()
+        return {"total": 1, "limit": limit, "offset": offset, "items": [] if offset else [_post(row, reply_count, db, user)]}
     if db.get(Video, video_id) is None:
         raise HTTPException(status_code=404, detail="Video not found")
     return list_discussions(
@@ -506,8 +520,27 @@ def create_video_comment(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Attach a moderated top-level comment to the reviewed video identity."""
+    """Attach a moderated comment to one reviewed or community video identity."""
     _rate_limit(request, user, "discussions:video-comment", POST_LIMIT, db)
+    community_match = re.fullmatch(r"community-(\d+)", video_id)
+    if community_match:
+        post_id = int(community_match.group(1))
+        post = db.query(DiscussionPost).join(DiscussionVideoLink).filter(
+            DiscussionPost.id == post_id,
+            DiscussionPost.moderation_status == "published",
+        ).first()
+        if post is None:
+            raise HTTPException(status_code=404, detail="Video not found")
+        reply = DiscussionReply(
+            post_id=post.id,
+            author_id=user.id,
+            body=body.body,
+            moderation_status="pending",
+        )
+        db.add(reply)
+        db.commit()
+        db.refresh(reply)
+        return {"id": reply.id, "moderation_status": "pending", "message": "Submitted for moderation"}
     if db.get(Video, video_id) is None:
         raise HTTPException(status_code=404, detail="Video not found")
     issue_slugs = [issue_slug for issue_slug, in db.query(VideoIssue.issue_slug).filter_by(video_id=video_id).all()]
