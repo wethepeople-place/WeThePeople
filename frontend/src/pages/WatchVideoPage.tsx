@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bookmark, ChevronDown, ExternalLink, Heart, Image as ImageIcon, Link2, MessageCircle, Pause, Play, SquarePen, Video as VideoIcon, Volume2, VolumeX } from 'lucide-react';
+import { Bookmark, ExternalLink, Heart, Image as ImageIcon, Link2, MessageCircle, Pause, Play, SquarePen, Video as VideoIcon, Volume2, VolumeX } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiBaseUrl } from '../api/client';
@@ -64,9 +64,6 @@ function CivicActions({ item }: { item: Video }) {
   return <div className="mt-5 min-w-0">
     <div aria-label="Explore this video" className="flex flex-wrap gap-3">
       <Link className="inline-flex min-h-12 items-center rounded-full bg-amber-300 px-5 font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Explore {item.issue.title}</Link>
-      <Link className="inline-flex min-h-12 items-center rounded-full border border-amber-300/50 px-5 font-bold text-amber-300 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}>Take action</Link>
-      <Link className="inline-flex min-h-12 items-center rounded-full border border-white/25 bg-white/10 px-5 font-bold text-white outline-none transition hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" to="/issues/jobs-unemployment#federal-jobs">Apply for a job</Link>
-      <Link className="inline-flex min-h-12 items-center rounded-full border border-white/25 bg-white/10 px-5 font-bold text-white outline-none transition hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" to="/forecasts">Place your forecast</Link>
     </div>
     {(item.content_origin !== 'community' || item.bills.length > 0) && <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
       {item.content_origin !== 'community' && <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>}
@@ -110,13 +107,6 @@ function WatchStatus({ item, provider, position, total }: { item: Video; provide
     <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">{item.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
     <span className="ml-auto text-slate-400" aria-label={`Video ${position} of ${total}`}>{position} / {total}</span>
     <span className="basis-full text-amber-300">Watch · <Link className="underline decoration-amber-300/60 underline-offset-4 outline-none hover:text-amber-200 focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>{item.issue.title}</Link></span>
-  </div>;
-}
-
-function ScrollCue({ last }: { last: boolean }) {
-  if (last) return null;
-  return <div className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-400" aria-hidden="true">
-    <ChevronDown className="h-4 w-4 motion-safe:animate-bounce" /> Scroll for next video
   </div>;
 }
 
@@ -165,7 +155,6 @@ function OfficialEmbedCard({ item, active, autoPlayRequested, embed, position, t
           {active && !failed && <button aria-label={`Play video from ${providerLabel}`} className="mt-7 grid h-20 w-20 place-content-center rounded-full bg-white text-slate-950 shadow-xl outline-none transition hover:scale-105 focus-visible:ring-4 focus-visible:ring-amber-300/70" onClick={() => setConsented(true)}><Play className="ml-1 h-9 w-9 fill-current" aria-hidden="true" /></button>}
           <p className="mt-5 text-sm text-slate-300">{privacyLine}. <a className="text-amber-300 underline" href={getProviderPrivacyUrl(provider)} target="_blank" rel="noreferrer">Privacy details</a></p>
           {!active && consented && <p className="mt-4 text-slate-400">The player was unloaded because this card is not active.</p>}
-          <a className="mt-4 block text-sm font-semibold text-amber-300 underline" href={embed.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
           </div>
         </div>}
       </div>
@@ -174,7 +163,6 @@ function OfficialEmbedCard({ item, active, autoPlayRequested, embed, position, t
         <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
         <NarrativePanel item={item} />
         <CivicActions item={item} />
-        <ScrollCue last={position === total} />
       </div>
     </div>
   </article>;
@@ -188,10 +176,8 @@ function LinkOutCard({ item, delivery, position, total, onChange, onComments }: 
       <p className="mt-3 text-sm font-bold uppercase tracking-widest text-slate-400">{delivery.development_only ? 'Development Watch fixture' : item.content_origin === 'community' ? 'Shared by a community member' : 'Reviewed production source'}</p>
       <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
       <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
-      <a className="mt-5 w-fit rounded-full bg-white px-5 py-3 font-bold text-slate-950" href={delivery.canonical_url} target="_blank" rel="noreferrer">Watch at the official source instead</a>
       <NarrativePanel item={item} />
       <CivicActions item={item} />
-      <ScrollCue last={position === total} />
     </div>
   </article>;
 }
