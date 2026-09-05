@@ -58,8 +58,6 @@ function ReplyThread({ post, videoId, onReplyCreated }: { post: PublicDiscussion
     try {
       await createDiscussionReply(post.id, body);
       setBody('');
-      setDetail(await fetchPublicDiscussion(post.id));
-      setExpanded(true);
       onReplyCreated();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Reply could not be posted.'); }
     finally { setSubmitting(false); }
@@ -100,7 +98,6 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [body, setBody] = useState('');
-  const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
@@ -119,11 +116,11 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
   }, [open, onClose]);
 
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); setSubmitting(true); setError(''); setNotice('');
+    event.preventDefault(); setSubmitting(true); setError('');
     try {
-      const result = await createVideoComment(videoId, body);
+      await createVideoComment(videoId, body);
       setBody('');
-      setNotice(`${result.message}. It will appear after review.`);
+      onClose();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Comment could not be submitted.'); }
     finally { setSubmitting(false); }
   };
@@ -139,7 +136,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
         {loading && <p className="p-6 text-slate-400">Loading comments…</p>}
         {error && <p role="alert" className="m-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-200">{error}</p>}
         {!loading && !error && items.length === 0 && <div className="grid min-h-64 place-content-center px-8 text-center"><MessageCircle className="mx-auto h-9 w-9 text-slate-500" /><h3 className="mt-4 text-lg font-semibold">No published comments yet</h3><p className="mt-2 text-sm leading-6 text-slate-400">Start a sourced, civil conversation. Nothing is posted automatically.</p></div>}
-        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} onReplyCreated={() => void load()} />)}
+        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} onReplyCreated={onClose} />)}
       </div>
       <footer className="border-t border-white/10 bg-[#090d16] p-4">
         {isAuthenticated ? <form onSubmit={submit} className="flex items-end gap-2">
@@ -147,7 +144,6 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
           <textarea id={`video-comment-${videoId}`} required maxLength={10000} rows={2} value={body} onChange={(event) => setBody(event.target.value)} className="min-h-12 flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus-visible:ring-4 focus-visible:ring-amber-300/70" placeholder="Add a comment…" />
           <button disabled={submitting} className="grid min-h-12 min-w-12 place-content-center rounded-full bg-amber-300 text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70 disabled:opacity-60" aria-label="Submit comment for review"><Send className="h-5 w-5" /></button>
         </form> : <Link className="block rounded-full bg-amber-300 px-5 py-3 text-center font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70" to={`/login?next=${encodeURIComponent(`/videos/${videoId}?comments=1`)}`}>Sign in to comment</Link>}
-        {notice && <p role="status" className="mt-2 text-sm text-amber-200">{notice}</p>}
       </footer>
     </aside>
   </div>;

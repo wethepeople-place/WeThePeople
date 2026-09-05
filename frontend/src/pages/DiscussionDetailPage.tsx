@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Image as ImageIcon, Lightbulb, Link2, MessageCircle, Send, Video } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createDiscussionReply, fetchPublicDiscussion, PublicDiscussionDetail } from '../api/civic';
 import DiscussionVideoEmbed from '../components/DiscussionVideoEmbed';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function DiscussionDetailPage() {
   const { postId = '' } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [item, setItem] = useState<PublicDiscussionDetail | null>(null);
   const [error, setError] = useState('');
   const [replyBody, setReplyBody] = useState('');
@@ -35,6 +37,10 @@ export default function DiscussionDetailPage() {
     try {
       await createDiscussionReply(item.id, body);
       setReplyBody('');
+      if ((location.state as { returnAfterReply?: boolean } | null)?.returnAfterReply) {
+        navigate(-1);
+        return;
+      }
       setItem(await fetchPublicDiscussion(item.id));
       setNotice('Reply posted.');
     } catch (reason) { setReplyError(reason instanceof Error ? reason.message : 'Unable to post reply.'); }

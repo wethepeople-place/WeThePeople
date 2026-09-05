@@ -45,7 +45,7 @@ function linkedText(body: string, postId: number) {
   const urlPattern = /(https:\/\/[^\s]+)/g;
   return body.split(urlPattern).map((part, index) => part.match(/^https:\/\//)
     ? <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer" className="break-all font-semibold text-accent-text underline">{part}<span className="sr-only"> (opens in a new tab)</span></a>
-    : part ? <Link key={`text-${index}`} to={`/discuss/${postId}`} className="hover:text-accent-text">{part}</Link> : null);
+    : part ? <Link key={`text-${index}`} to={`/discuss/${postId}`} state={{ returnAfterReply: true }} className="hover:text-accent-text">{part}</Link> : null);
 }
 
 export default function DiscussionPostCard({ item, isAuthenticated, mode = 'discussion' }: Props) {
@@ -121,7 +121,7 @@ export default function DiscussionPostCard({ item, isAuthenticated, mode = 'disc
       {mode === 'discussion' && issue && <Link className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline" to={`/issues/${issue.reference_id}`}>About {issueLabel}</Link>}
 
       <div className="mt-4 flex items-center justify-between border-t border-border pt-2" aria-label="Discussion actions">
-        <Link className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm text-text-2 hover:text-accent-text" to={`/discuss/${item.id}`} aria-label={`${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`}><MessageCircle className="h-4 w-4" />{item.reply_count}</Link>
+        <Link className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm text-text-2 hover:text-accent-text" to={`/discuss/${item.id}`} state={{ returnAfterReply: true }} aria-label={`${item.reply_count} ${item.reply_count === 1 ? 'reply' : 'replies'}`}><MessageCircle className="h-4 w-4" />{item.reply_count}</Link>
         {reactionMeta.map(({ value, label, Icon }) => isAuthenticated ? <button key={value} type="button" disabled={Boolean(busy)} aria-pressed={viewerReactions.includes(value)} onClick={() => void toggleReaction(value)} className={`inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm ${viewerReactions.includes(value) ? 'font-bold text-accent-text' : 'text-text-2'}`} aria-label={`${label}: ${reactions[value] || 0}`}><Icon className={`h-4 w-4 ${value === 'like' && viewerReactions.includes(value) ? 'fill-current' : ''}`} />{reactions[value] || 0}</button> : <Link key={value} to={loginUrl} className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 text-sm text-text-2" aria-label={`Sign in to ${label.toLowerCase()}`}><Icon className="h-4 w-4" />{reactions[value] || 0}</Link>)}
         {isAuthenticated ? <button type="button" disabled={Boolean(busy)} aria-pressed={bookmarked} onClick={() => void toggleBookmark()} className={`grid min-h-10 min-w-10 place-content-center ${bookmarked ? 'text-accent-text' : 'text-text-2'}`} aria-label={bookmarked ? 'Remove private save' : 'Save privately'}><Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} /></button> : <Link to={loginUrl} className="grid min-h-10 min-w-10 place-content-center text-text-2" aria-label="Sign in to save privately"><Bookmark className="h-4 w-4" /></Link>}
         <button type="button" onClick={() => void share()} className="grid min-h-10 min-w-10 place-content-center text-text-2 hover:text-accent-text" aria-label="Share discussion"><Share2 className="h-4 w-4" /></button>
