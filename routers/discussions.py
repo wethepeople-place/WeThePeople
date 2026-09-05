@@ -401,7 +401,7 @@ def create_discussion(
 def list_discussions(
     issue_slug: Optional[str] = Query(default=None, min_length=1, max_length=100),
     video_id: Optional[str] = Query(default=None, min_length=1, max_length=100),
-    content: Literal["all", "proposals", "videos"] = Query(default="all"),
+    content: Literal["all", "discussions", "proposals", "videos"] = Query(default="all"),
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     user: Optional[User] = Depends(get_optional_user),
@@ -415,7 +415,11 @@ def list_discussions(
         query = query.filter(DiscussionPost.attachments.any(
             (DiscussionAttachment.attachment_type == "video") & (DiscussionAttachment.video_id == video_id)
         ))
-    if content == "proposals":
+    if content == "discussions":
+        query = query.filter(~DiscussionPost.video_link.has()).filter(~DiscussionPost.attachments.any(
+            DiscussionAttachment.attachment_type == "solution"
+        ))
+    elif content == "proposals":
         query = query.filter(DiscussionPost.attachments.any(
             DiscussionAttachment.attachment_type == "solution"
         ))

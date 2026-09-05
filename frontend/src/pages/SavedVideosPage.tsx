@@ -79,7 +79,7 @@ export default function SavedVideosPage() {
       </section>}
       {!loading && videos.length > 0 && <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label="Your saved videos">
         {videos.map((video) => <li key={video.video_id} className="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-slate-900">
-          <Link className="group block outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-amber-300/70" to={`/watch/${video.video_id}`}>
+          <Link className="group block outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-amber-300/70" to={`/videos/${video.video_id}`}>
             <div className="relative aspect-video bg-gradient-to-br from-slate-700 to-slate-950">
               {video.delivery?.poster_url && <img className="h-full w-full object-cover" src={video.delivery.poster_url} alt="" />}
               <div className="absolute inset-0 bg-black/35 transition group-hover:bg-black/20" />

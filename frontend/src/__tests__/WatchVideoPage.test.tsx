@@ -97,7 +97,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/housing-rent-road-act-explained']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
 
@@ -131,7 +131,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/community-42']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
 
@@ -165,7 +165,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/community-42?play=1']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
 
@@ -194,7 +194,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/housing-rent-road-act-explained']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
 
@@ -226,7 +226,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/one']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
     const feed = await screen.findByRole('main', { name: 'Civic video feed' })
@@ -254,7 +254,7 @@ describe('WatchVideoPage', () => {
 
     const { container } = render(
       <MemoryRouter initialEntries={['/watch/one']}>
-        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /></Routes>
+        <Routes><Route path="/watch/:videoId" element={<WatchVideoPage />} /><Route path="/videos/:videoId" element={<WatchVideoPage />} /></Routes>
       </MemoryRouter>,
     )
 

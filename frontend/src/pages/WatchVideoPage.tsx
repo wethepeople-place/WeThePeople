@@ -81,7 +81,7 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   const [busy, setBusy] = useState<'like' | 'save' | ''>('');
   const [message, setMessage] = useState('');
   const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
-  const signIn = () => navigate(`/login?next=${encodeURIComponent(`/watch/${item.video_id}`)}`);
+  const signIn = () => navigate(`/login?next=${encodeURIComponent(`/videos/${item.video_id}`)}`);
   const toggle = async (kind: 'like' | 'save') => {
     if (!isAuthenticated) { signIn(); return; }
     setBusy(kind); setMessage('');
@@ -99,7 +99,7 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
     <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-6 w-6 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
     <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-6 w-6 ${item.saved ? 'fill-amber-300 text-amber-300' : ''}`} aria-hidden="true" /><span>Save</span></button>
     {item.content_origin === 'community' && item.discussion_post_id ? <Link className={buttonClass} to={`/discuss/${item.discussion_post_id}`} aria-label={`Open this community conversation, ${item.discussion_count} published contributions`}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></Link> : <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></button>}
-    <ShareButton rail url={`${window.location.origin}/watch/${item.video_id}`} title={item.caption} text={item.caption} />
+    <ShareButton rail url={`${window.location.origin}/videos/${item.video_id}`} title={item.caption} text={item.caption} />
     <span className="sr-only" role="status" aria-live="polite">{message}</span>
   </aside>;
 }
@@ -383,7 +383,7 @@ export default function WatchVideoPage() {
   }, [billCatalogExhausted, error, fallbacks.length, loadContinuation, loaded, videoCatalogExhausted, videos.length]);
   useEffect(() => {
     if (!videos.length) return;
-    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; navigate(`/watch/${id}`, { replace: true }); } }, { threshold: [0.6] });
+    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; navigate(`/videos/${id}`, { replace: true }); } }, { threshold: [0.6] });
     document.querySelectorAll('[data-video-id]').forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, [videos, navigate]);

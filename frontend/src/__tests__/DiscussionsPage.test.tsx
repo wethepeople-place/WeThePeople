@@ -16,17 +16,27 @@ describe('DiscussionsPage', () => {
 
   it('settles an empty public feed and points people to its composer', async () => {
     render(<MemoryRouter><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('No posts here yet')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('No discussions here yet')).toBeTruthy());
     expect(screen.queryByLabelText('Loading latest discussions')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Create a post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
-    expect(screen.getByRole('link', { name: 'All' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Start a discussion' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
+    expect(screen.getByRole('link', { name: 'Discussions' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Videos' }).getAttribute('href')).toBe('/videos');
+    expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('content=discussions');
   });
 
   it('requests and preserves issue context', async () => {
     render(<MemoryRouter initialEntries={['/discuss?issue=housing-rent']}><DiscussionsPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('No posts here yet')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('No discussions here yet')).toBeTruthy());
     expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('issue_slug=housing-rent');
     expect(screen.getByRole('link', { name: 'Return to official issue evidence' }).getAttribute('href')).toBe('/issues/housing-rent');
+  });
+
+  it('keeps proposals in their own destination', async () => {
+    render(<MemoryRouter initialEntries={['/proposals?issue=housing-rent']}><DiscussionsPage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Proposals' })).toBeTruthy());
+    expect(screen.getByRole('link', { name: 'Proposals' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Discussions' }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
+    expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain('content=proposals');
   });
 
   it('offers one composer that accepts text or a social link without extra steps', async () => {
@@ -65,8 +75,7 @@ describe('DiscussionsPage', () => {
       }],
     }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
-    expect(await screen.findByText('Posted in Community.')).toBeTruthy();
-    expect(await screen.findByText('Shared a Tiktok video.')).toBeTruthy();
+    expect(await screen.findByText('Video shared in Videos.')).toBeTruthy();
   });
 
   it('renders a chronological civic post card with public counts', async () => {
@@ -137,7 +146,7 @@ describe('DiscussionsPage', () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, moderation_status: 'published', message: 'Posted' }) } as Response);
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) } as Response);
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
-    expect(await screen.findByText('Posted in Community.')).toBeTruthy();
+    expect(await screen.findByText('Video shared in Videos.')).toBeTruthy();
     const [, request] = vi.mocked(fetch).mock.calls.find(([url, options]) => options?.method === 'POST' && new URL(String(url)).pathname.endsWith('/discussions')) || [];
     const payload = JSON.parse(String(request?.body));
     expect(payload.video_url).toContain('tiktok.com/@person/video/7579560442230508831');

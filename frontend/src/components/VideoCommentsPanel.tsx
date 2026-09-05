@@ -132,7 +132,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
           <label className="sr-only" htmlFor={`video-comment-${videoId}`}>Add a comment</label>
           <textarea id={`video-comment-${videoId}`} required maxLength={10000} rows={2} value={body} onChange={(event) => setBody(event.target.value)} className="min-h-12 flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus-visible:ring-4 focus-visible:ring-amber-300/70" placeholder="Add a comment…" />
           <button disabled={submitting} className="grid min-h-12 min-w-12 place-content-center rounded-full bg-amber-300 text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70 disabled:opacity-60" aria-label="Submit comment for review"><Send className="h-5 w-5" /></button>
-        </form> : <Link className="block rounded-full bg-amber-300 px-5 py-3 text-center font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70" to={`/login?next=${encodeURIComponent(`/watch/${videoId}?comments=1`)}`}>Sign in to comment</Link>}
+        </form> : <Link className="block rounded-full bg-amber-300 px-5 py-3 text-center font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70" to={`/login?next=${encodeURIComponent(`/videos/${videoId}?comments=1`)}`}>Sign in to comment</Link>}
         {notice && <p role="status" className="mt-2 text-sm text-amber-200">{notice}</p>}
       </footer>
     </aside>
