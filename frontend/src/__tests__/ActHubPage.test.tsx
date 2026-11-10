@@ -12,6 +12,7 @@ describe('ActHubPage', () => {
     expect(screen.getByText('If their agenda doesn’t align with yours, vote them out.')).toBeTruthy()
     expect(screen.getByTitle('Step 1: Plan my vote').getAttribute('src')).toBe('/elections?embed=1')
     expect(screen.getByTitle('Step 2: Contact my representatives').getAttribute('src')).toBe('/politics/find-rep?embed=1')
+    expect(screen.getByRole('link', { name: /Next: contact your representatives/ }).getAttribute('href')).toBe('#act-option-reps')
     expect(screen.getByTitle('Step 1: Plan my vote').getAttribute('style')).toContain('height: 560px')
     expect(screen.queryByText('Action Circles')).toBeNull()
     expect(screen.queryByText('Activities')).toBeNull()

@@ -1,4 +1,4 @@
-import { Users, Vote } from 'lucide-react';
+import { ArrowDown, Users, Vote } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 
@@ -45,11 +45,24 @@ export default function ActHubPage() {
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">Plan your vote. Contact your representatives. Make your voice count. You stay in control; nothing is sent without your say.</p>
       </header>
       {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">ACT context: {targetType} · {targetId}</p>}
-      <div aria-label="ACT options" className="mt-6 space-y-6 sm:mt-8">
+      <div aria-label="ACT options" className="mt-6 sm:mt-8">
         <section aria-labelledby="act-option-vote" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
           <div className="flex items-center gap-4 border-b border-white/[0.06] bg-white/[0.025] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#59616d] to-[#343941] text-base font-bold text-slate-100 shadow-lg shadow-black/20" aria-hidden="true">01</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Voting</p><h2 id="act-option-vote" className="mt-1 text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Plan my vote</h2><p className="mt-1 text-sm text-slate-500">See what is on your ballot and find where to vote.</p></div><Vote className="ml-auto hidden h-6 w-6 text-slate-600 sm:block" aria-hidden="true" /></div>
           <iframe ref={electionsFrame} title="Step 1: Plan my vote" src="/elections?embed=1" style={{ height: frameHeights.elections }} className="block w-full border-0 bg-[#eef1f5]" loading="eager" />
         </section>
+
+        <div className="relative flex h-24 items-center justify-center" aria-label="Continue to step 2">
+          <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-white/[0.04] via-slate-500/45 to-white/[0.04]" />
+          <a
+            href="#act-option-reps"
+            className="group relative inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#15171c]/95 px-4 text-xs font-semibold tracking-wide text-slate-300 shadow-xl shadow-black/20 backdrop-blur-xl transition hover:border-white/20 hover:bg-[#1b1e24] hover:text-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-400/15"
+          >
+            <span className="hidden sm:inline">Next: contact your representatives</span>
+            <span className="sm:hidden">Continue to step 2</span>
+            <ArrowDown className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-y-0.5 group-hover:text-slate-300" aria-hidden="true" />
+          </a>
+        </div>
+
         <section aria-labelledby="act-option-reps" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
           <div className="flex items-center gap-4 border-b border-white/10 bg-white/[0.035] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-base font-bold text-slate-200" aria-hidden="true">02</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Representation</p><h2 id="act-option-reps" className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">Contact my representatives</h2><p className="mt-1 text-sm text-slate-400">Find who represents you and choose how to contact them.</p></div><Users className="ml-auto hidden h-6 w-6 text-slate-500 sm:block" aria-hidden="true" /></div>
           <iframe ref={representativesFrame} title="Step 2: Contact my representatives" src="/politics/find-rep?embed=1" onLoad={() => { if (sharedZip) representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip: sharedZip }, window.location.origin); }} style={{ height: frameHeights.representatives }} className="block w-full border-0 bg-[#0b111b]" loading="lazy" />
