@@ -39,7 +39,12 @@ describe('RepresentativeLookupPage coverage state', () => {
         state: 'MD',
         district_resolution_required: true,
         representatives: [
-          { person_id: 'a000382', name: 'Angela D. Alsobrooks', party: 'D', chamber: 'senate', state: 'MD', district: null },
+          {
+            person_id: 'a000382', name: 'Angela D. Alsobrooks', party: 'D', chamber: 'senate', state: 'MD', district: null,
+            votes: [{ question: 'On Passage', vote_date: '2026-10-10', result: 'Passed', position: 'Yea', related_bill: 'S123', source_url: 'https://www.congress.gov/vote/1', source_name: 'Congress.gov' }],
+            bills: [{ bill_id: 's123-119', role: 'sponsor', title: 'A sourced test bill', policy_area: 'Housing', status: 'introduced', latest_action: 'Introduced', latest_action_date: '2026-10-01', source_url: 'https://www.congress.gov/bill/119th-congress/senate-bill/123', source_name: 'Congress.gov' }],
+            election_forecasts: [{ id: 1, question: 'Who will win?', candidate_option: { key: 'angela', label: 'Angela D. Alsobrooks' }, closes_at: '2028-11-07', source_url: 'https://elections.maryland.gov', source_name: 'Official election source', forecast_url: '/forecasts' }],
+          },
           { person_id: 'v000128', name: 'Chris Van Hollen', party: 'D', chamber: 'senate', state: 'MD', district: null },
         ],
       }),
@@ -49,9 +54,12 @@ describe('RepresentativeLookupPage coverage state', () => {
     fireEvent.change(screen.getByPlaceholderText(/Enter your zip code/), { target: { value: '21208' } });
     fireEvent.click(screen.getByRole('button', { name: /look up/i }));
 
-    await waitFor(() => expect(screen.getByText('Angela D. Alsobrooks')).toBeTruthy());
-    expect(screen.getByText('Chris Van Hollen')).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByText('Angela D. Alsobrooks').length).toBeGreaterThan(0));
+    expect(screen.getAllByText('Chris Van Hollen').length).toBeGreaterThan(0);
     expect(screen.getByText('House address needed')).toBeTruthy();
+    expect(screen.getByText('S123')).toBeTruthy();
+    expect(screen.getByText('A sourced test bill')).toBeTruthy();
+    expect(screen.getByText('Who will win?')).toBeTruthy();
     expect(screen.getByRole('link', { name: /Enter your street address/ }).getAttribute('href')).toBe('https://ziplook.house.gov/htbin/findrep_house?ZIP=21208');
     expect(screen.queryByText('Representative data is not yet available here')).toBeNull();
   });

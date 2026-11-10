@@ -43,9 +43,12 @@ from models.database import (
     CompanyDonation,
     Vote,
     MemberVote,
+    Bill,
+    MemberBillGroundTruth,
     Anomaly,
 )
 from models.committee_models import Committee, CommitteeMembership
+from models.forecast_models import ForecastMarket
 
 router = APIRouter(tags=["lookup"])
 log = logging.getLogger("lookup")
@@ -192,6 +195,7 @@ def _live_congress_members(state: str, districts: set[int]) -> list[dict[str, An
             "source": {"publisher": "Congress.gov", "url": item.get("url")},
             "red_flags": {"anomaly_count": 0, "late_disclosures": 0, "committee_stock_overlaps": 0, "top_anomaly": None},
             "trades": [], "donors": [], "committees": [], "anomalies": [], "votes": [],
+            "bills": [], "election_forecasts": [],
         })
     with _official_lookup_lock:
         _congress_member_cache[cache_key] = output
@@ -456,7 +460,7 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
         if bucket is not None:
             bucket.append(a)
 
-    # ── 6. Batch: recent votes (last 90 days, up to 5 per member) ──
+    # ── 6. Batch: latest recorded votes (up to 5 per member) ──
     # Use bioguide_id for filtering — it's the canonical Congress.gov identifier
     # and more reliably populated than person_id on MemberVote rows.
     bioguide_to_pid = {m.bioguide_id: m.person_id for m in members if m.bioguide_id}
@@ -467,7 +471,6 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
             .join(MemberVote, MemberVote.vote_id == Vote.id)
             .filter(
                 MemberVote.bioguide_id.in_([bid for bid in bioguide_ids if bid]),
-                Vote.vote_date >= ninety_days_ago,
             )
             .order_by(desc(Vote.vote_date))
             .all()
@@ -490,9 +493,85 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
                     if vote.related_bill_type and vote.related_bill_number
                     else None
                 ),
+                "source_url": vote.source_url,
+                "source_name": "Congress.gov",
             })
 
-    # ── 7. Assemble response ──
+    # ── 7. Batch: latest sponsored/cosponsored bills ──
+    bill_rows = []
+    try:
+        bill_rows = (
+            db.query(MemberBillGroundTruth, Bill)
+            .join(Bill, Bill.bill_id == MemberBillGroundTruth.bill_id)
+            .filter(MemberBillGroundTruth.bioguide_id.in_([bid for bid in bioguide_ids if bid]))
+            .order_by(desc(Bill.latest_action_date), desc(MemberBillGroundTruth.id))
+            .all()
+        )
+    except OperationalError:
+        bill_rows = []
+
+    bills_by_pid: Dict[str, List] = {pid: [] for pid in person_ids}
+    for relationship, bill in bill_rows:
+        pid = bioguide_to_pid.get(relationship.bioguide_id)
+        bucket = bills_by_pid.get(pid) if pid else None
+        if bucket is None or len(bucket) >= 4:
+            continue
+        type_paths = {
+            "hr": "house-bill", "s": "senate-bill", "hjres": "house-joint-resolution",
+            "sjres": "senate-joint-resolution", "hconres": "house-concurrent-resolution",
+            "sconres": "senate-concurrent-resolution", "hres": "house-resolution", "sres": "senate-resolution",
+        }
+        bucket.append({
+            "bill_id": bill.bill_id,
+            "role": relationship.role,
+            "title": bill.title or bill.bill_id,
+            "policy_area": bill.policy_area,
+            "status": bill.status_bucket,
+            "latest_action": bill.latest_action_text,
+            "latest_action_date": bill.latest_action_date.isoformat() if bill.latest_action_date else None,
+            "source_url": f"https://www.congress.gov/bill/{bill.congress}th-congress/{type_paths.get(bill.bill_type, 'house-bill')}/{bill.bill_number}",
+            "source_name": "Congress.gov",
+        })
+
+    # ── 8. Connect open election forecasts to candidate names ──
+    forecast_rows = []
+    try:
+        forecast_rows = (
+            db.query(ForecastMarket)
+            .filter(
+                ForecastMarket.market_type == "election",
+                ForecastMarket.status == "open",
+                ForecastMarket.closes_at > datetime.now(timezone.utc),
+            )
+            .order_by(ForecastMarket.closes_at.asc())
+            .all()
+        )
+    except OperationalError:
+        forecast_rows = []
+
+    forecasts_by_pid: Dict[str, List] = {pid: [] for pid in person_ids}
+    for market in forecast_rows:
+        options = market.options_json or []
+        for member in members:
+            matching_option = next(
+                (
+                    option for option in options
+                    if _name_similarity(str(option.get("label") or ""), member.display_name) >= 0.88
+                ),
+                None,
+            )
+            if matching_option and len(forecasts_by_pid[member.person_id]) < 2:
+                forecasts_by_pid[member.person_id].append({
+                    "id": market.id,
+                    "question": market.question,
+                    "candidate_option": matching_option,
+                    "closes_at": market.closes_at.isoformat() if market.closes_at else None,
+                    "source_url": market.source_url,
+                    "source_name": "Official election source",
+                    "forecast_url": "/forecasts",
+                })
+
+    # ── 9. Assemble response ──
     representatives = []
     for m in members:
         pid = m.person_id
@@ -565,6 +644,12 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
                 for a in member_anomalies[:5]
             ],
             "votes": votes_by_pid.get(pid, []),
+            "bills": bills_by_pid.get(pid, []),
+            "election_forecasts": forecasts_by_pid.get(pid, []),
+            "sources": [
+                {"name": "Congress.gov", "url": f"https://www.congress.gov/member/{m.bioguide_id}"},
+                {"name": "U.S. House ZIP lookup", "url": _HOUSE_ZIP_URL},
+            ],
         }
         representatives.append(rep)
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Search, Users, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
+import { MapPin, Search, Users, AlertCircle, ArrowLeft, Heart, ExternalLink, FileText, Vote as VoteIcon, ChartNoAxesCombined, Landmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getApiBaseUrl } from '../api/client';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
@@ -20,6 +20,40 @@ interface Representative {
   is_active: boolean;
   profile_available?: boolean;
   official_url?: string | null;
+  votes: Array<{
+    question: string | null;
+    vote_date: string | null;
+    result: string | null;
+    position: string;
+    related_bill: string | null;
+    source_url: string | null;
+    source_name: string;
+  }>;
+  bills: Array<{
+    bill_id: string;
+    role: string;
+    title: string;
+    policy_area: string | null;
+    status: string | null;
+    latest_action: string | null;
+    latest_action_date: string | null;
+    source_url: string;
+    source_name: string;
+  }>;
+  election_forecasts: Array<{
+    id: number;
+    question: string;
+    candidate_option: { key: string; label: string; party?: string | null };
+    closes_at: string | null;
+    source_url: string;
+    source_name: string;
+    forecast_url: string;
+  }>;
+  committees: Array<{ committee_name: string; role: string }>;
+  trades: unknown[];
+  donors: unknown[];
+  anomalies: unknown[];
+  sources: Array<{ name: string; url: string }>;
 }
 
 interface RepLookupResponse {
@@ -85,6 +119,7 @@ export default function RepresentativeLookupPage() {
   const [dataUnavailable, setDataUnavailable] = useState(false);
   const [resolvedState, setResolvedState] = useState('');
   const [districtResolutionRequired, setDistrictResolutionRequired] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState('');
   const [searched, setSearched] = useState(false);
   const pageRef = useRef<HTMLDivElement | null>(null);
 
@@ -123,6 +158,7 @@ export default function RepresentativeLookupPage() {
       const data = await res.json();
       const rawReps: any[] = Array.isArray(data?.representatives) ? data.representatives : [];
       setResolvedState(String(data?.state || ''));
+      setGeneratedAt(String(data?.generated_at || ''));
       setDistrictResolutionRequired(data?.district_resolution_required === true);
       const adapted: Representative[] = rawReps.map((r) => ({
         person_id: String(r.person_id || ''),
@@ -136,6 +172,14 @@ export default function RepresentativeLookupPage() {
         is_active: r.is_active !== false,
         profile_available: r.profile_available !== false,
         official_url: r.official_url ?? null,
+        votes: Array.isArray(r.votes) ? r.votes : [],
+        bills: Array.isArray(r.bills) ? r.bills : [],
+        election_forecasts: Array.isArray(r.election_forecasts) ? r.election_forecasts : [],
+        committees: Array.isArray(r.committees) ? r.committees : [],
+        trades: Array.isArray(r.trades) ? r.trades : [],
+        donors: Array.isArray(r.donors) ? r.donors : [],
+        anomalies: Array.isArray(r.anomalies) ? r.anomalies : [],
+        sources: Array.isArray(r.sources) ? r.sources : [],
       }));
       setReps(adapted);
       setDataUnavailable(adapted.length === 0);
@@ -197,7 +241,7 @@ export default function RepresentativeLookupPage() {
         style={{
           maxWidth: 1400,
           margin: '0 auto',
-          padding: '40px 24px 64px',
+          padding: isEmbedded ? '30px 24px 48px' : '40px 24px 64px',
         }}
       >
         {!isEmbedded && <motion.nav
@@ -214,7 +258,7 @@ export default function RepresentativeLookupPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          style={{ marginBottom: 36 }}
+          style={{ marginBottom: isEmbedded ? 24 : 36 }}
         >
           <p
             style={{
@@ -223,19 +267,19 @@ export default function RepresentativeLookupPage() {
               fontWeight: 600,
               letterSpacing: '0.3em',
               textTransform: 'uppercase',
-              color: 'var(--color-dem)',
-              marginBottom: 12,
+              color: 'var(--color-text-3)',
+              marginBottom: 10,
             }}
           >
             Find your rep
           </p>
           <h1
             style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontStyle: 'italic',
-              fontWeight: 900,
-              fontSize: 'clamp(36px, 5vw, 56px)',
-              lineHeight: 1.02,
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontWeight: 700,
+              letterSpacing: '-0.045em',
+              fontSize: isEmbedded ? 'clamp(32px, 5vw, 44px)' : 'clamp(36px, 5vw, 52px)',
+              lineHeight: 1.05,
               color: 'var(--color-text-1)',
               marginBottom: 12,
             }}
@@ -268,7 +312,7 @@ export default function RepresentativeLookupPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          style={{ marginBottom: 36 }}
+          style={{ marginBottom: isEmbedded ? 28 : 36 }}
         >
           <form
             onSubmit={handleSubmit}
@@ -296,7 +340,7 @@ export default function RepresentativeLookupPage() {
                   width: '100%',
                   borderRadius: 12,
                   border: '1px solid var(--color-border)',
-                  background: 'var(--color-surface)',
+                  background: '#171a1f',
                   padding: '13px 16px 13px 44px',
                   fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                   fontSize: 17,
@@ -317,13 +361,12 @@ export default function RepresentativeLookupPage() {
                 alignItems: 'center',
                 gap: 8,
                 borderRadius: 12,
-                background: 'var(--color-accent)',
-                color: '#07090C',
+                background: '#292d33',
+                color: '#f4f6f8',
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
                 fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                letterSpacing: '-0.01em',
                 padding: '13px 24px',
                 border: 'none',
                 cursor: !isValidZip || loading ? 'not-allowed' : 'pointer',
@@ -659,6 +702,28 @@ export default function RepresentativeLookupPage() {
                 </motion.div>
               ))}
             </div>
+
+            <section style={{ marginTop: 22 }} aria-labelledby="connected-records-heading">
+              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <p style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--color-text-3)' }}>
+                    Connected public record
+                  </p>
+                  <h2 id="connected-records-heading" style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 750 }}>
+                    What they did—and what comes next
+                  </h2>
+                </div>
+                <p style={{ maxWidth: 520, fontFamily: "'Inter', sans-serif", fontSize: 12, lineHeight: 1.55, color: 'var(--color-text-3)' }}>
+                  Votes, bills, forecasts, and oversight data are joined to the same verified person record used by ACT.
+                </p>
+              </div>
+              <div style={{ display: 'grid', gap: 14 }}>
+                {reps.map((rep) => <ConnectedRepresentativeRecord key={`record-${rep.person_id}`} rep={rep} />)}
+              </div>
+              {generatedAt && <p style={{ marginTop: 10, textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--color-text-3)' }}>
+                Record assembled {new Date(generatedAt).toLocaleString()}
+              </p>}
+            </section>
           </motion.div>
         )}
 
@@ -728,6 +793,93 @@ export default function RepresentativeLookupPage() {
       </div>
     </div>
   );
+}
+
+function shortDate(value: string | null): string {
+  if (!value) return 'Date unavailable';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
+  const panels = {
+    shell: { borderRadius: 12, border: '1px solid var(--color-border)', background: '#101318', padding: 16 } as React.CSSProperties,
+    label: { fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase' as const, color: 'var(--color-text-3)' },
+  };
+  return <article style={{ borderRadius: 16, border: '1px solid var(--color-border)', background: 'var(--color-surface)', padding: 18 }}>
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', border: '1px solid var(--color-border)', background: '#171a1f', fontSize: 11, fontWeight: 750 }}>
+          {initials(rep.display_name)}
+        </div>
+        <div>
+          <Link to={`/politics/people/${rep.person_id}`} style={{ color: 'var(--color-text-1)', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700 }}>
+            {rep.display_name}
+          </Link>
+          <p style={{ marginTop: 2, fontFamily: "'Inter', sans-serif", fontSize: 11, color: 'var(--color-text-3)' }}>
+            ACT, votes, bills, money, and forecasts use this same person record.
+          </p>
+        </div>
+      </div>
+      <Link to={`/politics/people/${rep.person_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 34, borderRadius: 9, border: '1px solid var(--color-border)', padding: '0 11px', color: 'var(--color-text-2)', textDecoration: 'none', fontSize: 11, fontWeight: 650 }}>
+        Full public record <ExternalLink size={12} />
+      </Link>
+    </header>
+
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 10 }}>
+      <section style={panels.shell}>
+        <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><VoteIcon size={12} /> Latest votes</p>
+        {rep.votes.length ? rep.votes.slice(0, 3).map((vote, index) => <div key={`${vote.vote_date}-${index}`} style={{ marginTop: 11, paddingTop: index ? 11 : 0, borderTop: index ? '1px solid var(--color-border)' : undefined }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 750, color: vote.position.toLowerCase().includes('nay') ? '#c8a4a4' : '#a8c3b4' }}>{vote.position}</span>
+            <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>{shortDate(vote.vote_date)}</span>
+          </div>
+          <p style={{ marginTop: 5, fontSize: 11, lineHeight: 1.45, color: 'var(--color-text-2)' }}>{vote.related_bill || vote.question || 'Congressional roll-call vote'}</p>
+          {vote.source_url && <a href={vote.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 5, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-3)', fontSize: 9 }}>Congress.gov <ExternalLink size={9} /></a>}
+        </div>) : <p style={{ marginTop: 12, fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No roll-call votes are available in the connected source yet.</p>}
+      </section>
+
+      <section style={panels.shell}>
+        <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={12} /> Bills</p>
+        {rep.bills.length ? rep.bills.slice(0, 3).map((bill, index) => <div key={`${bill.bill_id}-${bill.role}`} style={{ marginTop: 11, paddingTop: index ? 11 : 0, borderTop: index ? '1px solid var(--color-border)' : undefined }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 9, color: 'var(--color-text-3)', textTransform: 'uppercase' }}>{bill.role}</span>
+            {bill.policy_area && <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>· {bill.policy_area}</span>}
+          </div>
+          <a href={bill.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 5, display: 'block', color: 'var(--color-text-2)', fontSize: 11, lineHeight: 1.45, textDecoration: 'none' }}>{bill.title}</a>
+          <p style={{ marginTop: 4, fontSize: 9, color: 'var(--color-text-3)' }}>{bill.status || 'Status pending'} · {shortDate(bill.latest_action_date)}</p>
+        </div>) : <p style={{ marginTop: 12, fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No sponsored or cosponsored bills are available in the connected source yet.</p>}
+      </section>
+
+      <section style={panels.shell}>
+        <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><ChartNoAxesCombined size={12} /> Next-election outlook</p>
+        {rep.election_forecasts.length ? rep.election_forecasts.map((forecast) => <div key={forecast.id} style={{ marginTop: 11 }}>
+          <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-2)' }}>{forecast.question}</p>
+          <p style={{ marginTop: 5, fontSize: 9, color: 'var(--color-text-3)' }}>Closes {shortDate(forecast.closes_at)} · source-backed civic forecast</p>
+          <Link to={forecast.forecast_url} style={{ marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>Open Bets <ExternalLink size={9} /></Link>
+        </div>) : <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No verified election forecast is connected to this person yet. We will not guess.</p>
+          <Link to="/forecasts" style={{ marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>View sourced forecasts <ExternalLink size={9} /></Link>
+        </div>}
+      </section>
+
+      <section style={panels.shell}>
+        <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><Landmark size={12} /> Money & oversight</p>
+        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            ['Committees', rep.committees.length],
+            ['Recent trades', rep.trades.length],
+            ['Donor groups', rep.donors.length],
+            ['Alerts', rep.anomalies.length],
+          ].map(([label, value]) => <div key={String(label)} style={{ borderRadius: 9, background: '#171a1f', padding: '9px 10px' }}>
+            <strong style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{value}</strong>
+            <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>{label}</span>
+          </div>)}
+        </div>
+        <Link to={`/politics/people/${rep.person_id}`} style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>Inspect sources <ExternalLink size={9} /></Link>
+      </section>
+    </div>
+  </article>;
 }
 
 // ── Rep Card ──
@@ -904,14 +1056,14 @@ function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }
             fontFamily: "'Inter', sans-serif",
             fontSize: 12,
             fontWeight: 600,
-            background: `${hex}14`,
-            color: token,
-            border: `1px solid ${hex}33`,
+            background: 'rgba(255,255,255,.025)',
+            color: 'var(--color-text-2)',
+            border: '1px solid var(--color-border)',
             textDecoration: 'none',
             transition: 'background 150ms',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = `${hex}26`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = `${hex}14`; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.055)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.025)'; }}
         >
           <Heart size={13} /> Contribute to campaign
         </a>
