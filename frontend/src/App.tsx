@@ -213,8 +213,9 @@ const App: React.FC = () => (
         </div>
       }>
         <Routes>
-          {/* Sector selector */}
-          <Route path="/" element={<DiscussionsPage />} />
+          {/* The video feed is the primary public entry point. Keep /videos
+              canonical so video scroll/navigation always produces one URL. */}
+          <Route path="/" element={<Navigate to="/videos" replace />} />
           <Route path="/issues/:slug" element={<IssueDetailPage />} />
           <Route path="/issues/:slug/solutions" element={<SolutionsPage />} />
           <Route path="/issues/:slug/solutions/:solutionId" element={<SolutionDetailPage />} />

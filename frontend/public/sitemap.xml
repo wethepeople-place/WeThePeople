@@ -9,6 +9,7 @@
     following nav links from these landing pages.
   -->
   <url><loc>https://app.wethepeople.place/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://app.wethepeople.place/videos</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://app.wethepeople.place/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://app.wethepeople.place/methodology</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://app.wethepeople.place/disclaimer</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>

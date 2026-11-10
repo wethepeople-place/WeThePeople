@@ -64,6 +64,9 @@ function CivicActions({ item }: { item: Video }) {
   return <div className="mt-5 min-w-0">
     <div aria-label="Explore this video" className="flex flex-wrap gap-3">
       <Link className="inline-flex min-h-12 items-center rounded-full bg-amber-300 px-5 font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}>Explore {item.issue.title}</Link>
+      <Link className="inline-flex min-h-12 items-center rounded-full border border-white/20 bg-white/[0.06] px-5 font-bold text-slate-100 outline-none transition hover:border-white/35 hover:bg-white/[0.1] focus-visible:ring-4 focus-visible:ring-slate-300/25" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}>Take action</Link>
+      <Link className="inline-flex min-h-12 items-center rounded-full border border-white/20 bg-white/[0.06] px-5 font-bold text-slate-100 outline-none transition hover:border-white/35 hover:bg-white/[0.1] focus-visible:ring-4 focus-visible:ring-slate-300/25" to="/issues/jobs-unemployment#federal-jobs">Apply for a job</Link>
+      <Link className="inline-flex min-h-12 items-center rounded-full border border-white/20 bg-white/[0.06] px-5 font-bold text-slate-100 outline-none transition hover:border-white/35 hover:bg-white/[0.1] focus-visible:ring-4 focus-visible:ring-slate-300/25" to="/forecasts">Place your forecast</Link>
     </div>
     {(item.content_origin !== 'community' || item.bills.length > 0) && <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
       {item.content_origin !== 'community' && <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>}
