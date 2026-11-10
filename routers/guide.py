@@ -53,6 +53,39 @@ class GuideResponse(BaseModel):
     cached: bool = False
 
 
+def _fallback_guide(question: str, page: str) -> dict:
+    """Keep the guide useful when the optional model provider is unavailable."""
+    prompt = question.casefold()
+    if page.startswith("/act") or any(word in prompt for word in ("act", "this page", "looking at")):
+        return {
+            "answer": (
+                "This page helps you do two things: make a voting plan and find the people who represent you. "
+                "Start with your state and ZIP. Your ZIP carries into the representatives step automatically, "
+                "and nothing is sent to an office unless you choose to send it."
+            ),
+            "action": {"type": "navigate", "path": "/act"},
+        }
+    if any(word in prompt for word in ("vote", "ballot", "polling", "election")):
+        return {
+            "answer": "Start with your state, then enter your ZIP and street address to check available official election details. Always confirm the final information with your state or local election office.",
+            "action": {"type": "navigate", "path": "/elections"},
+        }
+    if any(word in prompt for word in ("representative", "reps", "senator", "congress")):
+        return {
+            "answer": "Enter your five-digit ZIP to see your U.S. House member and senators. You can review each person before deciding whether to contact an office.",
+            "action": {"type": "navigate", "path": "/politics/find-rep"},
+        }
+    if any(word in prompt for word in ("source", "verify", "trust", "method")):
+        return {
+            "answer": "Use the source links shown with each claim or result, then compare the information with the original government or publisher page. Our methodology explains how WeThePeople handles sources.",
+            "action": {"type": "navigate", "path": "/methodology"},
+        }
+    return {
+        "answer": "You do not need to know the right civic words. Tell me whether you want to plan a vote, find your representatives, understand an issue, or check a source, and I’ll point you to the next step.",
+        "action": {"type": "navigate", "path": "/act"},
+    }
+
+
 def _remaining(ip: str) -> int:
     from models.database import get_db
     from services.rate_limit_store import RateLimitRecord
@@ -129,7 +162,8 @@ def ask_guide(body: GuideRequest, request: Request):
     except HTTPException:
         raise
     except ValueError as exc:
-        raise HTTPException(status_code=503, detail="Your guide is temporarily unavailable.") from exc
+        logger.info("WTP Guide using built-in fallback: %s", type(exc).__name__)
+        result = _fallback_guide(body.question.strip(), page)
     except Exception as exc:
         logger.error("WTP Guide request failed: %s", type(exc).__name__)
         raise HTTPException(status_code=500, detail="Your guide could not answer just now. Please try again.") from exc
