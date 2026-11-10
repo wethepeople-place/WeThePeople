@@ -10,6 +10,7 @@ describe('ActHubPage', () => {
     expect(screen.getByRole('heading', { name: 'ACT' })).toBeTruthy()
     expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'Don’t like what those old men decide? Change who gets to decide.')).toBeTruthy()
     expect(screen.getByText('If their agenda doesn’t align with yours, vote them out.')).toBeTruthy()
+    expect(screen.getByRole('img', { name: /Texas Lieutenant Governor Dan Patrick/ }).getAttribute('src')).toBe('/images/act-dan-patrick-thc-june-2025.png')
     expect(screen.getByTitle('Step 1: Plan my vote').getAttribute('src')).toBe('/elections?embed=1')
     expect(screen.getByTitle('Step 2: Contact my representatives').getAttribute('src')).toBe('/politics/find-rep?embed=1')
     expect(screen.getByRole('link', { name: /Next: contact your representatives/ }).getAttribute('href')).toBe('#act-option-reps')

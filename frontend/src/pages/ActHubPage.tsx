@@ -38,11 +38,27 @@ export default function ActHubPage() {
     <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_18%_0%,rgba(164,174,190,0.08),transparent_44%),radial-gradient(circle_at_88%_12%,rgba(255,255,255,0.035),transparent_35%)]" />
     <div className="relative mx-auto max-w-6xl">
       <header className="rounded-[28px] border border-white/[0.07] bg-[#14161a]/90 px-5 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:px-10 sm:py-10">
-        <div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-slate-400 shadow-[0_0_14px_rgba(180,190,205,0.35)]" /><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Civic action</p></div>
-        <h1 className="mt-5 text-sm font-semibold tracking-wide text-slate-400">ACT</h1>
-        <p className="mt-2 max-w-5xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-100 sm:text-6xl">Don’t like what those old men decide? <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">Change who gets to decide.</span></p>
-        <p className="mt-5 max-w-3xl text-lg font-medium leading-7 text-slate-200 sm:text-2xl sm:leading-8">If their agenda doesn’t align with yours, vote them out.</p>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">Plan your vote. Contact your representatives. Make your voice count. You stay in control; nothing is sent without your say.</p>
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_250px] lg:gap-10">
+          <div>
+            <div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-slate-400 shadow-[0_0_14px_rgba(180,190,205,0.35)]" /><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Civic action</p></div>
+            <h1 className="mt-5 text-sm font-semibold tracking-wide text-slate-400">ACT</h1>
+            <p className="mt-2 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-100 sm:text-5xl xl:text-6xl">Don’t like what those old men decide? <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">Change who gets to decide.</span></p>
+            <p className="mt-5 max-w-3xl text-lg font-medium leading-7 text-slate-200 sm:text-2xl sm:leading-8">If their agenda doesn’t align with yours, vote them out.</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">Plan your vote. Contact your representatives. Make your voice count. You stay in control; nothing is sent without your say.</p>
+          </div>
+
+          <figure className="mx-auto w-full max-w-[250px] rounded-[26px] border border-white/10 bg-white/[0.025] p-2 shadow-2xl shadow-black/30 lg:justify-self-end">
+            <div className="aspect-[9/14] overflow-hidden rounded-[20px] bg-[#0d0f13]">
+              <img
+                src="/images/act-dan-patrick-thc-june-2025.png"
+                alt="Texas Lieutenant Governor Dan Patrick speaking at a podium in a June 2025 Fox 4 clip about his THC policy position"
+                className="h-full w-full object-cover object-center saturate-[0.82] contrast-[0.96]"
+                fetchPriority="high"
+              />
+            </div>
+            <figcaption className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Policy debate · Texas · June 2025</figcaption>
+          </figure>
+        </div>
       </header>
       {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">ACT context: {targetType} · {targetId}</p>}
       <div aria-label="ACT options" className="mt-6 sm:mt-8">
