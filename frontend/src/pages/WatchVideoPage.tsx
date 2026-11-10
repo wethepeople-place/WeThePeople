@@ -270,6 +270,7 @@ export default function WatchVideoPage() {
   const [billOffset, setBillOffset] = useState(0);
   const [billCatalogExhausted, setBillCatalogExhausted] = useState(false);
   const [loadingContinuation, setLoadingContinuation] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [commentsVideoId, setCommentsVideoId] = useState(() => new URLSearchParams(location.search).get('comments') === '1' ? (videoId || '') : '');
   const commentsTrigger = useRef<HTMLElement | null>(null);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -285,6 +286,8 @@ export default function WatchVideoPage() {
   useEffect(() => {
     const controller = new AbortController();
     const loadFeed = async () => {
+      setLoaded(false);
+      setError('');
       const feedResponse = await authedFetch(`${getApiBaseUrl()}/videos?limit=${VIDEO_PAGE_SIZE}`, { signal: controller.signal });
       if (!feedResponse.ok) throw new Error('Watch could not load');
       const feed = await feedResponse.json() as Feed;
@@ -305,7 +308,7 @@ export default function WatchVideoPage() {
     };
     void loadFeed().catch((e) => { if (e.name !== 'AbortError') { setError(e.message); setLoaded(true); } });
     return () => controller.abort();
-  }, [authedFetch]);
+  }, [authedFetch, retryKey]);
   const appendUniqueVideos = useCallback((incoming: Video[]) => {
     setVideos((current) => {
       const seen = new Set(current.map((item) => item.video_id));
@@ -383,7 +386,7 @@ export default function WatchVideoPage() {
     if (requested && feedViewport) feedViewport.scrollTo({ top: requested.offsetTop, behavior: 'auto' });
     lastScrolledRouteId.current = videoId;
   }, [loaded, videoId, videos]);
-  if (error) return <main className="min-h-screen bg-[#070b14] p-12 text-white" role="alert"><h1 className="text-3xl font-bold">{error}</h1></main>;
+  if (error) return <main className="flex min-h-screen flex-col items-center justify-center bg-[#070b14] p-8 text-center text-white" role="alert"><h1 className="text-3xl font-black">Watch is temporarily unavailable</h1><p className="mt-3 max-w-lg leading-7 text-slate-300">The video feed could not connect. Your place is not lost—try again, or continue to the civic agenda.</p><div className="mt-6 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => setRetryKey((current) => current + 1)} className="min-h-11 rounded-xl bg-[#dda91f] px-6 font-bold text-slate-950">Try again</button><Link to="/civic" className="flex min-h-11 items-center justify-center rounded-xl border border-slate-500 px-6 font-bold text-white">Open the agenda</Link></div></main>;
   if (!loaded) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading Watch…</main>;
   if (!videos.length && !fallbacks.length && loadingContinuation) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading real civic material…</main>;
   if (!videos.length && !fallbacks.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">Civic material is temporarily unavailable.</h1><p className="max-w-xl text-slate-300">Nothing synthetic will be inserted. Try the live civic records again.</p><button type="button" className="rounded-full bg-amber-300 px-5 py-3 font-bold text-slate-950" onClick={() => void loadContinuation()}>Try again</button></main>;

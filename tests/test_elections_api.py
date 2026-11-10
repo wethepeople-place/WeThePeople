@@ -29,10 +29,16 @@ def test_lists_upcoming_elections(monkeypatch):
     assert response.json()["items"][0] == {
         "id": "9000", "name": "State General Election", "election_day": "2026-11-03",
         "division_id": "ocd-division/country:us/state:md",
+        "description": None, "registration_deadline": None,
+        "source": {
+            "name": "Google Civic Information API",
+            "url": "https://developers.google.com/civic-information",
+            "kind": "public_api",
+        },
     }
     assert response.json()["availability"]["status"] == "available"
     assert response.json()["availability"]["fetched_at"]
-    assert response.json()["source"]["official_only"] is True
+    assert response.json()["source"]["official_only"] is False
 
 
 def test_catalog_refresh_is_cached_and_provider_failure_is_distinct(monkeypatch):
@@ -55,14 +61,30 @@ def test_catalog_serves_labeled_stale_copy_when_refresh_fails(monkeypatch):
         "ocdDivisionId": "ocd-division/country:us/state:md",
     }])
     assert client.get("/elections").json()["availability"]["status"] == "available"
-    elections._catalog_cache["refresh_at"] = 0
+    elections._catalog_cache["__all__"]["refresh_at"] = 0
     monkeypatch.setattr("routers.elections.list_elections_with_status", lambda: None)
     response = client.get("/elections")
     assert response.status_code == 200
     assert response.json()["availability"]["status"] == "stale"
     assert response.json()["items"][0]["id"] == "9000"
-    assert elections._catalog_cache["refresh_at"] > 0
+    assert elections._catalog_cache["__all__"]["refresh_at"] > 0
     assert client.get("/elections").json()["availability"]["status"] == "stale"
+
+
+def test_state_calendar_fallback_fills_provider_gap_with_attributed_records(monkeypatch):
+    monkeypatch.setattr("routers.elections.list_elections_with_status", lambda: None)
+    monkeypatch.setattr("routers.elections.list_state_calendar_fallbacks", lambda state: [{
+        "id": "mo-sos:1", "name": "General Municipal Election Day", "electionDay": "2027-04-06",
+        "ocdDivisionId": "ocd-division/country:us/state:mo", "description": "General Municipal Election Day",
+        "registrationDeadline": "2027-03-10",
+        "source": {"name": "Missouri Secretary of State", "url": "https://www.sos.mo.gov/elections/calendar/2027cal", "kind": "official_calendar"},
+    }])
+    response = client.get("/elections?state=MO")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["availability"]["status"] == "available"
+    assert payload["items"][0]["registration_deadline"] == "2027-03-10"
+    assert payload["items"][0]["source"]["name"] == "Missouri Secretary of State"
 
 
 def test_lookup_is_official_only_and_never_echoes_registered_address(monkeypatch):

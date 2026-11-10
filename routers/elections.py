@@ -7,10 +7,11 @@ import time as monotonic_time
 from datetime import datetime, time, timedelta, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from connectors.google_civic import CivicApiRateLimitError, list_elections_with_status, lookup_voter_info
+from connectors.election_calendar import list_state_calendar_fallbacks
 from services.forecast_tokens import sign_election_contest
 
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/elections", tags=["elections"])
 ELECTION_CATALOG_REFRESH_SECONDS = 15 * 60
 ELECTION_CATALOG_RETRY_SECONDS = 60
 _catalog_lock = threading.Lock()
-_catalog_cache: dict[str, Any] = {}
+_catalog_cache: dict[str, dict[str, Any]] = {}
 
 
 def _reset_election_catalog_cache() -> None:
@@ -39,13 +40,20 @@ def _catalog_payload(items: list[dict[str, Any]], fetched_at: datetime, status: 
             "name": item.get("name") or "Election",
             "election_day": item.get("electionDay") or None,
             "division_id": item.get("ocdDivisionId") or None,
+            "description": item.get("description") or None,
+            "registration_deadline": item.get("registrationDeadline") or None,
+            "source": item.get("source") or {
+                "name": "Google Civic Information API",
+                "url": "https://developers.google.com/civic-information",
+                "kind": "public_api",
+            },
         } for item in items if _is_public_election(item)],
         "availability": {
             "status": status,
             "fetched_at": fetched_at.isoformat(),
             "refresh_after": (fetched_at + timedelta(seconds=ELECTION_CATALOG_REFRESH_SECONDS)).isoformat(),
         },
-        "source": {"name": "Google Civic Information API", "official_only": True},
+        "source": {"name": "Google Civic Information API + public official calendars", "official_only": False},
     }
 
 
@@ -132,22 +140,37 @@ def _authority(region: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("")
-def upcoming_elections():
+def upcoming_elections(state: Optional[str] = Query(default=None, pattern=r"^[A-Za-z]{2}$")):
+    state_code = state.upper() if state else None
+    cache_key = state_code or "__all__"
     now_monotonic = monotonic_time.monotonic()
     with _catalog_lock:
-        if _catalog_cache and now_monotonic < _catalog_cache["refresh_at"]:
-            return _catalog_payload(_catalog_cache["items"], _catalog_cache["fetched_at"], _catalog_cache["status"])
+        cached = _catalog_cache.get(cache_key)
+        if cached and now_monotonic < cached["refresh_at"]:
+            return _catalog_payload(cached["items"], cached["fetched_at"], cached["status"])
         try:
             items = list_elections_with_status()
         except CivicApiRateLimitError:
             items = None
+
+        if items is not None and state_code:
+            state_marker = f"/state:{state_code.lower()}"
+            items = [item for item in items if state_marker in str(item.get("ocdDivisionId") or "").lower() or item.get("ocdDivisionId") == "ocd-division/country:us"]
+
+        if state_code:
+            fallback_items = list_state_calendar_fallbacks(state_code)
+            if fallback_items is not None:
+                existing = {(str(item.get("electionDay") or ""), str(item.get("name") or "").casefold()) for item in items or []}
+                items = list(items or [])
+                items.extend(item for item in fallback_items if (str(item.get("electionDay") or ""), str(item.get("name") or "").casefold()) not in existing)
+
         if items is None:
-            if _catalog_cache:
-                _catalog_cache.update(status="stale", refresh_at=now_monotonic + ELECTION_CATALOG_RETRY_SECONDS)
-                return _catalog_payload(_catalog_cache["items"], _catalog_cache["fetched_at"], "stale")
+            if cached:
+                cached.update(status="stale", refresh_at=now_monotonic + ELECTION_CATALOG_RETRY_SECONDS)
+                return _catalog_payload(cached["items"], cached["fetched_at"], "stale")
             raise HTTPException(status_code=503, detail="Election provider is temporarily unavailable. Coverage could not be checked.")
         fetched_at = datetime.now(timezone.utc)
-        _catalog_cache.update(items=items, fetched_at=fetched_at, status="available", refresh_at=now_monotonic + ELECTION_CATALOG_REFRESH_SECONDS)
+        _catalog_cache[cache_key] = {"items": items, "fetched_at": fetched_at, "status": "available", "refresh_at": now_monotonic + ELECTION_CATALOG_REFRESH_SECONDS}
         return _catalog_payload(items, fetched_at, "available")
 
 

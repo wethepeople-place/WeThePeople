@@ -74,6 +74,7 @@ function initials(name: string): string {
 
 export default function RepresentativeLookupPage() {
   const [searchParams] = useSearchParams();
+  const isEmbedded = searchParams.get('embed') === '1';
   const issueSlug = searchParams.get('issue')?.trim() || '';
   const [zip, setZip] = useState('');
   const [submittedZip, setSubmittedZip] = useState('');
@@ -157,6 +158,21 @@ export default function RepresentativeLookupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // In the embedded ACT flow, reuse the ZIP entered in Step 1 and load
+  // representatives immediately so the user never has to enter it twice.
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const receiveZip = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'wtp:act-zip') return;
+      const sharedZip = String(event.data.zip || '').replace(/\D/g, '').slice(0, 5);
+      if (sharedZip.length === 5) void doSearch(sharedZip);
+    };
+    window.addEventListener('message', receiveZip);
+    return () => window.removeEventListener('message', receiveZip);
+    // doSearch uses only component state setters and the current API base.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEmbedded]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     doSearch(zip);
@@ -179,14 +195,14 @@ export default function RepresentativeLookupPage() {
           padding: '40px 24px 64px',
         }}
       >
-        <motion.nav
+        {!isEmbedded && <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           style={{ marginBottom: 40 }}
         >
           <PoliticsSectorHeader />
-        </motion.nav>
+        </motion.nav>}
 
         {/* Header */}
         <motion.div
@@ -641,8 +657,33 @@ export default function RepresentativeLookupPage() {
           </motion.div>
         )}
 
+        {!isEmbedded && <div
+          style={{
+            marginTop: 48,
+            borderRadius: 16,
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            padding: 24,
+          }}
+        >
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, margin: 0 }}>
+            Want to do both?
+          </h2>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-2)', margin: '8px 0 0' }}>
+            You can also check what is on your ballot and find where to vote.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
+            <Link to="/elections" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: '#dda91f', color: '#0f172a', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 800, padding: '0 18px', textDecoration: 'none' }}>
+              Plan my vote
+            </Link>
+            <Link to="/act" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid var(--color-border)', color: 'var(--color-text-1)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 700, padding: '0 18px', textDecoration: 'none' }}>
+              Back to ACT choices
+            </Link>
+          </div>
+        </div>}
+
         {/* Footer */}
-        <div
+        {!isEmbedded && <div
           style={{
             marginTop: 64,
             borderTop: '1px solid var(--color-border)',
@@ -678,7 +719,7 @@ export default function RepresentativeLookupPage() {
           >
             WeThePeople
           </span>
-        </div>
+        </div>}
       </div>
     </div>
   );

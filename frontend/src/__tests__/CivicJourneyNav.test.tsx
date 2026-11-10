@@ -3,33 +3,40 @@ import { MemoryRouter } from 'react-router-dom';
 import { expect, it } from 'vitest';
 import CivicJourneyNav from '../components/CivicJourneyNav';
 
-it('connects every top-level civic journey destination', () => {
+it('connects the simplified civic journey destinations', () => {
   render(<MemoryRouter initialEntries={['/government']}><CivicJourneyNav /></MemoryRouter>);
 
   const expected = {
     Agenda: '/civic',
+    Watch: '/videos',
     Issues: '/issues/housing-rent',
-    Discuss: '/discuss',
-    Videos: '/videos',
-    Proposals: '/proposals',
     Elections: '/elections',
-    Representatives: '/politics/find-rep',
     ACT: '/act',
     Jobs: 'https://research.wethepeople.place/gov-salaries',
-    Forecasts: '/forecasts',
+    Bets: '/forecasts',
   };
 
   for (const [label, href] of Object.entries(expected)) {
     expect(screen.getAllByRole('link', { name: label })[0].getAttribute('href')).toBe(href);
   }
-  expect(screen.getByRole('link', { name: 'Elections' }).getAttribute('href')).toBe('/elections');
-  expect(screen.getByRole('link', { name: 'Create a civic post' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
+  expect(screen.queryByRole('link', { name: 'Discuss' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Post' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Solutions' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Representatives' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Reps' }).getAttribute('href')).toBe('/politics/find-rep');
 });
 
-it('keeps the six main phone-first destinations directly reachable', () => {
+it('keeps the same bottom dock visible on elections', () => {
+  render(<MemoryRouter initialEntries={['/elections']}><CivicJourneyNav /></MemoryRouter>);
+  const dock = screen.getByRole('navigation', { name: 'Primary' });
+  expect(dock.className).toContain('fixed');
+  expect(dock.className).not.toContain('md:hidden');
+  expect(screen.getAllByRole('link', { name: 'Elections' })[1].getAttribute('aria-current')).toBe('page');
+});
+
+it('keeps all seven simple destinations directly reachable', () => {
   render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
-  for (const label of ['Discuss', 'Videos', 'Agenda', 'ACT', 'Reps', 'Forecasts']) {
+  for (const label of ['Agenda', 'Watch', 'Elections', 'ACT', 'Reps', 'Jobs', 'Bets']) {
     expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
   }
-  expect(screen.queryByRole('link', { name: 'Community' })).toBeNull();
 });

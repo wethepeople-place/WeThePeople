@@ -196,6 +196,12 @@ const GlobalOverlays: React.FC = () => {
   );
 };
 
+const AppChrome: React.FC = () => {
+  const { search } = useLocation();
+  if (new URLSearchParams(search).get('embed') === '1') return null;
+  return <><EcosystemNav active="core" /><CivicJourneyNav /><GlobalOverlays /></>;
+};
+
 const App: React.FC = () => (
   <ErrorBoundary>
     <AuthProvider>
@@ -204,9 +210,7 @@ const App: React.FC = () => (
           Verify / Research / Journal without hunting for a link. Sticky at
           top:0 with z-[60]; the per-page SiteHeader / SectorHeader stick
           right below it (top-[52px], z-50). */}
-      <EcosystemNav active="core" />
-      <CivicJourneyNav />
-      <GlobalOverlays />
+      <AppChrome />
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center bg-slate-950">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />

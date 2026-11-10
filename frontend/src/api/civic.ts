@@ -404,12 +404,16 @@ export type ElectionLookup = {
   privacy: { address_retained: false; registration_status_collected: false; ballot_choices_collected: false };
 };
 
-export function fetchUpcomingElections() {
+export function fetchUpcomingElections(state?: string) {
   return apiFetch<{
-    items: Array<{ id: string; name: string; election_day: string | null; division_id: string | null }>;
+    items: Array<{
+      id: string; name: string; election_day: string | null; division_id: string | null;
+      description: string | null; registration_deadline: string | null;
+      source: { name: string; url: string; kind: 'public_api' | 'official_calendar' };
+    }>;
     availability?: { status: 'available' | 'stale'; fetched_at: string; refresh_after: string };
     source?: { name: string; official_only: true };
-  }>('/elections');
+  }>('/elections', { params: state ? { state } : {} });
 }
 
 export function lookupElectionInformation(address: string, electionId?: string) {

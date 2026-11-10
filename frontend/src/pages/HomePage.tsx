@@ -16,7 +16,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Footer from "../components/Footer";
-import SiteHeader from "../components/SiteHeader";
 
 // Per-sector background tints shown on hover over a tile (see redesign spec).
 // No icons on tiles — the slug label + name + tagline + accent bar carry meaning.
@@ -785,7 +784,6 @@ const HomePage: React.FC = () => {
       className="min-h-screen"
       style={{ background: "var(--color-bg)", color: "var(--color-text-1)" }}
     >
-      <SiteHeader />
 
       {/* ── HERO ── */}
       <section

@@ -98,8 +98,6 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
   },
 };
 
-const NETWORK_ORDER: Exclude<EcosystemSite, 'core' | 'civic'>[] = ['verify', 'research', 'journal'];
-
 // Tokenless palette — baked so the nav looks identical across all sites.
 const T2 = 'rgba(235,229,213,0.5)';
 const BORDER = 'rgba(255,255,255,0.06)';
@@ -165,20 +163,7 @@ export default function EcosystemNav(_props: EcosystemNavProps) {
           </span>
         </a>
 
-        <details className="group relative ml-1">
-          <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold text-[#B9B4A8] outline-none hover:bg-white/5 hover:text-[#EBE5D5] focus-visible:ring-2 focus-visible:ring-[#C5A028]">More</summary>
-          <div className="absolute left-0 top-[calc(100%+.5rem)] z-[80] min-w-48 rounded-xl border border-white/10 bg-[#0b0e13] p-2 shadow-2xl shadow-black/50">
-            {NETWORK_ORDER.map((key) => <a key={key} href={SITES[key].href} className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#B9B4A8] no-underline hover:bg-white/5 hover:text-white">{SITES[key].name}</a>)}
-          </div>
-        </details>
-
-        {/* Right cluster:
-              - Active-site identifier badge (mark + display name +
-                pulsing dot in the site's accent color). Same
-                branding pattern is on every sibling site.
-              - Log in (transparent, bordered) + Sign up (filled
-                gold) buttons sit to the right of the badge, OR
-                the UserMenu when authenticated. */}
+        {/* Authentication controls stay in the same position on every page. */}
         <div
           className="hidden md:flex"
           style={{
