@@ -30,6 +30,7 @@ function withSocialMetadata(html, { canonicalUrl, title, description }) {
 }
 
 await writeRoute(['watch'], indexHtml)
+await writeRoute(['videos'], indexHtml)
 await writeRoute(['saved'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
 await writeRoute(['act'], indexHtml)
@@ -62,4 +63,5 @@ for (const video of fixture.videos ?? []) {
   const description = `${video.creator_label} · Source: ${video.source.publisher}`
   const html = withSocialMetadata(indexHtml, { canonicalUrl, title, description })
   await writeRoute(['watch', video.video_id], html)
+  await writeRoute(['videos', video.video_id], html)
 }
