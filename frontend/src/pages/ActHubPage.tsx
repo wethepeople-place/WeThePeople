@@ -6,37 +6,53 @@ export default function ActHubPage() {
   const [searchParams] = useSearchParams();
   const targetType = searchParams.get('target_type') || '';
   const targetId = searchParams.get('target_id') || '';
+  const electionsFrame = useRef<HTMLIFrameElement | null>(null);
   const representativesFrame = useRef<HTMLIFrameElement | null>(null);
   const [sharedZip, setSharedZip] = useState('');
+  const [frameHeights, setFrameHeights] = useState({ elections: 560, representatives: 520 });
 
   useEffect(() => {
     const receiveZip = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || event.data?.type !== 'wtp:act-zip') return;
-      const zip = String(event.data.zip || '').replace(/\D/g, '').slice(0, 5);
-      if (zip.length !== 5) return;
-      setSharedZip(zip);
-      representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip }, window.location.origin);
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'wtp:act-frame-height') {
+        const frame = event.data.frame === 'elections' ? 'elections' : event.data.frame === 'representatives' ? 'representatives' : null;
+        if (!frame) return;
+        const expectedSource = frame === 'elections' ? electionsFrame.current?.contentWindow : representativesFrame.current?.contentWindow;
+        if (event.source !== expectedSource) return;
+        const height = Math.max(320, Math.min(5000, Math.ceil(Number(event.data.height) || 0)));
+        setFrameHeights((current) => current[frame] === height ? current : { ...current, [frame]: height });
+        return;
+      }
+      if (event.data?.type === 'wtp:act-zip') {
+        const zip = String(event.data.zip || '').replace(/\D/g, '').slice(0, 5);
+        if (zip.length !== 5) return;
+        setSharedZip(zip);
+        representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip }, window.location.origin);
+      }
     };
     window.addEventListener('message', receiveZip);
     return () => window.removeEventListener('message', receiveZip);
   }, []);
 
-  return <main className="min-h-screen bg-[#080f1c] px-3 pb-32 pt-4 text-white sm:px-8 sm:py-12">
-    <div className="mx-auto max-w-6xl">
-      <header className="rounded-2xl bg-[#153d7a] px-4 py-4 shadow-lg shadow-black/20 sm:px-7 sm:py-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100">Civic Conversation Loop</p>
-        <h1 className="mt-1 text-3xl font-black sm:text-5xl">ACT</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-5 text-blue-50 sm:text-lg sm:leading-7">Make your voice count. Plan your vote, then contact your representatives—two clear steps to turn concern into action. You stay in control; nothing is sent without your say.</p>
+  return <main className="relative min-h-screen overflow-hidden bg-[#0b0c0f] px-3 pb-32 pt-4 text-white sm:px-8 sm:py-12">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_18%_0%,rgba(164,174,190,0.08),transparent_44%),radial-gradient(circle_at_88%_12%,rgba(255,255,255,0.035),transparent_35%)]" />
+    <div className="relative mx-auto max-w-6xl">
+      <header className="rounded-[28px] border border-white/[0.07] bg-[#14161a]/90 px-5 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:px-10 sm:py-10">
+        <div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-slate-400 shadow-[0_0_14px_rgba(180,190,205,0.35)]" /><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Civic action</p></div>
+        <h1 className="mt-5 text-sm font-semibold tracking-wide text-slate-400">ACT</h1>
+        <p className="mt-2 max-w-5xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-100 sm:text-6xl">Don’t like what those old men decide? <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">Change who gets to decide.</span></p>
+        <p className="mt-5 max-w-3xl text-lg font-medium leading-7 text-slate-200 sm:text-2xl sm:leading-8">If their agenda doesn’t align with yours, vote them out.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">Plan your vote. Contact your representatives. Make your voice count. You stay in control; nothing is sent without your say.</p>
       </header>
       {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">ACT context: {targetType} · {targetId}</p>}
-      <div aria-label="ACT options" className="mt-5 space-y-8">
-        <section aria-labelledby="act-option-vote" className="overflow-hidden rounded-2xl border border-amber-300/40 bg-white shadow-xl shadow-black/20">
-          <div className="flex items-center gap-4 bg-amber-300 p-4 text-slate-950 sm:p-5"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-950 text-xl font-black text-amber-300" aria-hidden="true">1</span><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">Step 1 · Voting</p><h2 id="act-option-vote" className="text-xl font-black sm:text-2xl">Plan my vote</h2><p className="mt-1 text-sm text-slate-800">See what is on your ballot and find where to vote.</p></div><Vote className="ml-auto hidden h-7 w-7 sm:block" aria-hidden="true" /></div>
-          <iframe title="Step 1: Plan my vote" src="/elections?embed=1" className="h-[760px] w-full bg-[#eef1f5] sm:h-[820px]" loading="eager" />
+      <div aria-label="ACT options" className="mt-6 space-y-6 sm:mt-8">
+        <section aria-labelledby="act-option-vote" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
+          <div className="flex items-center gap-4 border-b border-white/[0.06] bg-white/[0.025] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#59616d] to-[#343941] text-base font-bold text-slate-100 shadow-lg shadow-black/20" aria-hidden="true">01</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Voting</p><h2 id="act-option-vote" className="mt-1 text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Plan my vote</h2><p className="mt-1 text-sm text-slate-500">See what is on your ballot and find where to vote.</p></div><Vote className="ml-auto hidden h-6 w-6 text-slate-600 sm:block" aria-hidden="true" /></div>
+          <iframe ref={electionsFrame} title="Step 1: Plan my vote" src="/elections?embed=1" style={{ height: frameHeights.elections }} className="block w-full border-0 bg-[#eef1f5]" loading="eager" />
         </section>
-        <section aria-labelledby="act-option-reps" className="overflow-hidden rounded-2xl border border-white/15 bg-white shadow-xl shadow-black/20">
-          <div className="flex items-center gap-4 bg-[#182231] p-4 text-white sm:p-5"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-amber-300 text-xl font-black text-slate-950" aria-hidden="true">2</span><div><p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">Step 2 · Representation</p><h2 id="act-option-reps" className="text-xl font-black sm:text-2xl">Contact my representatives</h2><p className="mt-1 text-sm text-slate-300">Find who represents you and choose how to contact them.</p></div><Users className="ml-auto hidden h-7 w-7 text-amber-300 sm:block" aria-hidden="true" /></div>
-          <iframe ref={representativesFrame} title="Step 2: Contact my representatives" src="/politics/find-rep?embed=1" onLoad={() => { if (sharedZip) representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip: sharedZip }, window.location.origin); }} className="h-[760px] w-full bg-[#0b111b] sm:h-[820px]" loading="lazy" />
+        <section aria-labelledby="act-option-reps" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
+          <div className="flex items-center gap-4 border-b border-white/10 bg-white/[0.035] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-base font-bold text-slate-200" aria-hidden="true">02</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Representation</p><h2 id="act-option-reps" className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">Contact my representatives</h2><p className="mt-1 text-sm text-slate-400">Find who represents you and choose how to contact them.</p></div><Users className="ml-auto hidden h-6 w-6 text-slate-500 sm:block" aria-hidden="true" /></div>
+          <iframe ref={representativesFrame} title="Step 2: Contact my representatives" src="/politics/find-rep?embed=1" onLoad={() => { if (sharedZip) representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip: sharedZip }, window.location.origin); }} style={{ height: frameHeights.representatives }} className="block w-full border-0 bg-[#0b111b]" loading="lazy" />
         </section>
       </div>
     </div>

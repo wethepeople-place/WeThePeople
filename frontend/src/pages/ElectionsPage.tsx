@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BadgeCheck, Bike, Bus, CalendarDays, Car, CarTaxiFront, ClipboardCheck, ExternalLink, Footprints, IdCard, Landmark, LockKeyhole, MapPin, Search, Vote } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ import { fetchUpcomingElections, lookupElectionInformation, type ElectionLocatio
 import ForecastCard from '../components/ForecastCard';
 import { getOfficialStateCalendar } from '../data/stateElectionCalendars';
 import { US_STATE_NAMES } from '../data/usStateNames';
+import useEmbeddedFrameHeight from '../hooks/useEmbeddedFrameHeight';
 
 const Taxi = CarTaxiFront;
 
@@ -23,6 +24,7 @@ const eacStateUrl = (stateCode: string) => `https://www.eac.gov/${US_STATE_NAMES
 const EAC_POLLING_PLACE_URL = 'https://www.eac.gov/vote';
 const EAC_ELECTION_OFFICE_URL = 'https://www.eac.gov/voters/register-and-vote-in-your-state';
 const GOOGLE_CIVIC_SOURCE = 'https://developers.google.com/civic-information';
+const NO_ADDRESS_COVERAGE = 'Exact ballot and polling-place details are not available from the provider for this address right now.';
 
 const ARKANSAS_ID_SOURCE = 'https://sos.arkansas.gov/elections/voter-information/voter-registration-information';
 const ARKANSAS_ID_EXAMPLES = [
@@ -104,6 +106,9 @@ export default function ElectionsPage() {
   const [result, setResult] = useState<ElectionLookup | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
+  const pageRef = useRef<HTMLElement | null>(null);
+
+  useEmbeddedFrameHeight(isEmbedded, 'elections', pageRef);
 
   useEffect(() => {
     if (!selectedState) {
@@ -153,7 +158,8 @@ export default function ElectionsPage() {
     }
     setLoading(true); setNotice(''); setResult(null);
     try {
-      setResult(await lookupElectionInformation(`${cleanStreet}, ${cleanZip}, ${selectedState}`, stateElections[0]?.id));
+      const providerElectionId = stateElections.find((item) => /^\d+$/.test(item.id))?.id;
+      setResult(await lookupElectionInformation(`${cleanStreet}, ${cleanZip}, ${selectedState}`, providerElectionId));
       setZipCode('');
       setStreetAddress('');
     }
@@ -167,12 +173,14 @@ export default function ElectionsPage() {
     ['Ballot drop boxes', result.drop_off_locations],
   ] as const : [];
 
-  return <main className="min-h-screen bg-[#eef1f5] pb-28 text-slate-950 md:pb-8">
-    <header className="bg-[#214f78] px-5 py-7 text-white">
-      <div className="mx-auto max-w-5xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-sky-200">ACT · Elections</p><h1 className="mt-1 text-3xl font-black sm:text-5xl">Cast your vote. Give change a chance.</h1><p className="mt-3 max-w-2xl leading-7 text-sky-50">Success is never guaranteed. But if we do not try, failure is. Make your voting plan and take the first step.</p></div>
+  const noAddressCoverage = notice.startsWith(NO_ADDRESS_COVERAGE);
+
+  return <main ref={pageRef} className={`${isEmbedded ? 'act-embedded-theme pb-6' : 'min-h-screen bg-[#f5f5f7] pb-28 text-slate-950 md:pb-8'}`}>
+    <header className={`${isEmbedded ? 'bg-[#111318] px-5 py-7 sm:px-8 sm:py-9' : 'bg-[#214f78] px-5 py-7'} text-white`}>
+      <div className="mx-auto max-w-5xl"><p className={`text-xs font-bold uppercase tracking-[.2em] ${isEmbedded ? 'text-slate-500' : 'text-sky-200'}`}>ACT · Elections</p><h1 className={`${isEmbedded ? 'mt-2 text-3xl font-semibold tracking-[-0.03em] sm:text-5xl' : 'mt-1 text-3xl font-black sm:text-5xl'}`}>Cast your vote. Give change a chance.</h1><p className={`mt-3 max-w-2xl leading-7 ${isEmbedded ? 'text-slate-400' : 'text-sky-50'}`}>Success is never guaranteed. But if we do not try, failure is. Make your voting plan and take the first step.</p></div>
     </header>
     <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-[22px] border border-black/[0.08] bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.07)] sm:p-6">
         <div className="flex items-start gap-3"><CalendarDays className="mt-1 h-5 w-5 shrink-0 text-[#214f78]" /><div><h2 className="font-bold">Start with your state</h2><p className="mt-1 text-sm leading-6 text-slate-600">We check whether ballot data is available before asking for your private address.</p></div></div>
         {!selectedState ? <><label className="mt-5 block text-sm font-bold" htmlFor="election-state">State or District of Columbia</label>
           <select id="election-state" value="" onChange={(event) => { const state = event.target.value; setSelectedState(state); setShowAddressLookup(Boolean(state)); setShowStateInformation(false); setZipCode(''); setStreetAddress(''); setNotice(''); setResult(null); }} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:ring-4 focus:ring-sky-200">
@@ -199,11 +207,15 @@ export default function ElectionsPage() {
         {selectedState && catalogAvailability !== 'unavailable' && hasCoverage && showAddressLookup && <div id="address-lookup" className="mt-5 border-t border-slate-200 pt-5">
           <div className="flex items-start gap-3"><LockKeyhole className="mt-1 h-5 w-5 shrink-0 text-emerald-700" /><div><h2 className="font-bold">Next: find your exact ballot and polling place</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600"><li>We ask only for the details needed to identify your voting precinct.</li><li>The details are used once by the <a className="font-semibold text-[#174f80] underline" href={GOOGLE_CIVIC_SOURCE} target="_blank" rel="noreferrer">Google Civic Information API</a> and are not stored by WTP.</li></ul></div></div>
           <form onSubmit={lookup} className="mt-5 max-w-xl space-y-4">
-            <div><label className="block text-sm font-bold" htmlFor="election-zip">1. ZIP code</label><input id="election-zip" required inputMode="numeric" maxLength={10} autoComplete="postal-code" value={zipCode} onChange={(event) => { const nextZip = event.target.value; setZipCode(nextZip); setNotice(''); const cleanZip = nextZip.replace(/\D/g, '').slice(0, 5); if (isEmbedded && cleanZip.length === 5) window.parent.postMessage({ type: 'wtp:act-zip', zip: cleanZip }, window.location.origin); }} placeholder="ZIP code" className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" /></div>
-            {/^\d{5}(?:-\d{4})?$/.test(zipCode.trim()) && <div><label className="block text-sm font-bold" htmlFor="election-street">2. House number and street</label><input id="election-street" required minLength={3} maxLength={120} autoComplete="address-line1" value={streetAddress} onChange={(event) => { setStreetAddress(event.target.value); setNotice(''); }} placeholder="Example: 126 Lamport Road" aria-describedby="election-street-help" className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 outline-none focus:ring-4 focus:ring-sky-200" /><p id="election-street-help" className="mt-2 text-xs leading-5 text-slate-500">The house number is required because voting precincts can split the same street. City and state are not requested again.</p><button disabled={loading} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-5 font-bold disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button></div>}
+            <div><label className="block text-sm font-bold" htmlFor="election-zip">1. ZIP code</label><input id="election-zip" required inputMode="numeric" maxLength={10} autoComplete="postal-code" value={zipCode} onChange={(event) => { const nextZip = event.target.value; setZipCode(nextZip); setNotice(''); const cleanZip = nextZip.replace(/\D/g, '').slice(0, 5); if (isEmbedded && cleanZip.length === 5) window.parent.postMessage({ type: 'wtp:act-zip', zip: cleanZip }, window.location.origin); }} placeholder="ZIP code" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-[#f7f7f9] px-4 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/10" /></div>
+            {/^\d{5}(?:-\d{4})?$/.test(zipCode.trim()) && <div><label className="block text-sm font-bold" htmlFor="election-street">2. House number and street</label><input id="election-street" required minLength={3} maxLength={120} autoComplete="address-line1" value={streetAddress} onChange={(event) => { setStreetAddress(event.target.value); setNotice(''); }} placeholder="Example: 126 Lamport Road" aria-describedby="election-street-help" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-[#f7f7f9] px-4 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/10" /><p id="election-street-help" className="mt-2 text-xs leading-5 text-slate-500">The house number is required because voting precincts can split the same street. City and state are not requested again.</p><button disabled={loading} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#292d33] px-5 font-bold text-white shadow-lg shadow-slate-950/10 transition hover:bg-[#343940] focus-visible:ring-4 focus-visible:ring-slate-400/15 disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button></div>}
           </form>
           <button type="button" onClick={() => { setShowAddressLookup(false); setShowStateInformation(true); setZipCode(''); setStreetAddress(''); setNotice(''); }} className="mt-3 min-h-10 text-sm font-bold text-[#174f80] underline">Continue with state information</button>
-          {notice && <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">{notice} Verify with your state or local election office.</p>}
+          {notice && <div role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
+            <strong>{noAddressCoverage ? 'Your official local details are not published here yet.' : 'We could not complete the lookup.'}</strong>
+            <p className="mt-1 leading-6">{notice}{noAddressCoverage ? ' This does not mean there is no election.' : ''}</p>
+            {noAddressCoverage ? <><OfficialFallbackLinks stateCode={selectedState} compact /><button type="button" onClick={() => { setShowAddressLookup(false); setShowStateInformation(true); setNotice(''); }} className="mt-3 min-h-10 font-bold text-[#174f80] underline">Continue with {US_STATE_NAMES[selectedState]} information</button></> : <p className="mt-2 leading-6">Try again shortly or use your state or local election office.</p>}
+          </div>}
         </div>}
       </section>
 

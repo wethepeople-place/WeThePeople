@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { askQuestion, getRemainingQuestions, type ChatResponse, type ChatAction } from "../api/chat";
+import { askGuide, getGuideRemaining, type GuideAction } from "../api/guide";
 // globalSearch / SearchResults import was unused — removing.
 
 // ── FAQ map (Tier 1 — free, no API call) ──
@@ -29,7 +29,7 @@ const FAQ: Record<string, string> = {
 
 interface IntentResult {
   answer?: string;
-  action?: ChatAction;
+  action?: GuideAction;
 }
 
 const NAV_PATTERNS: Array<{ pattern: RegExp; path: string; label: string }> = [
@@ -45,6 +45,8 @@ const NAV_PATTERNS: Array<{ pattern: RegExp; path: string; label: string }> = [
   { pattern: /\b(verify|verification|claim)\b/i, path: "https://verify.wethepeople.place", label: "Verify Claims" },
   { pattern: /\b(methodology|data sources?|how.*collect)\b/i, path: "/methodology", label: "Methodology" },
   { pattern: /\b(find.*(rep|representative)|my.*(rep|representative)|who represents)\b/i, path: "/politics/find-rep", label: "Find Your Representative" },
+  { pattern: /\b(plan.*vote|voting plan|ballot|polling place|where.*vote)\b/i, path: "/elections", label: "Plan Your Vote" },
+  { pattern: /\b(take action|civic action|contact.*representative)\b/i, path: "/act", label: "Take Action" },
   { pattern: /\b(committees?)\b/i, path: "/politics/committees", label: "Committees" },
   { pattern: /\b(legislation|bills?|bill tracker)\b/i, path: "/politics/legislation", label: "Legislation Tracker" },
   { pattern: /\b(balance of power)\b/i, path: "/politics", label: "Politics Dashboard" },
@@ -121,17 +123,20 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   text: string;
-  action?: ChatAction | null;
+  action?: GuideAction | null;
   loading?: boolean;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "Who trades the most stock?",
-  "Show me Pelosi's profile",
-  "How much does Boeing spend on lobbying?",
-  "What data sources do you use?",
-  "Show me the influence network",
-  "How does claim verification work?",
+const suggestedQuestions = (path: string) => path.startsWith('/act') || path.startsWith('/elections')
+  ? ["Help me plan my vote", "Find my representatives", "How do I verify a political claim?", "What data sources do you use?"]
+  : path.startsWith('/politics')
+    ? ["Find my representatives", "Show me congressional trades", "Open the legislation tracker", "How do I verify a political claim?"]
+    : ["Help me plan my vote", "Who represents me?", "Show me where political money flows", "What data sources do you use?"];
+
+const QUICK_ACTIONS = [
+  { label: 'Help me', description: 'Guide me through this page', prompt: 'Help me use this page. What should I do first?' },
+  { label: 'Explain this', description: 'Put this page in plain language', prompt: 'Explain what I am looking at on this page in simple terms.' },
+  { label: 'What can I do?', description: 'Show me useful next steps', prompt: 'What can I do next from this page?' },
 ];
 
 // ── Chat bubble event bus (so GlobalSearch can open it) ──
@@ -144,27 +149,56 @@ import { subscribeToChatOpen } from "./chatAgentBus";
 
 // ── Component ──
 
-export default function ChatAgent() {
+export default function CivicGuide() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(20);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const draggedRef = useRef(false);
+  const assistantHoveredRef = useRef(false);
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [assistantPosition, setAssistantPosition] = useState<{ left: number; top: number } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const suggestions = suggestedQuestions(location.pathname);
 
   // Cleanup all pending timers on unmount
   useEffect(() => {
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
   }, []);
+
+  // On pointer-based devices, let help settle near the user's current area of
+  // attention. A short pause prevents the control from chasing the cursor,
+  // and hovering freezes it so it remains easy to click.
+  useEffect(() => {
+    if (open || !window.matchMedia('(pointer: fine)').matches) return;
+    const followPointer = (event: PointerEvent) => {
+      if (assistantHoveredRef.current) return;
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      const { clientX, clientY } = event;
+      cursorTimerRef.current = setTimeout(() => {
+        const width = 190;
+        const height = 56;
+        setAssistantPosition({
+          left: Math.max(12, Math.min(window.innerWidth - width - 12, clientX + 18)),
+          top: Math.max(12, Math.min(window.innerHeight - height - 12, clientY + 18)),
+        });
+      }, 450);
+    };
+    window.addEventListener('pointermove', followPointer, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', followPointer);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, [open]);
 
   // Listen for external open events (e.g. GlobalSearch click)
   useEffect(() => subscribeToChatOpen(() => setOpen(true)), []);
@@ -189,7 +223,7 @@ export default function ChatAgent() {
       // Fetch remaining questions; gate on `open` so closing the chat
       // before the request resolves doesn't setState late.
       let cancelled = false;
-      getRemainingQuestions()
+      getGuideRemaining()
         .then((data) => {
           if (cancelled) return;
           setRemaining(data.remaining);
@@ -217,7 +251,7 @@ export default function ChatAgent() {
     );
   }, []);
 
-  const handleAction = useCallback((action: ChatAction) => {
+  const handleAction = useCallback((action: GuideAction) => {
     if (action.type === "navigate" && action.path) {
       // External destinations (research/verify subdomains) need a real
       // top-level navigation — react-router-dom's navigate() treats them
@@ -268,7 +302,7 @@ export default function ChatAgent() {
     const loadingId = addMessage({ role: "assistant", text: "", loading: true });
 
     try {
-      const response = await askQuestion(question, {
+      const response = await askGuide(question, {
         page: location.pathname,
       });
 
@@ -316,28 +350,19 @@ export default function ChatAgent() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            drag
-            dragMomentum={false}
-            dragElastic={0.1}
-            whileDrag={{ scale: 1.1, cursor: "grabbing" }}
-            onDragStart={() => { draggedRef.current = true; }}
-            onDragEnd={() => { const t = setTimeout(() => { draggedRef.current = false; }, 100); timersRef.current.push(t); }}
-            onClick={() => {
-              if (!draggedRef.current) {
-                setOpen(true);
-              }
-            }}
-            className="fixed bottom-20 right-4 z-[9998] flex items-center justify-center w-14 h-14 rounded-full md:bottom-6 md:right-6
-                       bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30
-                       transition-colors cursor-grab active:cursor-grabbing"
+            onMouseEnter={() => { assistantHoveredRef.current = true; if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current); }}
+            onMouseLeave={() => { assistantHoveredRef.current = false; }}
+            onClick={() => setOpen(true)}
+            style={assistantPosition ? { left: assistantPosition.left, top: assistantPosition.top, right: 'auto', bottom: 'auto' } : undefined}
+            className={`fixed right-4 z-[9998] flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-[#15171c]/95 px-4 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[left,top,border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:right-6 ${assistantPosition ? '' : 'bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2'}`}
             aria-label="Open chat assistant"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] shadow-lg shadow-black/20"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
               <path d="M8 12h.01" />
               <path d="M12 12h.01" />
               <path d="M16 12h.01" />
-            </svg>
+            </svg></span><span className="hidden text-sm font-semibold sm:inline">Ask · Help · Explain</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -350,21 +375,20 @@ export default function ChatAgent() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-20 right-4 z-[9999] w-[400px] h-[520px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-112px)] md:bottom-6 md:right-6 md:max-w-[calc(100vw-48px)] md:max-h-[calc(100vh-48px)]
-                       flex flex-col bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
+            className="fixed bottom-24 right-4 z-[9999] flex h-[600px] w-[430px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101216]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-6 md:max-w-[calc(100vw-48px)]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-zinc-900/80 backdrop-blur-sm shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                <span className="text-sm font-semibold text-white">Ask about the data</span>
+            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] text-sm font-black text-slate-100 shadow-lg shadow-black/20">W</span>
+                <div><span className="block text-sm font-semibold text-white">WTP Guide</span><span className="block text-[11px] text-slate-500">Here to help you take action</span></div>
                 <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white/[0.07] border border-white/10 text-[10px] font-mono text-white/30 ml-1">
                   {navigator.platform?.includes("Mac") ? "\u2318K" : "Ctrl+K"}
                 </kbd>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+                className="rounded-xl p-2 text-white/40 transition-colors hover:bg-white/[0.07] hover:text-white cursor-pointer"
                 aria-label="Close chat"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -375,25 +399,24 @@ export default function ChatAgent() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {messages.length === 0 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-white/40 text-center mt-4">
-                    Ask me anything about lobbying, trades, contracts, or political data.
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {SUGGESTED_QUESTIONS.map((q) => (
+                <div className="space-y-5 px-1 pt-3">
+                  <div><p className="text-xs font-semibold text-slate-400">Not sure where to start? That’s okay.</p><h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-100">You don’t need to know what to ask.</h2><p className="mt-2 text-sm leading-6 text-slate-500">Tap one simple choice and I’ll guide you from this page.</p></div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {QUICK_ACTIONS.map((action) => <button key={action.label} onClick={() => sendMessage(action.prompt)} className="min-h-24 rounded-2xl border border-white/[0.07] bg-white/[0.035] p-3 text-left transition hover:border-white/15 hover:bg-white/[0.06] cursor-pointer"><span className="block text-sm font-semibold text-slate-200">{action.label}</span><span className="mt-1 block text-[11px] leading-4 text-slate-600">{action.description}</span></button>)}
+                  </div>
+                  <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">Or jump right in</p><div className="grid gap-2">
+                    {suggestions.map((q) => (
                       <button
                         key={q}
                         onClick={() => sendMessage(q)}
-                        className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10
-                                   text-xs text-white/60 hover:text-white hover:bg-white/[0.1]
-                                   transition-colors cursor-pointer"
+                        className="group flex min-h-12 items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 text-left text-sm text-slate-300 transition hover:border-white/15 hover:bg-white/[0.065] hover:text-white cursor-pointer"
                       >
-                        {q}
+                        {q}<span className="text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-slate-300">→</span>
                       </button>
                     ))}
-                  </div>
+                  </div></div>
                 </div>
               )}
 
@@ -405,8 +428,8 @@ export default function ChatAgent() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-zinc-800 text-white/90 rounded-bl-md"
+                        ? "bg-gradient-to-br from-[#3f454f] to-[#292d33] text-slate-100 rounded-br-md shadow-lg shadow-black/10"
+                        : "border border-white/[0.07] bg-white/[0.055] text-slate-200 rounded-bl-md"
                     }`}
                   >
                     {msg.loading ? (
@@ -421,7 +444,7 @@ export default function ChatAgent() {
                         {msg.action && msg.action.type === "navigate" && msg.action.path && (
                           <button
                             onClick={() => handleAction(msg.action!)}
-                            className="mt-2 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                            className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition-colors hover:text-slate-200 cursor-pointer"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M5 12h14" />
@@ -439,7 +462,7 @@ export default function ChatAgent() {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-white/10 px-3 py-3 bg-zinc-900/80 backdrop-blur-sm shrink-0">
+            <div className="shrink-0 border-t border-white/[0.08] bg-white/[0.02] px-3 py-3">
               <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
@@ -447,16 +470,16 @@ export default function ChatAgent() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask a question..."
+                  placeholder="Ask about voting, people, or money…"
                   disabled={sending}
-                  className="flex-1 bg-zinc-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white
-                             placeholder:text-white/30 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20
+                  className="flex-1 rounded-2xl border border-white/[0.09] bg-white/[0.055] px-4 py-3 text-sm text-white
+                             placeholder:text-white/30 outline-none focus:border-white/20 focus:ring-4 focus:ring-white/[0.04]
                              disabled:opacity-50 transition-all"
                 />
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || sending}
-                  className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-white/20
+                  className="rounded-2xl bg-gradient-to-br from-[#555d68] to-[#343940] p-3 hover:brightness-110 disabled:bg-none disabled:bg-white/[0.06] disabled:text-white/20
                              text-white transition-colors cursor-pointer disabled:cursor-not-allowed shrink-0"
                   aria-label="Send message"
                 >

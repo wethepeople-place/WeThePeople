@@ -10,7 +10,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
-from connectors.google_civic import CivicApiRateLimitError, list_elections_with_status, lookup_voter_info
+from connectors.google_civic import CivicApiRateLimitError, CivicApiUnavailableError, list_elections_with_status, lookup_voter_info
 from connectors.election_calendar import list_state_calendar_fallbacks
 from services.forecast_tokens import sign_election_contest
 
@@ -150,7 +150,7 @@ def upcoming_elections(state: Optional[str] = Query(default=None, pattern=r"^[A-
             return _catalog_payload(cached["items"], cached["fetched_at"], cached["status"])
         try:
             items = list_elections_with_status()
-        except CivicApiRateLimitError:
+        except (CivicApiRateLimitError, CivicApiUnavailableError):
             items = None
 
         if items is not None and state_code:
@@ -179,11 +179,12 @@ def voter_information(body: ElectionLookupRequest, request: Request, response: R
     # Deliberately do not log, persist, echo, or attach the address to tracing.
     response.headers["Cache-Control"] = "no-store"
     try:
-        data = lookup_voter_info(body.address, body.election_id, official_only=True)
-    except CivicApiRateLimitError as exc:
-        raise HTTPException(status_code=503, detail="Election source is temporarily busy.") from exc
+        google_election_id = body.election_id if body.election_id and body.election_id.isdigit() else None
+        data = lookup_voter_info(body.address, google_election_id, official_only=True)
+    except (CivicApiRateLimitError, CivicApiUnavailableError) as exc:
+        raise HTTPException(status_code=503, detail="Election source is temporarily unavailable. Please try again shortly.") from exc
     if not data:
-        raise HTTPException(status_code=404, detail="No supported election information was found for that address.")
+        raise HTTPException(status_code=404, detail="Exact ballot and polling-place details are not available from the provider for this address right now.")
 
     authorities = []
     for state in data.get("state") or []:

@@ -23,7 +23,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 // average visitor. Lazy-load so the chunk only ships when the user
 // actually navigates somewhere it gets mounted, and even then the
 // initial bundle parse doesn't block on it.
-const ChatAgent = React.lazy(() => import("./components/ChatAgent"));
+const CivicGuide = React.lazy(() => import("./components/ChatAgent"));
 import EcosystemNav from "./components/EcosystemNav";
 import CivicJourneyNav from "./components/CivicJourneyNav";
 
@@ -172,8 +172,8 @@ function SectorRedirect({ to }: { to: string }) {
   return <Navigate to={`${to}/${id}`} replace />;
 }
 
-// Landing page has its own SiteHeader with search + Log in/Sign up.
-// All other pages rely on the global floating overlays.
+// The friendly help assistant stays available on every full page. Embedded
+// pages omit app chrome so the parent page provides a single assistant.
 //
 // The EcosystemNav is a 52px sticky bar pinned at top:0 on every page,
 // and now hosts the auth controls on its right side. The previous
@@ -181,17 +181,13 @@ function SectorRedirect({ to }: { to: string }) {
 // routinely overlapped EcosystemNav's right-side WTP identifier on
 // pages like /civic. Auth lives in exactly one place now.
 const GlobalOverlays: React.FC = () => {
-  const { pathname } = useLocation();
-  const isLanding = pathname === "/";
-  const isReadOnlyIssue = pathname.startsWith("/issues/");
-  if (isLanding || isReadOnlyIssue) return null;
   // Null fallback: ChatAgent is a floating button that materializes
   // once its chunk lands. There's nothing to paint while it's loading,
   // and the spinner used for full-route Suspense would look out of place
   // as a floating overlay.
   return (
     <Suspense fallback={null}>
-      <ChatAgent />
+      <CivicGuide />
     </Suspense>
   );
 };

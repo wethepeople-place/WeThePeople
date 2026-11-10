@@ -26,6 +26,11 @@ class CivicApiRateLimitError(Exception):
     """Raised when Google Civic API returns 429 rate limit."""
     pass
 
+
+class CivicApiUnavailableError(Exception):
+    """Raised when Google Civic cannot be queried at all."""
+    pass
+
 from utils.http_client import config
 from utils.logging import get_logger, setup_logging
 
@@ -41,7 +46,12 @@ CIVIC_API_BASE = "https://www.googleapis.com/civicinfo/v2"
 # CORE API HELPER
 # ============================================================================
 
-def _civic_get(endpoint: str, params: Optional[Dict[str, str]] = None) -> Optional[Dict[str, Any]]:
+def _civic_get(
+    endpoint: str,
+    params: Optional[Dict[str, str]] = None,
+    *,
+    raise_on_unavailable: bool = False,
+) -> Optional[Dict[str, Any]]:
     """
     Make a GET request to the Google Civic Information API.
 
@@ -57,6 +67,8 @@ def _civic_get(endpoint: str, params: Optional[Dict[str, str]] = None) -> Option
     key = config.GOOGLE_CIVIC_API_KEY
     if not key:
         logger.error("Missing Google Civic Information API key (API_KEY_GOOGLE_CIVIC)")
+        if raise_on_unavailable:
+            raise CivicApiUnavailableError("Google Civic API is not configured")
         return None
 
     url = f"{CIVIC_API_BASE}/{endpoint}"
@@ -90,6 +102,8 @@ def _civic_get(endpoint: str, params: Optional[Dict[str, str]] = None) -> Option
             endpoint,
             type(exc).__name__,
         )
+        if raise_on_unavailable:
+            raise CivicApiUnavailableError("Google Civic API request failed") from exc
         return None
 
 
@@ -276,7 +290,7 @@ def get_all_districts(address: str) -> Dict[str, Any]:
 
 def list_elections_with_status() -> Optional[List[Dict[str, Any]]]:
     """Return the provider catalog, or ``None`` when the provider is unavailable."""
-    data = _civic_get("elections")
+    data = _civic_get("elections", raise_on_unavailable=True)
     if data is None:
         return None
 
@@ -327,7 +341,7 @@ def lookup_voter_info(
     if election_id:
         params["electionId"] = election_id
 
-    data = _civic_get("voterinfo", params)
+    data = _civic_get("voterinfo", params, raise_on_unavailable=True)
     if not data:
         return None
 

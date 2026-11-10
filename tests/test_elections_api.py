@@ -118,4 +118,20 @@ def test_lookup_is_official_only_and_never_echoes_registered_address(monkeypatch
 def test_lookup_rejects_blank_address_and_handles_no_supported_election(monkeypatch):
     assert client.post("/elections/lookup", json={"address": "          "}).status_code == 422
     monkeypatch.setattr("routers.elections.lookup_voter_info", lambda *_args, **_kwargs: None)
-    assert client.post("/elections/lookup", json={"address": "123 Main Street"}).status_code == 404
+    response = client.post("/elections/lookup", json={"address": "123 Main Street"})
+    assert response.status_code == 404
+    assert response.json()["detail"].startswith("Exact ballot and polling-place details")
+
+
+def test_lookup_reports_provider_outage_and_ignores_non_google_election_ids(monkeypatch):
+    observed = {}
+
+    def unavailable(address, election_id, official_only=True):
+        observed.update(address=address, election_id=election_id, official_only=official_only)
+        raise elections.CivicApiUnavailableError("not configured")
+
+    monkeypatch.setattr("routers.elections.lookup_voter_info", unavailable)
+    response = client.post("/elections/lookup", json={"address": "123 Main Street", "election_id": "every-election:466"})
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Election source is temporarily unavailable. Please try again shortly."
+    assert observed["election_id"] is None

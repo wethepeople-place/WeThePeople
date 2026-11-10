@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Search, Users, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getApiBaseUrl } from '../api/client';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
 import RepresentativeActPanel from '../components/RepresentativeActPanel';
+import useEmbeddedFrameHeight from '../hooks/useEmbeddedFrameHeight';
 
 // ── Types ──
 
@@ -85,6 +86,9 @@ export default function RepresentativeLookupPage() {
   const [resolvedState, setResolvedState] = useState('');
   const [districtResolutionRequired, setDistrictResolutionRequired] = useState(false);
   const [searched, setSearched] = useState(false);
+  const pageRef = useRef<HTMLDivElement | null>(null);
+
+  useEmbeddedFrameHeight(isEmbedded, 'representatives', pageRef);
 
   const doSearch = async (zipCode: string) => {
     const cleaned = zipCode.trim().replace(/\D/g, '').slice(0, 5);
@@ -182,8 +186,9 @@ export default function RepresentativeLookupPage() {
 
   return (
     <div
+      ref={pageRef}
       style={{
-        minHeight: '100vh',
+        minHeight: isEmbedded ? undefined : '100vh',
         background: 'var(--color-bg)',
         color: 'var(--color-text-1)',
       }}

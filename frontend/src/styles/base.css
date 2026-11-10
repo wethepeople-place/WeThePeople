@@ -77,6 +77,27 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
 }
+
+/* Embedded ACT tools share one quiet graphite surface with their parent card. */
+.act-embedded-theme {
+  background: #121418;
+  color: #d9dde4;
+}
+.act-embedded-theme > header { background: #121418 !important; }
+.act-embedded-theme section,
+.act-embedded-theme article,
+.act-embedded-theme .bg-white { background-color: #17191e !important; border-color: rgba(255, 255, 255, 0.07) !important; }
+.act-embedded-theme .bg-slate-50,
+.act-embedded-theme .bg-\[\#f7f7f9\] { background-color: #1c1f25 !important; }
+.act-embedded-theme input,
+.act-embedded-theme select { background: #1c1f25 !important; border-color: rgba(255, 255, 255, 0.09) !important; color: #e4e7ec !important; }
+.act-embedded-theme .text-slate-950,
+.act-embedded-theme .text-slate-800,
+.act-embedded-theme .text-slate-700 { color: #d9dde4 !important; }
+.act-embedded-theme .text-slate-600 { color: #9aa2ad !important; }
+.act-embedded-theme .text-slate-500 { color: #737c89 !important; }
+.act-embedded-theme .border-slate-200,
+.act-embedded-theme .border-slate-300 { border-color: rgba(255, 255, 255, 0.08) !important; }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.14);
 }

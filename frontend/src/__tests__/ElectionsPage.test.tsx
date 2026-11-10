@@ -62,6 +62,26 @@ it('asks for the house number and street only after a valid ZIP code', async () 
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
+it('offers official state links when exact local details are not published', async () => {
+  const fetchMock = vi.fn().mockImplementation((input: string) => Promise.resolve(input.includes('/elections?state=MD') ? {
+    ok: true, json: async () => marylandCatalog,
+  } : {
+    ok: false, status: 404, statusText: 'Not Found',
+    json: async () => ({ detail: 'Exact ballot and polling-place details are not available from the provider for this address right now.' }),
+  }));
+  vi.stubGlobal('fetch', fetchMock);
+  render(<MemoryRouter><ElectionsPage /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('State or District of Columbia'), { target: { value: 'MD' } });
+  await screen.findByLabelText('1. ZIP code');
+  fireEvent.change(screen.getByLabelText('1. ZIP code'), { target: { value: '21136' } });
+  fireEvent.change(screen.getByLabelText('2. House number and street'), { target: { value: '126 Lamport Rd' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Find my election' }));
+  expect(await screen.findByText('Your official local details are not published here yet.')).toBeTruthy();
+  expect(screen.getByText('This does not mean there is no election.', { exact: false })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Continue with Maryland information' })).toBeTruthy();
+  expect(screen.getAllByRole('link', { name: /Maryland voting rules/ }).length).toBeGreaterThan(0);
+});
+
 it('uses the official federal calendar when the provider has no state-specific election', async () => {
   // The availability field is intentionally absent to prove the Pages-first
   // frontend remains compatible with the currently deployed API contract.
