@@ -21,7 +21,7 @@ type Props = {
   onClose: () => void;
 };
 
-function ReplyThread({ post, videoId, onReplyCreated }: { post: PublicDiscussionPost; videoId: string; onReplyCreated: () => void }) {
+function ReplyThread({ post, videoId }: { post: PublicDiscussionPost; videoId: string }) {
   const { isAuthenticated } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<PublicDiscussionDetail | null>(null);
@@ -58,7 +58,8 @@ function ReplyThread({ post, videoId, onReplyCreated }: { post: PublicDiscussion
     try {
       await createDiscussionReply(post.id, body);
       setBody('');
-      onReplyCreated();
+      try { setDetail(await fetchPublicDiscussion(post.id)); }
+      catch { /* The reply was saved; the next panel refresh will load it. */ }
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Reply could not be posted.'); }
     finally { setSubmitting(false); }
   };
@@ -120,7 +121,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
     try {
       await createVideoComment(videoId, body);
       setBody('');
-      onClose();
+      await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Comment could not be submitted.'); }
     finally { setSubmitting(false); }
   };
@@ -136,7 +137,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
         {loading && <p className="p-6 text-slate-400">Loading comments…</p>}
         {error && <p role="alert" className="m-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-200">{error}</p>}
         {!loading && !error && items.length === 0 && <div className="grid min-h-64 place-content-center px-8 text-center"><MessageCircle className="mx-auto h-9 w-9 text-slate-500" /><h3 className="mt-4 text-lg font-semibold">No published comments yet</h3><p className="mt-2 text-sm leading-6 text-slate-400">Start a sourced, civil conversation. Nothing is posted automatically.</p></div>}
-        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} onReplyCreated={onClose} />)}
+        {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} />)}
       </div>
       <footer className="border-t border-white/10 bg-[#090d16] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
         {isAuthenticated ? <form onSubmit={submit} className="flex items-end gap-2">
