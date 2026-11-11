@@ -111,7 +111,9 @@ describe('WatchVideoPage', () => {
     expect(screen.queryByRole('link', { name: 'Watch at the official source instead' })).toBeNull()
     expect(container.querySelector('iframe')?.getAttribute('src')).toContain('youtube-nocookie.com/embed/maODCSHgPww')
     expect(container.querySelector('iframe')?.getAttribute('src')).toContain('mute=1')
-    expect(screen.getByRole('img', { name: 'Common Ground Coffee — sponsor design preview' }).getAttribute('src')).toBe('/ad-designs/common-ground-coffee-728x90.png')
+    const sponsorPreview = screen.getByRole('img', { name: 'Common Ground Coffee — sponsor design preview' })
+    expect(sponsorPreview.getAttribute('src')).toBe('/ad-designs/common-ground-coffee-728x90.png')
+    expect(sponsorPreview.parentElement?.parentElement?.className).toContain('mt-12 hidden pb-8 md:block')
   })
 
   it('shows an automatically-fed community video with its proxied thumbnail', async () => {

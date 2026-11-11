@@ -209,7 +209,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
         <CivicActions item={item} onComments={onComments} />
       </div>
       </div>
-      <div className="mt-24 pb-28 md:pb-32"><SponsorBanner /></div>
+      <div className="mt-12 hidden pb-8 md:block"><SponsorBanner /></div>
     </div>
   </article>;
 }
@@ -225,7 +225,7 @@ function LinkOutCard({ item, delivery, position, total, onChange, onComments }: 
       <p className="mt-4 leading-7 text-slate-300">Inline playback is unavailable. The overview, official transcript, source, and civic context remain available.</p>
       <NarrativePanel item={item} />
       <CivicActions item={item} onComments={onComments} />
-      <div className="mt-24 pb-28 md:pb-32"><SponsorBanner /></div>
+      <div className="mt-12 hidden pb-8 md:block"><SponsorBanner /></div>
     </div>
   </article>;
 }
