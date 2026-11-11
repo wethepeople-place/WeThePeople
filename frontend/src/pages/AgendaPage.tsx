@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, ExternalLink, Info } from 'lucide-react';
+import { ArrowRight, ExternalLink, Info, Landmark, PlayCircle, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { fetchIssueAgenda, type IssueAgenda } from '../api/issues';
@@ -50,20 +50,27 @@ export default function AgendaPage() {
 
         <div className="mt-3 space-y-2.5">
           {!agenda && !error && [1, 2, 3, 4, 5].map((item) => <div key={item} className="h-24 animate-pulse rounded-xl border border-slate-200 bg-white sm:rounded-2xl" />)}
-          {visibleItems.map((item) => <Link key={item.slug} to={`/issues/${item.slug}`} className="group block rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-[#245b87] hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 sm:rounded-2xl sm:p-4">
-            <div className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#245b87] text-sm font-black text-white sm:h-9 sm:w-9 sm:text-base" aria-label={`Agenda position ${item.rank}`}>{item.rank}</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-base font-black leading-5 sm:text-lg sm:leading-6">{item.title}</h3>
-                  <span className="shrink-0 text-sm font-bold text-[#245b87]" aria-label={`${item.priority_share} percent named this priority`}>{item.priority_share}%</span>
+          {visibleItems.map((item) => <article key={item.slug} className="rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-[#245b87] hover:shadow-md sm:rounded-2xl">
+            <Link to={`/issues/${item.slug}`} aria-label={`Open ${item.title} issue page`} className="group block rounded-t-xl p-3 pb-2 outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-sky-200 sm:rounded-t-2xl sm:p-4 sm:pb-2">
+              <div className="flex gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#245b87] text-sm font-black text-white sm:h-9 sm:w-9 sm:text-base" aria-label={`Agenda position ${item.rank}`}>{item.rank}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-base font-black leading-5 sm:text-lg sm:leading-6">{item.title}</h3>
+                    <span className="shrink-0 text-sm font-bold text-[#245b87]" aria-label={`${item.priority_share} percent named this priority`}>{item.priority_share}%</span>
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[13px] leading-[1.15rem] text-slate-600 sm:text-sm sm:leading-5">{item.evidence_note || item.summary || 'Reviewed receipts are being assembled.'}</p>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200" role="img" aria-label={item.priority_note}><div className="h-full rounded-full bg-[#245b87]" style={{ width: `${item.priority_share}%` }} /></div>
+                  <div className="mt-1 flex items-center justify-end text-slate-500"><ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-1 group-hover:text-[#245b87]" aria-hidden="true" /></div>
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-[13px] leading-[1.15rem] text-slate-600 sm:text-sm sm:leading-5">{item.evidence_note || item.summary || 'Reviewed receipts are being assembled.'}</p>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200" role="img" aria-label={item.priority_note}><div className="h-full rounded-full bg-[#245b87]" style={{ width: `${item.priority_share}%` }} /></div>
-                <div className="mt-1 flex items-center justify-end text-slate-500"><ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-1 group-hover:text-[#245b87]" aria-hidden="true" /></div>
               </div>
-            </div>
-          </Link>)}
+            </Link>
+            <nav aria-label={`${item.title} shortcuts`} className="grid grid-cols-3 border-t border-slate-100 px-2 pb-1 sm:px-3 sm:pb-2">
+              <Link to={`/issues/${item.slug}#watch`} aria-label={`${item.title} videos`} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-[#466582] outline-none hover:bg-sky-50 hover:text-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200 sm:text-sm"><PlayCircle className="h-4 w-4" aria-hidden="true" />Videos</Link>
+              <Link to={`/issues/${item.slug}#legislation`} aria-label={`${item.title} bills`} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-[#466582] outline-none hover:bg-sky-50 hover:text-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200 sm:text-sm"><Landmark className="h-4 w-4" aria-hidden="true" />Bills</Link>
+              <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(item.slug)}`} aria-label={`Act on ${item.title}`} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-black text-[#a47700] outline-none hover:bg-amber-50 hover:text-[#805c00] focus-visible:ring-4 focus-visible:ring-amber-200 sm:text-sm"><Zap className="h-4 w-4" aria-hidden="true" />ACT</Link>
+            </nav>
+          </article>)}
         </div>
 
       </section>

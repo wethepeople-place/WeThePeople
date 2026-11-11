@@ -30,7 +30,10 @@ it('renders all 20 sourced public-priority issues by default', async () => {
   expect(screen.getByText(/they are not WTP votes/)).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Show .* issues|Show top 5/ })).toBeNull();
-  expect(screen.getByRole('link', { name: /Housing & Rent/ }).getAttribute('href')).toBe('/issues/housing-rent');
+  expect(screen.getByRole('link', { name: 'Open Housing & Rent issue page' }).getAttribute('href')).toBe('/issues/housing-rent');
+  expect(screen.getByRole('link', { name: 'Immigration videos' }).getAttribute('href')).toBe('/issues/immigration#watch');
+  expect(screen.getByRole('link', { name: 'Immigration bills' }).getAttribute('href')).toBe('/issues/immigration#legislation');
+  expect(screen.getByRole('link', { name: 'Act on Immigration' }).getAttribute('href')).toBe('/act?target_type=issue&target_id=immigration');
   expect(screen.queryByRole('link', { name: 'Propose an issue' })).toBeNull();
   expect(screen.getByRole('link', { name: /View AP-NORC source/ }).getAttribute('href')).toBe('https://apnorc.org/example');
   expect(screen.queryByText(/214,508/)).toBeNull();
