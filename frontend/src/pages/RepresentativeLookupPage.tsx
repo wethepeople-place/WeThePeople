@@ -118,9 +118,10 @@ function officialPortraitUrl(rep: Representative): string | null {
 function RepresentativePortrait({ rep, size = 56, radius = '50%' }: { rep: Representative; size?: number; radius?: number | string }) {
   const portraitUrl = officialPortraitUrl(rep);
   const sourceUrl = 'https://github.com/unitedstates/images#public-domain';
+  const creditWidth = portraitUrl ? Math.max(size, 96) : size;
 
-  return <div style={{ width: size, flexShrink: 0, textAlign: 'center' }}>
-    <div style={{ position: 'relative', width: size, height: size, borderRadius: radius, overflow: 'hidden', display: 'grid', placeItems: 'center', background: `${partyHex(rep.party)}1F`, border: '2px solid var(--color-border-hover)', color: 'var(--color-text-1)', fontFamily: "'Inter', sans-serif", fontSize: Math.max(13, Math.round(size * .29)), fontWeight: 750 }}>
+  return <div style={{ width: creditWidth, flexShrink: 0, textAlign: 'center' }}>
+    <div style={{ position: 'relative', width: size, height: size, margin: '0 auto', borderRadius: radius, overflow: 'hidden', display: 'grid', placeItems: 'center', background: `${partyHex(rep.party)}1F`, border: '2px solid var(--color-border-hover)', color: 'var(--color-text-1)', fontFamily: "'Inter', sans-serif", fontSize: Math.max(13, Math.round(size * .29)), fontWeight: 750 }}>
       {initials(rep.display_name)}
       {portraitUrl && <img
         src={portraitUrl}
