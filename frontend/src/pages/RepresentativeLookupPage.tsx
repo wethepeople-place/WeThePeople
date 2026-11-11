@@ -723,6 +723,45 @@ export default function RepresentativeLookupPage() {
               ))}
             </div>
 
+            <aside
+              aria-label="Community forecast"
+              style={{
+                marginTop: 18,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 18,
+                flexWrap: 'wrap',
+                borderRadius: 16,
+                border: '1px solid #3b4657',
+                background: 'linear-gradient(120deg, #172130 0%, #171b24 58%, #211d30 100%)',
+                padding: '18px 20px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ width: 44, height: 44, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 13, background: '#29384d', color: '#b7d1f3' }} aria-hidden="true">
+                  <ChartNoAxesCombined size={21} />
+                </span>
+                <div>
+                  <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#a9b8cb' }}>
+                    Community forecast
+                  </p>
+                  <h2 style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 780, color: '#f4f7fb' }}>
+                    What do you think happens next?
+                  </h2>
+                  <p style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 14, lineHeight: 1.55, color: '#bcc6d3' }}>
+                    Make your prediction. See where the public stands.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/forecasts"
+                style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 11, background: '#d3dbe7', color: '#111722', padding: '0 17px', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 800 }}
+              >
+                Join the forecast <ArrowRight size={16} />
+              </Link>
+            </aside>
+
             <section style={{ marginTop: 22 }} aria-labelledby="connected-records-heading">
               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>

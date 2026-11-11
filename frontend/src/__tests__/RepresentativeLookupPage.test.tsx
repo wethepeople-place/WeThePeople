@@ -59,6 +59,8 @@ describe('RepresentativeLookupPage coverage state', () => {
     expect(screen.getByText('A representative')).toBeTruthy();
     expect(screen.getByText('Their public record')).toBeTruthy();
     expect(screen.getByText('Contact the office')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'What do you think happens next?' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Join the forecast/ }).getAttribute('href')).toBe('/forecasts');
     expect(screen.getAllByText('Chris Van Hollen').length).toBeGreaterThan(0);
     expect(screen.getByText('House address needed')).toBeTruthy();
     expect(screen.getByText('S123')).toBeTruthy();
