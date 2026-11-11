@@ -45,7 +45,7 @@ const NAV_PATTERNS: Array<{ pattern: RegExp; path: string; label: string }> = [
   { pattern: /\b(verify|verification|claim)\b/i, path: "https://verify.wethepeople.place", label: "Verify Claims" },
   { pattern: /\b(methodology|data sources?|how.*collect)\b/i, path: "/methodology", label: "Methodology" },
   { pattern: /\b(find.*(rep|representative)|my.*(rep|representative)|who represents)\b/i, path: "/politics/find-rep", label: "Find Your Representative" },
-  { pattern: /\b(plan.*vote|voting plan|ballot|polling place|where.*vote)\b/i, path: "/elections", label: "Plan Your Vote" },
+  { pattern: /\b(plan.*vote|voting plan|ballot|polling place|where.*vote)\b/i, path: "/act#act-option-vote", label: "Plan Your Vote" },
   { pattern: /\b(take action|civic action|contact.*representative)\b/i, path: "/act", label: "Take Action" },
   { pattern: /\b(committees?)\b/i, path: "/politics/committees", label: "Committees" },
   { pattern: /\b(legislation|bills?|bill tracker)\b/i, path: "/politics/legislation", label: "Legislation Tracker" },

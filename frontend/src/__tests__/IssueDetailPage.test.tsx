@@ -36,7 +36,7 @@ describe('IssueDetailPage journey actions', () => {
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/videos?limit=25&issue_slug=housing-rent'))).toBe(true);
     const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
     expect(within(issueNavigation).getByRole('link', { name: /Sourced evidence/ }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
-    expect(within(issueNavigation).getByRole('link', { name: /Elections/ }).getAttribute('href')).toBe('/elections?issue=housing-rent');
+    expect(within(issueNavigation).getByRole('link', { name: /Plan my vote/ }).getAttribute('href')).toBe('/act#act-option-vote');
     expect(screen.getByRole('link', { name: /Take action on this issue/ }).getAttribute('href')).toBe('/act?target_type=issue&target_id=housing-rent');
   });
 

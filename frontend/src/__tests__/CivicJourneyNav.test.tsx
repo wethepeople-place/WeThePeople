@@ -10,7 +10,6 @@ it('connects the simplified civic journey destinations', () => {
     Agenda: '/civic',
     Videos: '/videos',
     Issues: '/issues/housing-rent',
-    Elections: '/elections',
     ACT: '/act',
     Jobs: 'https://research.wethepeople.place/gov-salaries',
     Representatives: '/politics/find-rep',
@@ -27,8 +26,8 @@ it('connects the simplified civic journey destinations', () => {
   expect(screen.getByRole('link', { name: 'Reps' }).getAttribute('href')).toBe('/politics/find-rep');
 });
 
-it('keeps the same bottom dock visible on elections', () => {
-  render(<MemoryRouter initialEntries={['/elections']}><CivicJourneyNav /></MemoryRouter>);
+it('keeps the same bottom dock visible on ACT', () => {
+  render(<MemoryRouter initialEntries={['/act']}><CivicJourneyNav /></MemoryRouter>);
   const dock = screen.getByRole('navigation', { name: 'Primary' });
   expect(dock.className).toContain('fixed');
   expect(dock.className).not.toContain('md:hidden');

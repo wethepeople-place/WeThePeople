@@ -158,7 +158,7 @@ export default function IssueDetailPage() {
         <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
         <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
         <HubPreview label="Legislation" items={data.bills.map((bill) => ({ key: bill.bill_id, title: bill.title || bill.bill_id.toUpperCase(), detail: `${bill.bill_type.toUpperCase()} ${bill.bill_number}`, to: `/politics/bill/${bill.bill_id}` }))} />
-        <HubRow icon={Flag} label="Elections" detail="Make a private voting plan" to={`/elections?issue=${encodeURIComponent(slug)}`} />
+        <HubRow icon={Flag} label="Plan my vote" detail="Find your ballot and polling place" to="/act#act-option-vote" />
       </nav>
 
       <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}`} className="mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-4 font-black text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-200"><Scale className="h-5 w-5" />Take action on this issue</Link>

@@ -808,7 +808,7 @@ export default function RepresentativeLookupPage() {
             You can also check what is on your ballot and find where to vote.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
-            <Link to="/elections" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: '#dda91f', color: '#0f172a', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 800, padding: '0 18px', textDecoration: 'none' }}>
+            <Link to="/act#act-option-vote" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: '#dda91f', color: '#0f172a', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 800, padding: '0 18px', textDecoration: 'none' }}>
               Plan my vote
             </Link>
             <Link to="/act" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid var(--color-border)', color: 'var(--color-text-1)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 700, padding: '0 18px', textDecoration: 'none' }}>
