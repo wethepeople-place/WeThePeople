@@ -159,9 +159,6 @@ export default function CivicGuide() {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const assistantHoveredRef = useRef(false);
-  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [assistantPosition, setAssistantPosition] = useState<{ left: number; top: number } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const suggestions = suggestedQuestions(location.pathname);
@@ -171,34 +168,8 @@ export default function CivicGuide() {
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
-      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
   }, []);
-
-  // On pointer-based devices, let help settle near the user's current area of
-  // attention. A short pause prevents the control from chasing the cursor,
-  // and hovering freezes it so it remains easy to click.
-  useEffect(() => {
-    if (open || !window.matchMedia('(pointer: fine)').matches) return;
-    const followPointer = (event: PointerEvent) => {
-      if (assistantHoveredRef.current) return;
-      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-      const { clientX, clientY } = event;
-      cursorTimerRef.current = setTimeout(() => {
-        const width = 190;
-        const height = 56;
-        setAssistantPosition({
-          left: Math.max(12, Math.min(window.innerWidth - width - 12, clientX + 18)),
-          top: Math.max(12, Math.min(window.innerHeight - height - 12, clientY + 18)),
-        });
-      }, 450);
-    };
-    window.addEventListener('pointermove', followPointer, { passive: true });
-    return () => {
-      window.removeEventListener('pointermove', followPointer);
-      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-    };
-  }, [open]);
 
   // Listen for external open events (e.g. GlobalSearch click)
   useEffect(() => subscribeToChatOpen(() => setOpen(true)), []);
@@ -350,11 +321,8 @@ export default function CivicGuide() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            onMouseEnter={() => { assistantHoveredRef.current = true; if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current); }}
-            onMouseLeave={() => { assistantHoveredRef.current = false; }}
             onClick={() => setOpen(true)}
-            style={assistantPosition ? { left: assistantPosition.left, top: assistantPosition.top, right: 'auto', bottom: 'auto' } : undefined}
-            className={`fixed right-4 z-[9998] flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-[#15171c]/95 px-4 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[left,top,border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:right-6 ${assistantPosition ? '' : 'bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2'}`}
+            className="fixed bottom-24 left-4 z-[9998] flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-[#15171c]/95 px-4 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2"
             aria-label="Open chat assistant"
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] shadow-lg shadow-black/20"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -375,7 +343,7 @@ export default function CivicGuide() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-24 right-4 z-[9999] flex h-[600px] w-[430px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101216]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-6 md:max-w-[calc(100vw-48px)]"
+            className="fixed bottom-24 left-4 z-[9999] flex h-[600px] w-[430px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101216]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:left-6 md:max-w-[calc(100vw-48px)]"
           >
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
