@@ -8,12 +8,14 @@ it('connects the simplified civic journey destinations', () => {
 
   const expected = {
     Agenda: '/civic',
-    Watch: '/videos',
+    Videos: '/videos',
     Issues: '/issues/housing-rent',
     Elections: '/elections',
     ACT: '/act',
     Jobs: 'https://research.wethepeople.place/gov-salaries',
-    Bets: '/forecasts',
+    Representatives: '/politics/find-rep',
+    Laws: '/politics/legislation',
+    Forecasts: '/forecasts',
   };
 
   for (const [label, href] of Object.entries(expected)) {
@@ -22,7 +24,6 @@ it('connects the simplified civic journey destinations', () => {
   expect(screen.queryByRole('link', { name: 'Discuss' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Post' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Solutions' })).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Representatives' })).toBeNull();
   expect(screen.getByRole('link', { name: 'Reps' }).getAttribute('href')).toBe('/politics/find-rep');
 });
 
@@ -31,12 +32,12 @@ it('keeps the same bottom dock visible on elections', () => {
   const dock = screen.getByRole('navigation', { name: 'Primary' });
   expect(dock.className).toContain('fixed');
   expect(dock.className).not.toContain('md:hidden');
-  expect(screen.getAllByRole('link', { name: 'Elections' })[1].getAttribute('aria-current')).toBe('page');
+  expect(screen.getAllByRole('link', { name: 'ACT' })[1].getAttribute('aria-current')).toBe('page');
 });
 
 it('keeps all seven simple destinations directly reachable', () => {
   render(<MemoryRouter><CivicJourneyNav /></MemoryRouter>);
-  for (const label of ['Agenda', 'Watch', 'Elections', 'ACT', 'Reps', 'Jobs', 'Bets']) {
+  for (const label of ['Videos', 'Agenda', 'Jobs', 'ACT', 'Reps', 'Laws', 'Forecasts']) {
     expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
   }
 });

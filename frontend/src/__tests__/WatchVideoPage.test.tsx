@@ -68,7 +68,7 @@ describe('WatchVideoPage', () => {
     expect(screen.getByRole('button', { name: /Upload video — coming soon/ }).hasAttribute('disabled')).toBe(true)
   })
 
-  it('shows a local reviewed thumbnail without loading the provider player', async () => {
+  it('autoplays a reviewed provider video muted with the approved actions and sponsor preview', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -101,18 +101,17 @@ describe('WatchVideoPage', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Play video from YouTube' })).toBeTruthy())
-    expect(screen.getByRole('link', { name: 'Take action' }).getAttribute('href')).toBe('/act?target_type=video&target_id=housing-rent-road-act-explained')
-    expect(screen.getByRole('link', { name: 'Apply for a job' }).getAttribute('href')).toBe('/issues/jobs-unemployment#federal-jobs')
-    expect(screen.getByRole('link', { name: 'Place your forecast' }).getAttribute('href')).toBe('/forecasts')
+    await waitFor(() => expect(container.querySelectorAll('iframe')).toHaveLength(1))
+    expect(screen.getByRole('link', { name: 'Explore Housing & Rent' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View comments for this video' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Act on Housing & Rent' }).getAttribute('href')).toBe('/act?target_type=video&target_id=housing-rent-road-act-explained')
+    expect(screen.queryByRole('link', { name: 'Apply for a job' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Place your forecast' })).toBeNull()
     expect(screen.queryByText('Scroll for next video')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Watch at the official source instead' })).toBeNull()
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('/watch-thumbnails/housing-rent-road-act-explained.jpg')
-    expect(container.querySelector('img')?.parentElement?.className).toContain('absolute inset-0')
-    expect(container.querySelectorAll('iframe')).toHaveLength(0)
-    fireEvent.click(screen.getByRole('button', { name: 'Play video from YouTube' }))
-    await waitFor(() => expect(container.querySelectorAll('iframe')).toHaveLength(1))
     expect(container.querySelector('iframe')?.getAttribute('src')).toContain('youtube-nocookie.com/embed/maODCSHgPww')
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain('mute=1')
+    expect(screen.getByRole('img', { name: 'Common Ground Coffee — sponsor design preview' }).getAttribute('src')).toBe('/ad-designs/common-ground-coffee-728x90.png')
   })
 
   it('shows an automatically-fed community video with its proxied thumbnail', async () => {
@@ -142,14 +141,15 @@ describe('WatchVideoPage', () => {
     expect(screen.queryByText('Watch ·')).toBeNull()
     expect(screen.queryByText('YouTube', { selector: 'span' })).toBeNull()
     expect(screen.getByRole('link', { name: /Share a civic video, link, or thought/ }).getAttribute('href')).toBe('/discuss?compose=1#composer')
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/videos/community/42/poster')
+    expect(screen.getByRole('img', { name: 'Common Ground Coffee — sponsor design preview' })).toBeTruthy()
     expect(screen.queryByText('Reviewed source')).toBeNull()
     expect(screen.getByRole('button', { name: /Open comments for this video/ })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /Open this community conversation/ })).toBeNull()
     expect(screen.getByRole('button', { name: /Like video/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Save video privately' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /^YouTube/ })).toBeNull()
-    expect(container.querySelectorAll('iframe')).toHaveLength(0)
+    expect(container.querySelectorAll('iframe')).toHaveLength(1)
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain('mute=1')
   })
 
   it('starts the selected provider video after an explicit play link click', async () => {

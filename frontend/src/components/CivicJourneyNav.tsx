@@ -1,4 +1,4 @@
-import { Briefcase, ChartNoAxesCombined, Eye, Landmark, List, Users, Vote } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, Landmark, List, Play, ScrollText, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useEffect } from 'react';
 
@@ -10,23 +10,25 @@ type JourneyItem = {
 };
 
 const primary: JourneyItem[] = [
+  { label: 'Videos', to: '/videos', Icon: Play },
   { label: 'Agenda', to: '/civic', Icon: List },
-  { label: 'Watch', to: '/videos', Icon: Eye },
-  { label: 'Elections', to: '/elections', Icon: Vote },
-  { label: 'ACT', to: '/act', Icon: Landmark },
+  { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries', Icon: BriefcaseBusiness, external: true },
+  { label: 'ACT', to: '/elections', Icon: Landmark },
   { label: 'Reps', to: '/politics/find-rep', Icon: Users },
-  { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries', Icon: Briefcase, external: true },
-  { label: 'Bets', to: '/forecasts', Icon: ChartNoAxesCombined },
+  { label: 'Laws', to: '/politics/legislation', Icon: ScrollText },
+  { label: 'Forecasts', to: '/forecasts', Icon: BarChart3 },
 ];
 
 const desktop: Array<{ label: string; to: string; external?: boolean }> = [
-  { label: 'Watch', to: '/videos' },
+  { label: 'Videos', to: '/videos' },
   { label: 'Agenda', to: '/civic' },
   { label: 'Issues', to: '/issues/housing-rent' },
   { label: 'Elections', to: '/elections' },
   { label: 'ACT', to: '/act' },
+  { label: 'Representatives', to: '/politics/find-rep' },
   { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries', external: true },
-  { label: 'Bets', to: '/forecasts' },
+  { label: 'Laws', to: '/politics/legislation' },
+  { label: 'Forecasts', to: '/forecasts' },
 ];
 
 export default function CivicJourneyNav() {
