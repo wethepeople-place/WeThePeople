@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Search, Users, AlertCircle, ArrowLeft, ArrowRight, Heart, ExternalLink, FileText, Vote as VoteIcon, ChartNoAxesCombined, Landmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getApiBaseUrl } from '../api/client';
+import { fetchPromises, type PromiseItem } from '../api/civic';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
 import RepresentativeActPanel from '../components/RepresentativeActPanel';
 import useEmbeddedFrameHeight from '../hooks/useEmbeddedFrameHeight';
@@ -49,6 +50,7 @@ interface Representative {
     source_name: string;
     forecast_url: string;
   }>;
+  promises: PromiseItem[];
   committees: Array<{ committee_name: string; role: string }>;
   trades: unknown[];
   donors: unknown[];
@@ -175,6 +177,7 @@ export default function RepresentativeLookupPage() {
         votes: Array.isArray(r.votes) ? r.votes : [],
         bills: Array.isArray(r.bills) ? r.bills : [],
         election_forecasts: Array.isArray(r.election_forecasts) ? r.election_forecasts : [],
+        promises: [],
         committees: Array.isArray(r.committees) ? r.committees : [],
         trades: Array.isArray(r.trades) ? r.trades : [],
         donors: Array.isArray(r.donors) ? r.donors : [],
@@ -182,6 +185,17 @@ export default function RepresentativeLookupPage() {
         sources: Array.isArray(r.sources) ? r.sources : [],
       }));
       setReps(adapted);
+      void Promise.all(adapted.map(async (rep) => {
+        try {
+          const result = await fetchPromises({ person_id: rep.person_id, limit: 3, sort: 'newest' });
+          return { personId: rep.person_id, promises: Array.isArray(result.items) ? result.items : [] };
+        } catch {
+          return { personId: rep.person_id, promises: [] as PromiseItem[] };
+        }
+      })).then((promiseResults) => {
+        const byPerson = new Map(promiseResults.map((item) => [item.personId, item.promises]));
+        setReps((current) => current.map((rep) => byPerson.has(rep.person_id) ? { ...rep, promises: byPerson.get(rep.person_id) || [] } : rep));
+      });
       setDataUnavailable(adapted.length === 0);
     } catch (err) {
       console.warn('[RepresentativeLookupPage] zip lookup failed:', err);
@@ -723,45 +737,6 @@ export default function RepresentativeLookupPage() {
               ))}
             </div>
 
-            <aside
-              aria-label="Community forecast"
-              style={{
-                marginTop: 18,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 18,
-                flexWrap: 'wrap',
-                borderRadius: 16,
-                border: '1px solid #3b4657',
-                background: 'linear-gradient(120deg, #172130 0%, #171b24 58%, #211d30 100%)',
-                padding: '18px 20px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ width: 44, height: 44, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 13, background: '#29384d', color: '#b7d1f3' }} aria-hidden="true">
-                  <ChartNoAxesCombined size={21} />
-                </span>
-                <div>
-                  <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#a9b8cb' }}>
-                    Community forecast
-                  </p>
-                  <h2 style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 780, color: '#f4f7fb' }}>
-                    What do you think happens next?
-                  </h2>
-                  <p style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 14, lineHeight: 1.55, color: '#bcc6d3' }}>
-                    Make your prediction. See where the public stands.
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/forecasts"
-                style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 11, background: '#d3dbe7', color: '#111722', padding: '0 17px', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 800 }}
-              >
-                Join the forecast <ArrowRight size={16} />
-              </Link>
-            </aside>
-
             <section style={{ marginTop: 22 }} aria-labelledby="connected-records-heading">
               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
@@ -885,6 +860,36 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
         Full public record <ExternalLink size={12} />
       </Link>
     </header>
+
+    <section
+      aria-label={`Community forecast for ${rep.display_name}`}
+      style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', borderRadius: 14, border: '1px solid #3b4657', background: 'linear-gradient(120deg, #172130 0%, #171b24 60%, #211d30 100%)', padding: '16px 18px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13, minWidth: 0 }}>
+        <span style={{ width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 12, background: '#29384d', color: '#b7d1f3' }} aria-hidden="true">
+          <ChartNoAxesCombined size={19} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 750, letterSpacing: '.13em', textTransform: 'uppercase', color: '#a9b8cb' }}>Community forecast</p>
+          <h3 style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 780, color: '#f4f7fb' }}>
+            What do you think happens next for {rep.display_name}?
+          </h3>
+          {rep.promises.length ? <p style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.55, color: '#c6cfdb' }}>
+            Promise to watch: <Link to={`/civic/promises/${rep.promises[0].id}`} style={{ color: '#d8e6f8', fontWeight: 700 }}>{rep.promises[0].title}</Link>
+          </p> : <p style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.55, color: '#b8c2cf' }}>
+            No sourced promise is connected yet. We won’t guess.
+          </p>}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Link to={`/civic/promises?person_id=${encodeURIComponent(rep.person_id)}&person_name=${encodeURIComponent(rep.display_name)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #485466', color: '#d7e0eb', padding: '0 13px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+          View promises
+        </Link>
+        <Link to={rep.election_forecasts[0]?.forecast_url || `/forecasts?person_id=${encodeURIComponent(rep.person_id)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10, background: '#d3dbe7', color: '#111722', padding: '0 14px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
+          What happens next? <ArrowRight size={14} />
+        </Link>
+      </div>
+    </section>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
       <section style={panels.shell}>

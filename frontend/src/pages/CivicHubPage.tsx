@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Target, Shield, Trophy, ChevronRight,
   ThumbsUp, ThumbsDown, Megaphone, Plus, X,
@@ -688,6 +688,9 @@ function PromiseSubmitForm({ onSubmitted, onCancel }: { onSubmitted: () => void;
 
 export default function CivicHubPage() {
   const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const selectedPersonId = searchParams.get('person_id')?.trim() || '';
+  const selectedPersonName = searchParams.get('person_name')?.trim() || '';
   const [promises, setPromises] = useState<PromiseItem[]>([]);
   const [proposals, setProposals] = useState<ProposalItem[]>([]);
   const [promiseTotal, setPromiseTotal] = useState(0);
@@ -700,7 +703,7 @@ export default function CivicHubPage() {
   useEffect(() => {
     let cancelled = false;
     Promise.allSettled([
-      fetchPromises({ limit: 6, sort: 'hot' }),
+      fetchPromises({ limit: 6, sort: 'hot', ...(selectedPersonId ? { person_id: selectedPersonId } : {}) }),
       fetchProposals({ limit: 6, sort: 'hot' }),
     ]).then(([prom, prop]) => {
       if (cancelled) return;
@@ -709,7 +712,7 @@ export default function CivicHubPage() {
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [refreshTick]);
+  }, [refreshTick, selectedPersonId]);
 
   const onProposalSubmitted = () => { setShowProposalForm(false); setRefreshTick(x => x + 1); };
   const onPromiseSubmitted = () => { setShowPromiseForm(false); setRefreshTick(x => x + 1); };
@@ -743,7 +746,7 @@ export default function CivicHubPage() {
               lineHeight: 1.08,
             }}
           >
-            Civic Hub
+            {selectedPersonName ? `Promises for ${selectedPersonName}` : 'Civic Hub'}
           </h1>
           <p
             style={{
@@ -755,8 +758,9 @@ export default function CivicHubPage() {
               margin: 0,
             }}
           >
-            Track political promises, vote on policy proposals, and earn badges for civic participation.
-            Contributions scored using Wilson confidence intervals — quality rises to the top.
+            {selectedPersonName
+              ? `Track sourced promises connected to ${selectedPersonName}, review progress, and see what happens next.`
+              : 'Track political promises, vote on policy proposals, and earn badges for civic participation. Contributions scored using Wilson confidence intervals — quality rises to the top.'}
           </p>
         </div>
 
