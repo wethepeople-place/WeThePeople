@@ -1,12 +1,32 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BarChart3, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText, Flag, Landmark, Lightbulb, MessageCircle, Play, Scale, TrendingUp, Users } from 'lucide-react';
+import {
+  ArrowLeft, ArrowRight, ChevronDown, ChevronUp, ExternalLink, FileText,
+  Landmark, MessageCircle, Play, Search, TrendingUp, Users, Vote,
+} from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { fetchIssueDetail, type EvidenceSeries, type FederalJob, type IssueBill, type IssueSource, type IssueSummary, type IssueVideo } from '../api/issues';
-import { fetchPublicDiscussions, type PublicDiscussionPost } from '../api/civic';
+import {
+  fetchIssueDetail,
+  type EvidenceSeries,
+  type FederalJob,
+  type IssueBill,
+  type IssueSource,
+  type IssueSummary,
+  type IssueVideo,
+} from '../api/issues';
 import { getApiBaseUrl } from '../api/client';
-import IssueActionStrip from '../components/IssueActionStrip';
 
-type State = { summary: IssueSummary; evidence: EvidenceSeries[]; bills: IssueBill[]; billTotal: number; videos: IssueVideo[]; videoTotal: number; federalJobs: FederalJob[]; federalJobTotal: number; federalJobsSource: IssueSource | null; availability: { evidence: boolean; bills: boolean; videos: boolean; federalJobs: boolean } };
+type State = {
+  summary: IssueSummary;
+  evidence: EvidenceSeries[];
+  bills: IssueBill[];
+  billTotal: number;
+  videos: IssueVideo[];
+  videoTotal: number;
+  federalJobs: FederalJob[];
+  federalJobTotal: number;
+  federalJobsSource: IssueSource | null;
+  availability: { evidence: boolean; bills: boolean; videos: boolean; federalJobs: boolean };
+};
 
 const date = (value: string) => new Intl.DateTimeFormat('en-US', {
   year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
@@ -21,73 +41,92 @@ function videoThumbnail(video: IssueVideo) {
   return null;
 }
 
-function Sparkline({ series }: { series: EvidenceSeries | undefined }) {
-  const values = series?.observations.map((item) => item.value) || [];
-  if (values.length < 2) return <div className="grid h-16 place-items-center rounded-xl bg-slate-50 text-xs font-semibold text-slate-500">Trend appears when two sourced observations are available</div>;
-  const min = Math.min(...values);
-  const range = Math.max(...values) - min || 1;
-  const points = values.map((value, index) => `${(index / (values.length - 1)) * 300},${58 - ((value - min) / range) * 48}`).join(' ');
-  return <svg viewBox="0 0 300 64" className="h-16 w-full" role="img" aria-label={`${series?.title} trend`}><polyline points={points} fill="none" stroke="#245b87" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+function valueLabel(series: EvidenceSeries, value: number) {
+  return series.unit.toLowerCase().includes('percent') ? `${number(value)}%` : `${number(value)} ${series.unit}`;
 }
 
-function HubRow({ icon: Icon, label, detail, to }: { icon: typeof Play; label: string; detail: string; to: string }) {
-  return <Link to={to} className="group flex min-h-16 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200">
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#245b87] text-white"><Icon className="h-4.5 w-4.5" aria-hidden="true" /></span>
-    <span className="min-w-0 flex-1"><span className="block font-black leading-5 text-slate-950">{label}</span><span className="block text-xs leading-4 text-slate-500">{detail}</span></span>
-    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#245b87]" aria-hidden="true" />
-  </Link>;
+function evidenceExplanation(series: EvidenceSeries, issueTitle: string) {
+  if (series.unit.toLowerCase().includes('percent') && series.title.toLowerCase().includes('government priority')) {
+    return `Share of U.S. adults who named ${issueTitle.toLowerCase()} as a 2026 government priority in the cited survey.`;
+  }
+  return `The latest sourced measure connected to ${issueTitle.toLowerCase()}.`;
 }
 
-function HubPreview({ label, items }: { label: string; items: Array<{ key: string; title: string; detail?: string; to: string; imageUrl?: string | null }> }) {
-  const [expanded, setExpanded] = useState(false);
-  const demoCount = Math.max(0, 5 - items.length);
-  const entries = [
-    ...items.map((item) => ({ ...item, demo: false })),
-    ...Array.from({ length: demoCount }, (_, index) => ({
-      key: `demo-${label}-${index}`,
-      title: ['Lorem ipsum dolor sit amet', 'Consectetur adipiscing elit', 'Sed do eiusmod tempor', 'Incididunt ut labore', 'Dolore magna aliqua'][index % 5],
-      detail: 'Layout demo · Not civic activity',
-      to: '',
-      imageUrl: null,
-      demo: true,
-    })),
-  ];
-  const visibleEntries = expanded ? entries : entries.slice(0, 3);
-  const cardClass = 'flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 text-left outline-none';
-  const content = (item: (typeof entries)[number]) => <>
-    {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-16 w-24 shrink-0 rounded-md bg-slate-200 object-cover" loading="lazy" /> : <span aria-hidden="true" className={`grid h-16 w-24 shrink-0 place-items-center rounded-md text-[10px] font-black uppercase tracking-wider ${item.demo ? 'border border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'bg-[#245b87] text-white'}`}>{item.demo ? 'Demo' : label.replace('Sourced ', '').slice(0, 10)}</span>}
-    <span className="min-w-0 flex-1"><span className="block line-clamp-2 text-sm font-bold leading-5 text-slate-900">{item.title}</span><span className="mt-1 block truncate text-xs text-slate-500">{item.detail}</span></span>
-  </>;
-  return <div aria-label={`${label} preview`} className="-mt-1 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
-    {visibleEntries.map((item) => item.demo
-      ? <div key={item.key} className={`${cardClass} opacity-75`}>{content(item)}</div>
-      : <Link key={item.key} to={item.to} className={`${cardClass} hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200`}>{content(item)}</Link>)}
-    {entries.length > 3 && <button type="button" aria-expanded={expanded} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[#164d78] outline-none hover:bg-white focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setExpanded((current) => !current)}>
-      {expanded ? <><ChevronUp className="h-4 w-4" />Show fewer</> : <><ChevronDown className="h-4 w-4" />See {entries.length - 3} more</>}
-    </button>}
+function SourceLink({ source, checkedLabel = 'Source checked' }: { source: IssueSource; checkedLabel?: string }) {
+  return <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5 text-slate-600">
+    <a className="inline-flex min-h-8 items-center gap-1 font-bold text-[#164d78] underline decoration-[#164d78]/30 underline-offset-2 hover:decoration-[#164d78]" href={source.url} target="_blank" rel="noreferrer">
+      {source.publisher}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+    </a>
+    <span>{checkedLabel} {date(source.retrieved_at)}</span>
   </div>;
 }
 
-function Source({ source }: { source: { url: string; publisher: string; retrieved_at: string } }) {
-  return <p className="mt-4 text-xs text-text-2">
-    Source: <a className="text-accent-text hover:underline" href={source.url} target="_blank" rel="noreferrer">
-      {source.publisher} <ExternalLink className="inline h-3 w-3" />
-    </a> · Retrieved {date(source.retrieved_at)}
-  </p>;
+function EvidenceVisual({ series }: { series: EvidenceSeries }) {
+  const observations = series.observations.slice(-6);
+  if (observations.length === 1) {
+    const observation = observations[0];
+    const percentage = series.unit.toLowerCase().includes('percent');
+    return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><p className="text-4xl font-black tracking-tight text-[#153f62] sm:text-5xl">{valueLabel(series, observation.value)}</p><p className="mt-1 text-sm font-semibold text-slate-600">Observation from {date(observation.date)}</p></div>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">One sourced observation</span>
+      </div>
+      {percentage && <div className="mt-5" role="img" aria-label={`${valueLabel(series, observation.value)} on a scale from 0 to 100 percent`}>
+        <div className="h-5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-[#245b87]" style={{ width: `${Math.max(0, Math.min(100, observation.value))}%` }} /></div>
+        <div className="mt-1 flex justify-between text-[11px] font-semibold text-slate-500"><span>0%</span><span>50%</span><span>100%</span></div>
+      </div>}
+    </div>;
+  }
+
+  if (observations.length > 1) {
+    const values = observations.map((item) => item.value);
+    const min = Math.min(...values);
+    const range = Math.max(...values) - min || 1;
+    const points = observations.map((item, index) => ({
+      x: 36 + (index / (observations.length - 1)) * 488,
+      y: 122 - ((item.value - min) / range) * 86,
+      ...item,
+    }));
+    return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
+      <svg viewBox="0 0 560 160" className="w-full" role="img" aria-label={`${series.title} trend with ${observations.length} sourced observations`}>
+        {[36, 79, 122].map((y) => <line key={y} x1="36" x2="524" y1={y} y2={y} stroke="#cbd5e1" strokeDasharray="4 5" />)}
+        <polyline points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#245b87" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((point) => <g key={point.date}><circle cx={point.x} cy={point.y} r="6" fill="#245b87" /><text x={point.x} y={point.y - 12} textAnchor="middle" fontSize="12" fontWeight="800" fill="#153f62">{valueLabel(series, point.value)}</text></g>)}
+        <text x="36" y="152" fontSize="11" fontWeight="700" fill="#64748b">{date(observations[0].date)}</text>
+        <text x="524" y="152" textAnchor="end" fontSize="11" fontWeight="700" fill="#64748b">{date(observations.at(-1)!.date)}</text>
+      </svg>
+    </div>;
+  }
+  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">No observations are available yet.</div>;
+}
+
+function GuidanceStep({ number: stepNumber, label, text, icon: Icon }: { number: number; label: string; text: string; icon: typeof Play }) {
+  return <div className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3">
+    <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e8f0f7] text-[#245b87]"><Icon className="h-4.5 w-4.5" aria-hidden="true" /><span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#245b87] text-[10px] font-black text-white">{stepNumber}</span></span>
+    <div><p className="font-black text-slate-950">{label}</p><p className="mt-0.5 text-xs leading-5 text-slate-600">{text}</p></div>
+  </div>;
+}
+
+function ActionCard({ icon: Icon, title, text, to, accent = false }: { icon: typeof Users; title: string; text: string; to: string; accent?: boolean }) {
+  return <Link to={to} className={`group flex min-h-36 flex-col rounded-2xl border p-5 outline-none transition focus-visible:ring-4 ${accent ? 'border-[#d7a315] bg-[#f7c43c] text-slate-950 hover:bg-[#f4bb22] focus-visible:ring-amber-200' : 'border-slate-200 bg-white text-slate-950 hover:border-[#245b87] focus-visible:ring-sky-200'}`}>
+    <Icon className={`h-6 w-6 ${accent ? 'text-slate-900' : 'text-[#245b87]'}`} aria-hidden="true" />
+    <span className="mt-3 font-black">{title}</span><span className={`mt-1 text-sm leading-5 ${accent ? 'text-slate-800' : 'text-slate-600'}`}>{text}</span>
+    <span className="mt-auto pt-3 text-sm font-black">Start <ArrowRight className="inline h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" /></span>
+  </Link>;
 }
 
 export default function IssueDetailPage() {
   const { slug = 'housing-rent' } = useParams();
   const { hash } = useLocation();
   const [data, setData] = useState<State | null>(null);
-  const [discussions, setDiscussions] = useState<PublicDiscussionPost[]>([]);
-  const [proposals, setProposals] = useState<PublicDiscussionPost[]>([]);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const [showAllBills, setShowAllBills] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
+    setData(null);
+    setError('');
     setShowAllVideos(false);
     setShowAllBills(false);
     fetchIssueDetail(slug).then((result) => active && setData(result)).catch((reason) => active && setError(reason.message));
@@ -95,145 +134,72 @@ export default function IssueDetailPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (!data) return;
-    let active = true;
-    setDiscussions([]);
-    fetchPublicDiscussions(slug, undefined, 0, 5, 'discussions').catch(() => ({ items: [] as PublicDiscussionPost[] })).then((discussionResult) => {
-      if (!active) return;
-      setDiscussions(discussionResult.items || []);
-    });
-    fetchPublicDiscussions(slug, undefined, 0, 5, 'proposals').catch(() => ({ items: [] as PublicDiscussionPost[] })).then((proposalResult) => {
-      if (!active) return;
-      setProposals(proposalResult.items || []);
-    });
-    return () => { active = false; };
-  }, [data, slug]);
-
-  useEffect(() => {
     if (!data || !hash) return;
-    const target = document.getElementById(hash.slice(1));
-    target?.scrollIntoView({ block: 'start' });
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
   }, [data, hash]);
 
-  if (error) return <main className="min-h-screen bg-bg px-6 py-16 text-text-1"><div className="mx-auto max-w-3xl rounded-card border border-border bg-surface p-8"><h1 className="font-display text-3xl">Issue hub</h1><p className="mt-3 text-text-2">{error}. Please try again.</p></div></main>;
-  if (!data) return <main className="min-h-screen bg-bg p-16 text-center text-text-2">Loading sourced issue data…</main>;
+  if (error) return <main className="min-h-screen bg-[#edede9] px-6 py-16 text-slate-950"><div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8"><h1 className="text-3xl font-black">Issue guide</h1><p className="mt-3 text-slate-600">We could not load this issue right now. Please try again. Your other pages are still available.</p></div></main>;
+  if (!data) return <main className="min-h-screen bg-[#edede9] p-16 text-center text-slate-600">Loading sourced issue data…</main>;
 
   const leadSeries = data.evidence.find((series) => series.observations.length > 1) || data.evidence[0];
-  const firstVideo = data.videos[0];
+  const issueName = data.summary.title;
+  const issueLower = issueName.toLowerCase();
 
-  return <main id="main-content" className="min-h-screen bg-[#edede9] pb-32 text-slate-950 md:pb-20">
-    <header className="bg-[#245b87] px-5 py-5 text-white md:py-8">
-      <div className="mx-auto max-w-3xl">
+  return <main id="main-content" className="min-h-screen bg-[#edede9] pb-40 text-slate-950 md:pb-28">
+    <header className="bg-[#245b87] px-5 py-6 text-white md:py-9">
+      <div className="mx-auto max-w-4xl">
         <Link to="/agenda" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-sky-50"><ArrowLeft className="h-4 w-4" />Agenda</Link>
-        <p className="mt-1 text-xs font-bold uppercase tracking-[.16em] text-sky-100">Issue hub</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight md:text-5xl">{data.summary.title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-50 md:text-base">{data.summary.summary || 'Reviewed public evidence, legislation, solutions, and ways to participate.'}</p>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[.16em] text-sky-100">Issue guide</p>
+        <h1 className="mt-1 text-4xl font-black tracking-tight md:text-5xl">{issueName}</h1>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-sky-50">{data.summary.summary || `Facts, perspectives, legislation, and ways to act on ${issueLower}.`}</p>
       </div>
     </header>
 
-    <div className="mx-auto max-w-3xl px-3 py-3 sm:px-6 md:py-7">
-      <section aria-labelledby="issue-snapshot" className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">Sourced snapshot</p><h2 id="issue-snapshot" className="mt-1 font-black">{leadSeries?.title || 'Sourced evidence'}</h2></div><span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[.65rem] font-black uppercase tracking-wide text-emerald-800">Sourced data</span></div>
-        <div className="mt-3"><Sparkline series={leadSeries} /></div>
-        {leadSeries ? <p className="mt-2 text-xs text-slate-500">{leadSeries.observations.length} sourced {leadSeries.observations.length === 1 ? 'observation' : 'observations'} · {leadSeries.source.publisher}</p> : <p className="mt-2 text-xs text-slate-500">No sourced observations are connected yet.</p>}
+    <div className="mx-auto max-w-4xl space-y-12 px-4 py-6 sm:px-6 md:py-10">
+      <section id="evidence" aria-labelledby="facts-heading" className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e8f0f7] text-[#245b87]"><TrendingUp className="h-5 w-5" aria-hidden="true" /></span><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#245b87]">Step 1 · Understand the data</p><h2 id="facts-heading" className="mt-1 text-2xl font-black">{issueName} facts &amp; trends</h2><p className="mt-2 text-sm leading-6 text-slate-600">Start with the numbers. Every measure includes its date and original source.</p></div></div>
+        {!data.availability.evidence && <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Sourced data is temporarily unavailable. You can still watch videos, review legislation, and act below.</p>}
+        {data.availability.evidence && !leadSeries && <p className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No sourced measures are connected yet. Continue below for reviewed videos, official bills, and actions.</p>}
+        {leadSeries && <article className="mt-6"><h3 className="text-xl font-black text-slate-950">{leadSeries.title}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{evidenceExplanation(leadSeries, issueName)}</p><div className="mt-4"><EvidenceVisual series={leadSeries} /></div><div className="mt-3"><SourceLink source={leadSeries.source} /></div></article>}
       </section>
 
-      <section aria-label="Issue coverage" className="mt-2 grid grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white py-3 text-center">
-        <div><p className="text-lg font-black text-[#245b87]">{data.evidence.length}</p><p className="text-[.7rem] text-slate-500">evidence series</p></div>
-        <div><p className="text-lg font-black text-[#245b87]">{data.billTotal}</p><p className="text-[.7rem] text-slate-500">official bills</p></div>
-        <div><p className="text-lg font-black text-[#245b87]">{data.videoTotal}</p><p className="text-[.7rem] text-slate-500">linked videos</p></div>
-      </section>
-
-      <div className="mt-2"><Link to={`/discuss?issue=${encodeURIComponent(slug)}`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#245b87] px-4 font-black text-white outline-none focus-visible:ring-4 focus-visible:ring-sky-200"><MessageCircle className="h-5 w-5" />Join this community</Link></div>
-
-      <nav aria-label="Explore this issue" className="mt-3 space-y-2">
-        <HubRow icon={Play} label="Videos" detail={data.availability.videos ? `${data.videoTotal} linked civic ${data.videoTotal === 1 ? 'video' : 'videos'}` : 'Video connections temporarily unavailable'} to={firstVideo ? `/videos/${firstVideo.video_id}?play=1` : `/issues/${slug}#watch`} />
-        <HubPreview label="Videos" items={data.videos.map((video) => ({ key: video.video_id, title: video.caption, detail: video.creator_label, to: `/videos/${video.video_id}?play=1`, imageUrl: videoThumbnail(video) }))} />
-        <HubRow icon={BarChart3} label="Sourced evidence" detail={data.availability.evidence ? `${data.evidence.length} sourced evidence series` : 'Evidence temporarily unavailable'} to={`/issues/${slug}#evidence`} />
-        <HubPreview label="Sourced evidence" items={data.evidence.map((series) => ({ key: series.key, title: series.title, detail: series.observations.length ? `${number(series.observations.at(-1)!.value)} ${series.unit}` : series.source.publisher, to: `/issues/${slug}#evidence` }))} />
-        <HubRow icon={MessageCircle} label="Discussions" detail="Text conversations and shared links" to={`/discuss?issue=${encodeURIComponent(slug)}`} />
-        <HubPreview label="Discussions" items={discussions.map((post) => ({ key: String(post.id), title: post.body, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
-        <HubRow icon={Lightbulb} label="Proposals" detail="Structured citizen solutions" to={`/proposals?issue=${encodeURIComponent(slug)}`} />
-        <HubPreview label="Proposals" items={proposals.map((post) => ({ key: String(post.id), title: post.body, detail: `${post.author.display_name} · ${post.reply_count} ${post.reply_count === 1 ? 'reply' : 'replies'}`, to: `/discuss/${post.id}` }))} />
-        <HubRow icon={Users} label="Representatives" detail="Find officials for your address" to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} />
-        <HubRow icon={Landmark} label="Legislation" detail={`${data.billTotal} Congress.gov ${data.billTotal === 1 ? 'bill' : 'bills'} connected`} to={`/issues/${slug}#legislation`} />
-        <HubPreview label="Legislation" items={data.bills.map((bill) => ({ key: bill.bill_id, title: bill.title || bill.bill_id.toUpperCase(), detail: `${bill.bill_type.toUpperCase()} ${bill.bill_number}`, to: `/politics/bill/${bill.bill_id}` }))} />
-        <HubRow icon={Flag} label="Plan my vote" detail="Find your ballot and polling place" to="/act#act-option-vote" />
-      </nav>
-
-      <Link to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}`} className="mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-4 font-black text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-amber-200"><Scale className="h-5 w-5" />Take action on this issue</Link>
-
-      <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-        <summary className="cursor-pointer font-black text-[#245b87]">All issue links</summary>
-        <div className="mt-4 text-sm"><IssueActionStrip issueSlug={slug} evidenceCount={data.evidence.length} billCount={data.billTotal} /></div>
-      </details>
-
-      <section id="watch" aria-labelledby="civic-videos-heading" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Play className="text-[#245b87]" /><h2 id="civic-videos-heading" className="text-2xl font-black">Civic videos</h2></div>
-        {!data.availability.videos ? <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Watch videos are temporarily unavailable. The rest of this issue hub remains accessible.</p>
-          : data.videos.length === 0 ? <p className="mt-5 text-text-2">No linked civic videos are connected to this issue yet.</p>
-            : <><div className="mt-6 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="overflow-hidden rounded-card border border-border bg-surface transition hover:border-accent/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30" to={`/videos/${video.video_id}?play=1`}>
-              {videoThumbnail(video) ? <img src={videoThumbnail(video)!} alt="" className="aspect-video w-full bg-slate-800 object-cover" loading="lazy" /> : <span aria-hidden="true" className="grid aspect-video w-full place-items-center bg-slate-800 text-slate-300"><Play className="h-10 w-10" /></span>}
-              <span className="block p-5"><span className="block text-xs font-bold uppercase tracking-wider text-accent-text">{video.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
-              <span className="mt-2 block text-lg font-semibold leading-6">{video.caption}</span>
-              <span className="mt-3 block text-sm text-text-2">{video.creator_label}</span></span>
+      <section id="watch" aria-labelledby="watch-heading" className="scroll-mt-24">
+        <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e8f0f7] text-[#245b87]"><Play className="h-5 w-5" aria-hidden="true" /></span><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#245b87]">Step 2 · Learn and discuss</p><h2 id="watch-heading" className="mt-1 text-2xl font-black">Watch and discuss {issueLower}</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use each video to understand a perspective, examine its claims, and join the conversation attached to that video.</p></div></div>
+        <div aria-label="How to use these videos" className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <GuidanceStep number={1} icon={Play} label="Watch" text="Hear the argument and note its sources." />
+          <GuidanceStep number={2} icon={Search} label="Think" text="Ask what is supported, missing, or disputed." />
+          <GuidanceStep number={3} icon={MessageCircle} label="Comment" text="Ask questions and respond on the video page." />
+          <GuidanceStep number={4} icon={Users} label="Act" text="Contact officials or follow a bill." />
+        </div>
+        {!data.availability.videos ? <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Videos are temporarily unavailable. You can still review legislation and take action below.</p>
+          : data.videos.length === 0 ? <p className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No reviewed videos are connected to {issueLower} yet. Continue below for official bills and actions.</p>
+            : <><div className="mt-5 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm outline-none transition hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200" to={`/videos/${video.video_id}?play=1`}>
+              {videoThumbnail(video) ? <img src={videoThumbnail(video)!} alt="" className="aspect-video w-full bg-slate-200 object-cover" loading="lazy" /> : <span aria-hidden="true" className="grid aspect-video w-full place-items-center bg-slate-200 text-[#245b87]"><Play className="h-10 w-10" /></span>}
+              <span className="block p-4"><span className="block text-[11px] font-black uppercase tracking-[.14em] text-[#245b87]">{video.content_origin === 'community' ? 'Shared by a community member' : 'Reviewed source'}</span><span className="mt-2 block text-base font-black leading-6 text-slate-950 group-hover:text-[#164d78]">{video.caption}</span><span className="mt-2 block text-sm text-slate-600">{video.creator_label}</span><span className="mt-3 block text-sm font-bold text-[#164d78]">Watch and comment <ArrowRight className="inline h-4 w-4" /></span></span>
             </Link>)}</div>
-            {data.videos.length > 3 && <button type="button" aria-expanded={showAllVideos} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllVideos((current) => !current)}>
-              {showAllVideos ? <><ChevronUp className="h-5 w-5" />Show fewer videos</> : <><ChevronDown className="h-5 w-5" />View {data.videos.length - 3} more videos</>}
-            </button>}
-            {data.videoTotal > data.videos.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.videos.length} of {data.videoTotal} linked videos.</p>}</>}
+            {data.videos.length > 3 && <button type="button" aria-expanded={showAllVideos} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllVideos((current) => !current)}>{showAllVideos ? <><ChevronUp className="h-5 w-5" />Show fewer videos</> : <><ChevronDown className="h-5 w-5" />Show {data.videos.length - 3} more videos</>}</button>}
+            {data.videoTotal > data.videos.length && <p className="mt-3 text-sm text-slate-600">Showing {data.videos.length} recent videos from {data.videoTotal} connected to {issueLower}.</p>}</>}
       </section>
 
-      {slug === 'jobs-unemployment' && <section id="federal-jobs" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Users className="text-[#245b87]" /><h2 className="text-2xl font-black">Federal jobs now open</h2></div>
-        {!data.availability.federalJobs && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">USAJOBS is temporarily unavailable. Other issue connections remain accessible.</p>}
-        {data.availability.federalJobs && <>
-          <p className="mt-2 text-sm text-text-2">{data.federalJobTotal.toLocaleString()} current USAJOBS listings. Showing {data.federalJobs.length} official listings.</p>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">{data.federalJobs.map((job) => <article key={`${job.url}-${job.position_title}`} className="rounded-card border border-border bg-surface p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-accent-text">{job.organization_name || job.department_name}</p>
-            <h3 className="mt-2 text-lg font-semibold">{job.position_title}</h3>
-            <p className="mt-2 text-sm text-text-2">{job.location || 'Location listed on USAJOBS'}{job.schedule_type ? ` · ${job.schedule_type}` : ''}</p>
-            <a className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-accent-text hover:underline" href={job.url} target="_blank" rel="noreferrer">View official listing <ExternalLink className="ml-1 h-4 w-4" /></a>
-          </article>)}</div>
-          {data.federalJobsSource && <Source source={data.federalJobsSource} />}
-        </>}
-      </section>}
+      {slug === 'jobs-unemployment' && <section id="federal-jobs" className="scroll-mt-24"><div className="flex items-center gap-3"><Users className="text-[#245b87]" /><h2 className="text-2xl font-black">Federal jobs now open</h2></div>{!data.availability.federalJobs && <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">USAJOBS is temporarily unavailable.</p>}{data.availability.federalJobs && <><p className="mt-2 text-sm text-slate-600">{data.federalJobTotal.toLocaleString()} current USAJOBS listings. Showing {data.federalJobs.length} official listings.</p><div className="mt-5 grid gap-4 md:grid-cols-2">{data.federalJobs.map((job) => <article key={`${job.url}-${job.position_title}`} className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-xs font-bold uppercase tracking-wider text-[#245b87]">{job.organization_name || job.department_name}</p><h3 className="mt-2 text-lg font-black">{job.position_title}</h3><p className="mt-2 text-sm text-slate-600">{job.location || 'Location listed on USAJOBS'}{job.schedule_type ? ` · ${job.schedule_type}` : ''}</p><a className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#164d78] hover:underline" href={job.url} target="_blank" rel="noreferrer">View official listing <ExternalLink className="ml-1 h-4 w-4" /></a></article>)}</div>{data.federalJobsSource && <div className="mt-3"><SourceLink source={data.federalJobsSource} /></div>}</>}</section>}
 
-      <section id="evidence" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><TrendingUp className="text-[#245b87]" /><h2 className="text-2xl font-black">What the evidence shows</h2></div>
-        {!data.availability.evidence && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Evidence is temporarily unavailable. Other issue connections remain accessible.</p>}
-        {data.availability.evidence && data.evidence.length === 0 && <p className="mt-5 text-text-2">No sourced evidence series are connected yet.</p>}
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          {data.evidence.map((series) => {
-            const latest = series.observations.at(-1);
-            return <article key={series.key} className="rounded-card border border-border bg-surface p-6">
-              <p className="text-xs uppercase tracking-wider text-text-3">{series.geography.id} · {series.unit}</p>
-              <h3 className="mt-2 text-xl font-semibold">{series.title}</h3>
-              {latest ? <><p className="mt-7 font-mono text-4xl text-text-1">{number(latest.value)}</p><p className="mt-1 text-sm text-text-2">Latest observation · {date(latest.date)}</p></> : <p className="mt-7 text-text-2">No observations loaded.</p>}
-              <Source source={series.source} />
-            </article>;
-          })}
-        </div>
+      <section id="legislation" aria-labelledby="legislation-heading" className="scroll-mt-24">
+        <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e8f0f7] text-[#245b87]"><Landmark className="h-5 w-5" aria-hidden="true" /></span><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#245b87]">Step 3 · Follow the decisions</p><h2 id="legislation-heading" className="mt-1 text-2xl font-black">{issueName} legislation</h2><p className="mt-2 text-sm leading-6 text-slate-600">See what each bill addresses, where it stands, and its latest official action before deciding what you think.</p></div></div>
+        {!data.availability.bills && <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Legislation is temporarily unavailable. You can still contact representatives or prepare to vote below.</p>}
+        {data.availability.bills && data.bills.length === 0 && <p className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No official bills are connected yet. You can still contact representatives or prepare to vote below.</p>}
+        <div className="mt-5 space-y-4">{data.bills.slice(0, showAllBills ? data.bills.length : 3).map((bill) => <article key={bill.bill_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row"><div><p className="text-xs font-black uppercase tracking-[.12em] text-[#245b87]">{bill.bill_type.toUpperCase()} {bill.bill_number} · {bill.congress}th Congress</p><h3 className="mt-2 text-xl font-black text-slate-950">{bill.title || bill.bill_id}</h3></div><span className="h-fit w-fit shrink-0 rounded-full bg-[#e8f0f7] px-3 py-1 text-xs font-black text-[#164d78]">{phaseLabel[bill.phase]}</span></div>
+          {bill.relevance_note && <div className="mt-4 rounded-xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Why it appears here</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.relevance_note}</p></div>}
+          {bill.latest_action_text && <div className="mt-4"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Latest official action{bill.latest_action_date ? ` · ${date(bill.latest_action_date)}` : ''}</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.latest_action_text}</p></div>}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><SourceLink source={bill.source} /><Link className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[#245b87] px-4 text-sm font-black text-white outline-none hover:bg-[#164d78] focus-visible:ring-4 focus-visible:ring-sky-200" to={`/politics/bill/${bill.bill_id}`}>View bill <FileText className="h-4 w-4" /></Link></div>
+        </article>)}</div>
+        {data.bills.length > 3 && <button type="button" aria-expanded={showAllBills} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllBills((current) => !current)}>{showAllBills ? <><ChevronUp className="h-5 w-5" />Show fewer bills</> : <><ChevronDown className="h-5 w-5" />Show {data.bills.length - 3} more bills</>}</button>}
+        {data.billTotal > data.bills.length && <p className="mt-3 text-sm text-slate-600">Showing {data.bills.length} recent bills from {data.billTotal} connected through the official Congress.gov policy area. Relevance is not an endorsement.</p>}
       </section>
 
-      <section id="legislation" className="mt-14 scroll-mt-24">
-        <div className="flex items-center gap-3"><Landmark className="text-[#245b87]" /><h2 className="text-2xl font-black">Legislation to follow</h2></div>
-        {!data.availability.bills && <p className="mt-5 rounded-card border border-border bg-surface p-5 text-text-2">Legislation is temporarily unavailable. Other issue connections remain accessible.</p>}
-        {data.availability.bills && data.bills.length === 0 && <p className="mt-5 text-text-2">No official bills are connected yet.</p>}
-        <div className="mt-6 space-y-4">
-          {data.bills.slice(0, showAllBills ? data.bills.length : 3).map((bill) => <article key={bill.bill_id} className="rounded-card border border-border bg-surface p-5 sm:p-6">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row">
-              <div><p className="font-mono text-xs uppercase text-accent-text">{bill.bill_type.toUpperCase()} {bill.bill_number} · {bill.congress}th Congress</p><h3 className="mt-2 text-lg font-semibold">{bill.title || bill.bill_id}</h3>{bill.relevance_note && <p className="mt-2 text-sm leading-6 text-text-2">{bill.relevance_note}</p>}</div>
-              <span className="h-fit shrink-0 rounded-pill bg-accent-dim px-3 py-1 text-xs font-semibold text-accent-text">{phaseLabel[bill.phase]}</span>
-            </div>
-            {bill.latest_action_text && <p className="mt-4 border-l-2 border-accent/50 pl-4 text-sm text-text-2">{bill.latest_action_text}</p>}
-            <div className="flex flex-wrap items-end justify-between gap-3"><Source source={bill.source} /><Link className="text-sm text-accent-text hover:underline" to={`/politics/bill/${bill.bill_id}`}>Bill details <FileText className="inline h-4 w-4" /></Link></div>
-          </article>)}
-        </div>
-        {data.bills.length > 3 && <button type="button" aria-expanded={showAllBills} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllBills((current) => !current)}>
-          {showAllBills ? <><ChevronUp className="h-5 w-5" />Show fewer bills</> : <><ChevronDown className="h-5 w-5" />See {data.bills.length - 3} more related bills</>}
-        </button>}
-        {data.billTotal > data.bills.length && <p className="mt-4 text-sm text-slate-500">Showing the latest {data.bills.length} of {data.billTotal} connected Congress.gov bills.</p>}
+      <section aria-labelledby="action-heading" className="rounded-3xl border border-slate-200 bg-slate-100 p-5 sm:p-7">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-[#245b87]">Step 4 · Choose an action</p><h2 id="action-heading" className="mt-1 text-2xl font-black">Take action on {issueLower}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Choose one specific task. Each option opens the tool you selected and keeps this issue in context.</p>
+        <div className="mt-5 grid gap-3 md:grid-cols-3"><ActionCard icon={Users} title="Contact your representatives" text={`Find your officials and decide how to contact them about ${issueLower}.`} to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} accent /><ActionCard icon={Landmark} title="Review the legislation" text="Return to the bills above and choose one to examine in detail." to={`/issues/${slug}#legislation`} /><ActionCard icon={Vote} title="Prepare to vote" text="Check your ballot and polling information before the next election." to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}#act-option-vote`} /></div>
       </section>
     </div>
   </main>;

@@ -4,156 +4,127 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import IssueDetailPage from '../pages/IssueDetailPage';
 
-describe('IssueDetailPage journey actions', () => {
+const source = { url: 'https://example.gov/source', publisher: 'Official source', retrieved_at: '2026-11-01T00:00:00Z' };
+
+function renderIssue(path = '/issues/immigration') {
+  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
+}
+
+function mockIssueFetch({ evidence = [], bills = [], videos = [], billTotal = bills.length, videoTotal = videos.length }: {
+  evidence?: unknown[]; bills?: unknown[]; videos?: unknown[]; billTotal?: number; videoTotal?: number;
+} = {}) {
+  vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
+    const url = String(input);
+    const payload = url.includes('/evidence') ? { issue_slug: 'immigration', series: evidence }
+      : url.includes('/bills') ? { issue_slug: 'immigration', total: billTotal, bills }
+        : url.includes('/videos') ? { total: videoTotal, videos }
+          : { slug: 'immigration', title: 'Immigration', summary: 'Immigration, border policy, DACA, family separation, and ICE.' };
+    return Promise.resolve({ ok: true, json: async () => payload });
+  }));
+}
+
+describe('IssueDetailPage guided issue journey', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('carries issue context into separate participation destinations and representative lookup', async () => {
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', total: 0, bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 1, videos: [{ video_id: 'housing-video', content_origin: 'community', caption: 'Housing explained', creator_label: 'Community member', issue: { slug: 'housing-rent', title: 'Housing & Rent' } }] }) }));
+  it('presents a simple four-step Immigration flow and distinct action destinations', async () => {
+    mockIssueFetch();
+    renderIssue();
 
-    render(
-      <MemoryRouter initialEntries={['/issues/housing-rent']}>
-        <Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes>
-      </MemoryRouter>,
-    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Immigration' })).toBeTruthy());
+    expect(screen.getByText('Step 1 · Understand the data')).toBeTruthy();
+    expect(screen.getByText('Step 2 · Learn and discuss')).toBeTruthy();
+    expect(screen.getByText('Step 3 · Follow the decisions')).toBeTruthy();
+    expect(screen.getByText('Step 4 · Choose an action')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Watch and discuss immigration' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Immigration legislation' })).toBeTruthy();
+    expect(screen.queryByText('Join this community')).toBeNull();
+    expect(screen.queryByText('Discussions')).toBeNull();
+    expect(screen.queryByText('Proposals')).toBeNull();
+    expect(screen.queryByText(/Layout demo/)).toBeNull();
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    expect(screen.getByRole('link', { name: '0 evidence series' }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
-    expect(screen.getByRole('link', { name: '0 official bills' }).getAttribute('href')).toBe('/issues/housing-rent#legislation');
-    const participationNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
-    expect(within(participationNavigation).getByRole('link', { name: /Discussions/ }).getAttribute('href')).toBe('/discuss?issue=housing-rent');
-    expect(within(participationNavigation).getByRole('link', { name: /Proposals/ }).getAttribute('href')).toBe('/proposals?issue=housing-rent');
-    expect(screen.queryByRole('link', { name: 'Solutions' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Discuss' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Representatives' }).getAttribute('href')).toBe('/politics/find-rep?issue=housing-rent');
-    expect(screen.getByRole('link', { name: 'Government' }).getAttribute('href')).toBe('/government?issue=housing-rent');
-    expect(screen.getByRole('link', { name: 'Courts' }).getAttribute('href')).toBe('/courts?issue=housing-rent');
-    expect(screen.getAllByRole('link', { name: /Housing explained/ })[0].getAttribute('href')).toBe('/videos/housing-video?play=1');
-    expect(screen.getByText('Community shared')).toBeTruthy();
-    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/videos?limit=25&issue_slug=housing-rent'))).toBe(true);
-    const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
-    expect(within(issueNavigation).getByRole('link', { name: /Sourced evidence/ }).getAttribute('href')).toBe('/issues/housing-rent#evidence');
-    expect(within(issueNavigation).getByRole('link', { name: /Plan my vote/ }).getAttribute('href')).toBe('/act#act-option-vote');
-    expect(screen.getByRole('link', { name: /Take action on this issue/ }).getAttribute('href')).toBe('/act?target_type=issue&target_id=housing-rent');
+    expect(screen.getByRole('link', { name: /Contact your representatives/ }).getAttribute('href')).toBe('/politics/find-rep?issue=immigration');
+    expect(screen.getByRole('link', { name: /Review the legislation/ }).getAttribute('href')).toBe('/issues/immigration#legislation');
+    expect(screen.getByRole('link', { name: /Prepare to vote/ }).getAttribute('href')).toBe('/act?target_type=issue&target_id=immigration#act-option-vote');
+    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/discussions'))).toBe(false);
   });
 
-  it('keeps the hub visible when a supporting section fails', async () => {
+  it('formats a single percentage observation clearly without calling it a trend', async () => {
+    mockIssueFetch({ evidence: [{
+      key: 'agenda-immigration', title: 'Adults naming Immigration as a 2026 government priority',
+      unit: 'percent of U.S. adults', geography: { type: 'country', id: 'US' }, source,
+      observations: [{ date: '2025-12-08', value: 44, source_record_id: 'agenda-2026', source }],
+    }] });
+    renderIssue();
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Immigration facts & trends' })).toBeTruthy());
+    expect(screen.getByText('44%')).toBeTruthy();
+    expect(screen.getByText('One sourced observation')).toBeTruthy();
+    expect(screen.getByRole('img', { name: '44% on a scale from 0 to 100 percent' })).toBeTruthy();
+    expect(screen.queryByText(/Trend appears/)).toBeNull();
+    expect(screen.getByRole('link', { name: /Official source/ }).getAttribute('href')).toBe(source.url);
+  });
+
+  it('shows one video section, guides discussion through videos, and expands real items only', async () => {
+    const videos = Array.from({ length: 4 }, (_, index) => ({
+      video_id: `video-${index + 1}`, content_origin: index === 0 ? 'community' : 'reviewed',
+      caption: `Immigration video ${index + 1}`, creator_label: 'Public broadcaster',
+      delivery: { provider: 'youtube', provider_video_id: `youtube-${index + 1}`, poster_url: `/videos/${index + 1}.jpg` },
+      issue: { slug: 'immigration', title: 'Immigration' },
+    }));
+    mockIssueFetch({ videos, videoTotal: 39 });
+    renderIssue();
+
+    const watch = await screen.findByRole('region', { name: 'Watch and discuss immigration' });
+    expect(within(watch).getAllByRole('link')).toHaveLength(3);
+    expect(within(watch).getByText('Shared by a community member')).toBeTruthy();
+    expect(within(watch).getAllByText('Reviewed source')).toHaveLength(2);
+    fireEvent.click(within(watch).getByRole('button', { name: 'Show 1 more videos' }));
+    expect(within(watch).getAllByRole('link')).toHaveLength(4);
+    expect(within(watch).getByText('Showing 4 recent videos from 39 connected to immigration.')).toBeTruthy();
+  });
+
+  it('uses readable bill cards with relevance, latest action, and a predictable expansion', async () => {
+    const bills = Array.from({ length: 5 }, (_, index) => ({
+      bill_id: `hr${index + 1}-119`, congress: 119, bill_type: 'hr', bill_number: index + 1,
+      title: `Immigration bill ${index + 1}`, phase: 'current', relevance_note: 'Connected through the official Immigration policy area.',
+      latest_action_text: 'Referred to the House Committee on the Judiciary.', latest_action_date: '2026-10-15', source,
+    }));
+    mockIssueFetch({ bills, billTotal: 689 });
+    renderIssue();
+
+    await waitFor(() => expect(screen.getAllByRole('link', { name: /View bill/ })).toHaveLength(3));
+    expect(screen.getAllByText('Why it appears here')).toHaveLength(3);
+    expect(screen.getAllByText(/Latest official action/)).toHaveLength(3);
+    expect(screen.getByText('Showing 5 recent bills from 689 connected through the official Congress.gov policy area. Relevance is not an endorsement.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more bills' }));
+    expect(screen.getAllByRole('link', { name: /View bill/ })).toHaveLength(5);
+  });
+
+  it('keeps the journey useful when supporting data is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'immigration', title: 'Immigration', summary: 'Immigration policy.' }) })
       .mockRejectedValueOnce(new Error('network'))
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', total: 0, bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, videos: [] }) }));
-    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    expect(screen.getByText('Evidence is temporarily unavailable. Other issue connections remain accessible.')).toBeTruthy();
-  });
+      .mockRejectedValueOnce(new Error('network'))
+      .mockRejectedValueOnce(new Error('network')));
+    renderIssue();
 
-  it('scrolls to legislation when its same-page hub link is selected', async () => {
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', series: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'housing-rent', total: 0, bills: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, videos: [] }) }));
-
-    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    const issueNavigation = screen.getByRole('navigation', { name: 'Explore this issue' });
-    fireEvent.click(within(issueNavigation).getByRole('link', { name: /Legislation/ }));
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' }));
+    await waitFor(() => expect(screen.getByText('Sourced data is temporarily unavailable. You can still watch videos, review legislation, and act below.')).toBeTruthy());
+    expect(screen.getByText('Videos are temporarily unavailable. You can still review legislation and take action below.')).toBeTruthy();
+    expect(screen.getByText('Legislation is temporarily unavailable. You can still contact representatives or prepare to vote below.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Contact your representatives/ })).toBeTruthy();
   });
 
   it('shows official USAJOBS listings only on the jobs topic', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ slug: 'jobs-unemployment', title: 'Jobs & Unemployment', summary: 'Labor-market opportunity.' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'jobs-unemployment', total: 1, series: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'jobs-unemployment', total: 12, bills: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'jobs-unemployment', series: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ issue_slug: 'jobs-unemployment', total: 0, bills: [] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, videos: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 100, jobs: [{ position_title: 'Program Analyst', organization_name: 'Department of Labor', department_name: 'Department of Labor', salary_min: '80000', salary_max: '110000', location: 'Washington, DC', grade: '13', schedule_type: 'Full-time', start_date: '2026-08-30', end_date: '2026-09-15', url: 'https://www.usajobs.gov/job/123' }], source: { url: 'https://www.usajobs.gov/', publisher: 'USAJOBS', retrieved_at: '2026-08-30T00:00:00Z' } }) }));
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 100, jobs: [{ position_title: 'Program Analyst', organization_name: 'Department of Labor', department_name: 'Department of Labor', location: 'Washington, DC', schedule_type: 'Full-time', url: 'https://www.usajobs.gov/job/123' }], source }) }));
+    renderIssue('/issues/jobs-unemployment');
 
-    render(<MemoryRouter initialEntries={['/issues/jobs-unemployment']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Federal jobs now open' })).toBeTruthy());
     expect(screen.getByRole('heading', { name: 'Program Analyst' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /View official listing/ }).getAttribute('href')).toBe('https://www.usajobs.gov/job/123');
-    expect(screen.getByText(/100 current USAJOBS listings/)).toBeTruthy();
-  });
-
-  it('shows at most three real related records in each hub preview', async () => {
-    const videos = Array.from({ length: 4 }, (_, index) => ({ video_id: `video-${index + 1}`, content_origin: 'community', caption: `Video ${index + 1}`, creator_label: 'Community member', delivery: { provider: 'youtube', provider_video_id: `youtube-${index + 1}`, poster_url: `/videos/community/${index + 1}/poster` }, issue: { slug: 'housing-rent', title: 'Housing & Rent' } }));
-    const bills = Array.from({ length: 4 }, (_, index) => ({ bill_id: `hr-${index + 1}-119`, bill_type: 'hr', bill_number: String(index + 1), congress: 119, title: `Bill ${index + 1}`, phase: 'current', source: { url: 'https://congress.gov', publisher: 'Congress.gov', retrieved_at: '2026-08-30T00:00:00Z' } }));
-    const discussions = Array.from({ length: 4 }, (_, index) => ({ id: index + 1, body: `Discussion ${index + 1}`, author: { display_name: 'Neighbor' }, reply_count: index }));
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
-      const url = String(input);
-      const payload = url.includes('/evidence') ? { issue_slug: 'housing-rent', series: [] }
-        : url.includes('/bills') ? { issue_slug: 'housing-rent', total: 4, bills }
-          : url.includes('/videos') ? { total: 4, videos }
-            : url.includes('/discussions?') ? { total: 4, limit: 5, offset: 0, items: discussions }
-                : { slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' };
-      return Promise.resolve({ ok: true, json: async () => payload });
-    }));
-
-    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    expect(within(screen.getByLabelText('Videos preview')).getAllByRole('link')).toHaveLength(3);
-    expect(screen.getByLabelText('Videos preview').querySelectorAll('img')).toHaveLength(3);
-    const civicVideos = screen.getByRole('region', { name: 'Civic videos' });
-    expect(within(civicVideos).getAllByRole('link')).toHaveLength(3);
-    expect(civicVideos.querySelectorAll('img')).toHaveLength(3);
-    fireEvent.click(within(civicVideos).getByRole('button', { name: 'View 1 more videos' }));
-    expect(within(civicVideos).getAllByRole('link')).toHaveLength(4);
-    fireEvent.click(within(civicVideos).getByRole('button', { name: 'Show fewer videos' }));
-    expect(within(civicVideos).getAllByRole('link')).toHaveLength(3);
-    expect(within(screen.getByLabelText('Legislation preview')).getAllByRole('link')).toHaveLength(3);
-    await waitFor(() => expect(within(screen.getByLabelText('Discussions preview')).getAllByRole('link')).toHaveLength(3));
-    expect(within(screen.getByLabelText('Proposals preview')).getAllByRole('link')).toHaveLength(3);
-    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/discussions?') && String(input).includes('limit=5'))).toBe(true);
-    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/solutions?'))).toBe(false);
-  });
-
-  it('shows three legislation cards before expanding the related bills', async () => {
-    const bills = Array.from({ length: 5 }, (_, index) => ({ bill_id: `hr-${index + 1}-119`, bill_type: 'hr', bill_number: String(index + 1), congress: 119, title: `Legislation card ${index + 1}`, phase: 'current', source: { url: 'https://congress.gov', publisher: 'Congress.gov', retrieved_at: '2026-08-30T00:00:00Z' } }));
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
-      const url = String(input);
-      const payload = url.includes('/evidence') ? { issue_slug: 'housing-rent', series: [] }
-        : url.includes('/bills') ? { issue_slug: 'housing-rent', total: 5, bills }
-          : url.includes('/videos') ? { total: 0, videos: [] }
-            : url.includes('/discussions?') ? { total: 0, limit: 5, offset: 0, items: [] }
-              : { slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' };
-      return Promise.resolve({ ok: true, json: async () => payload });
-    }));
-
-    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(3);
-    const seeMore = screen.getByRole('button', { name: 'See 2 more related bills' });
-    expect(seeMore.getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(seeMore);
-    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(5);
-    fireEvent.click(screen.getByRole('button', { name: 'Show fewer bills' }));
-    expect(screen.getAllByRole('link', { name: /Bill details/ })).toHaveLength(3);
-  });
-
-  it('stacks previews vertically and clearly fills empty layouts with five demo cards', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
-      const url = String(input);
-      const payload = url.includes('/evidence') ? { issue_slug: 'housing-rent', series: [] }
-        : url.includes('/bills') ? { issue_slug: 'housing-rent', total: 0, bills: [] }
-          : url.includes('/videos') ? { total: 0, videos: [] }
-            : url.includes('/discussions?') ? { total: 0, limit: 5, offset: 0, items: [] }
-              : { slug: 'housing-rent', title: 'Housing & Rent', summary: 'Reviewed evidence.' };
-      return Promise.resolve({ ok: true, json: async () => payload });
-    }));
-
-    render(<MemoryRouter initialEntries={['/issues/housing-rent']}><Routes><Route path="/issues/:slug" element={<IssueDetailPage />} /></Routes></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy());
-    const discussionsPreview = screen.getByLabelText('Discussions preview');
-    expect(within(discussionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(3);
-    fireEvent.click(within(discussionsPreview).getByRole('button', { name: 'See 2 more' }));
-    expect(within(discussionsPreview).getAllByText('Layout demo · Not civic activity')).toHaveLength(5);
-    expect(within(discussionsPreview).getByRole('button', { name: 'Show fewer' }).getAttribute('aria-expanded')).toBe('true');
   });
 });
