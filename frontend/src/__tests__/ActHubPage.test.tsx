@@ -1,10 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import ActHubPage from '../pages/ActHubPage'
 
 describe('ActHubPage', () => {
+  afterEach(() => window.history.replaceState({}, '', '/'))
+
   it('offers supported action destinations and keeps unfinished community features hidden', () => {
     render(<MemoryRouter><ActHubPage /></MemoryRouter>)
     expect(screen.getByRole('heading', { name: 'ACT' })).toBeTruthy()
@@ -25,5 +27,15 @@ describe('ActHubPage', () => {
     expect(screen.queryByText('Activities')).toBeNull()
     expect(screen.queryByText('About future legal pathways')).toBeNull()
     expect(screen.queryByText(/Explore civic forecasts/)).toBeNull()
+  })
+
+  it('scrolls direct voting links to the plan-my-vote section', () => {
+    const scrollIntoView = vi.fn()
+    window.history.replaceState({}, '', '/act#act-option-vote')
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    render(<MemoryRouter><ActHubPage /></MemoryRouter>)
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' })
   })
 })

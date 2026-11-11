@@ -23,6 +23,12 @@ export default function ActHubPage() {
   const [frameHeights, setFrameHeights] = useState({ elections: 560, representatives: 520 });
 
   useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) return;
+    document.getElementById(targetId)?.scrollIntoView({ block: 'start' });
+  }, []);
+
+  useEffect(() => {
     const receiveZip = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'wtp:act-frame-height') {
