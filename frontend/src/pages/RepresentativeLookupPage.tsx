@@ -18,6 +18,7 @@ interface Representative {
   state: string;
   district: string | null;
   photo_url: string | null;
+  bioguide_id: string | null;
   is_active: boolean;
   profile_available?: boolean;
   official_url?: string | null;
@@ -107,6 +108,34 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+function officialPortraitUrl(rep: Representative): string | null {
+  if (rep.photo_url) return rep.photo_url;
+  const bioguideId = (rep.bioguide_id || '').trim().toUpperCase();
+  if (!/^[A-Z]\d{6}$/.test(bioguideId)) return null;
+  return `https://unitedstates.github.io/images/congress/225x275/${bioguideId}.jpg`;
+}
+
+function RepresentativePortrait({ rep, size = 56, radius = '50%' }: { rep: Representative; size?: number; radius?: number | string }) {
+  const portraitUrl = officialPortraitUrl(rep);
+  const sourceUrl = 'https://github.com/unitedstates/images#public-domain';
+
+  return <div style={{ width: size, flexShrink: 0, textAlign: 'center' }}>
+    <div style={{ position: 'relative', width: size, height: size, borderRadius: radius, overflow: 'hidden', display: 'grid', placeItems: 'center', background: `${partyHex(rep.party)}1F`, border: '2px solid var(--color-border-hover)', color: 'var(--color-text-1)', fontFamily: "'Inter', sans-serif", fontSize: Math.max(13, Math.round(size * .29)), fontWeight: 750 }}>
+      {initials(rep.display_name)}
+      {portraitUrl && <img
+        src={portraitUrl}
+        alt={`Official portrait of ${rep.display_name}`}
+        loading="lazy"
+        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+      />}
+    </div>
+    {portraitUrl && <a href={sourceUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 4, color: '#9eabbc', fontSize: 9, lineHeight: 1.2, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+      Public domain · GPO
+    </a>}
+  </div>;
+}
+
 // ── Page ──
 
 export default function RepresentativeLookupPage() {
@@ -171,6 +200,7 @@ export default function RepresentativeLookupPage() {
         state: String(r.state || data?.state || ''),
         district: r.district ?? null,
         photo_url: r.photo_url ?? null,
+        bioguide_id: r.bioguide_id ? String(r.bioguide_id).toUpperCase() : null,
         is_active: r.is_active !== false,
         profile_available: r.profile_available !== false,
         official_url: r.official_url ?? null,
@@ -844,9 +874,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
   return <article style={{ borderRadius: 18, border: '1px solid #2a323e', background: '#0f1319', padding: 22 }}>
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', border: '1px solid #394250', background: '#1a1f27', color: '#f2f5f9', fontSize: 13, fontWeight: 800 }}>
-          {initials(rep.display_name)}
-        </div>
+        <RepresentativePortrait rep={rep} size={48} radius={12} />
         <div>
           <Link to={`/politics/people/${rep.person_id}`} style={{ color: '#f4f7fb', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 750 }}>
             {rep.display_name}
@@ -973,38 +1001,7 @@ function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }
           gap: 14,
         }}
       >
-          {rep.photo_url ? (
-            <img
-              src={rep.photo_url}
-              alt={rep.display_name}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid var(--color-border-hover)',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 16,
-                fontWeight: 700,
-                color: 'var(--color-text-1)',
-                background: `${hex}1F`,
-                border: '2px solid var(--color-border-hover)',
-              }}
-            >
-              {initials(rep.display_name)}
-            </div>
-          )}
+          <RepresentativePortrait rep={rep} />
           <div style={{ minWidth: 0, flex: 1 }}>
             {rep.profile_available === false && rep.official_url ? <a href={rep.official_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><h3
               style={{

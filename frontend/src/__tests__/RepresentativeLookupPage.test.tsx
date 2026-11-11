@@ -41,11 +41,12 @@ describe('RepresentativeLookupPage coverage state', () => {
         representatives: [
           {
             person_id: 'a000382', name: 'Angela D. Alsobrooks', party: 'D', chamber: 'senate', state: 'MD', district: null,
+            bioguide_id: 'A000382',
             votes: [{ question: 'On Passage', vote_date: '2026-10-10', result: 'Passed', position: 'Yea', related_bill: 'S123', source_url: 'https://www.congress.gov/vote/1', source_name: 'Congress.gov' }],
             bills: [{ bill_id: 's123-119', role: 'sponsor', title: 'A sourced test bill', policy_area: 'Housing', status: 'introduced', latest_action: 'Introduced', latest_action_date: '2026-10-01', source_url: 'https://www.congress.gov/bill/119th-congress/senate-bill/123', source_name: 'Congress.gov' }],
             election_forecasts: [{ id: 1, question: 'Who will win?', candidate_option: { key: 'angela', label: 'Angela D. Alsobrooks' }, closes_at: '2028-11-07', source_url: 'https://elections.maryland.gov', source_name: 'Official election source', forecast_url: '/forecasts' }],
           },
-          { person_id: 'v000128', name: 'Chris Van Hollen', party: 'D', chamber: 'senate', state: 'MD', district: null },
+          { person_id: 'v000128', name: 'Chris Van Hollen', party: 'D', chamber: 'senate', state: 'MD', district: null, bioguide_id: 'V000128' },
         ],
       }),
     }));
@@ -55,6 +56,7 @@ describe('RepresentativeLookupPage coverage state', () => {
     fireEvent.click(screen.getByRole('button', { name: /look up/i }));
 
     await waitFor(() => expect(screen.getAllByText('Angela D. Alsobrooks').length).toBeGreaterThan(0));
+    expect(screen.getAllByRole('img', { name: 'Official portrait of Angela D. Alsobrooks' })[0].getAttribute('src')).toBe('https://unitedstates.github.io/images/congress/225x275/A000382.jpg');
     expect(screen.getByRole('navigation', { name: 'Representative action steps' })).toBeTruthy();
     expect(screen.getByText('A representative')).toBeTruthy();
     expect(screen.getByText('Their public record')).toBeTruthy();
