@@ -178,7 +178,7 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
   const posterUrl = embed.poster_url?.startsWith('/videos/') ? `${getApiBaseUrl()}${embed.poster_url}` : embed.poster_url;
   return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center gap-8 px-4 py-8 lg:px-8">
-      <div className="grid w-full items-center gap-6 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)]">
+      <div className="grid w-full items-center gap-6 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:pt-16">
       <div className="relative mx-auto aspect-[9/16] max-h-[72vh] w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
         <ActionRail item={item} onChange={onChange} onComments={onComments} />
         {playerLoaded && !failed ? <iframe
