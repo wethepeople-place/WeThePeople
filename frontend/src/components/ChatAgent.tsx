@@ -330,7 +330,7 @@ export default function CivicGuide() {
               <path d="M8 12h.01" />
               <path d="M12 12h.01" />
               <path d="M16 12h.01" />
-            </svg></span><span className="hidden text-sm font-semibold sm:inline">Ask · Help · Explain</span>
+            </svg></span><span className="hidden text-sm font-semibold sm:inline">Get guidance</span>
           </motion.button>
         )}
       </AnimatePresence>
