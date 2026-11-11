@@ -55,11 +55,16 @@ describe('RepresentativeLookupPage coverage state', () => {
     fireEvent.click(screen.getByRole('button', { name: /look up/i }));
 
     await waitFor(() => expect(screen.getAllByText('Angela D. Alsobrooks').length).toBeGreaterThan(0));
+    expect(screen.getByRole('navigation', { name: 'Representative action steps' })).toBeTruthy();
+    expect(screen.getByText('A representative')).toBeTruthy();
+    expect(screen.getByText('Their public record')).toBeTruthy();
+    expect(screen.getByText('Contact the office')).toBeTruthy();
     expect(screen.getAllByText('Chris Van Hollen').length).toBeGreaterThan(0);
     expect(screen.getByText('House address needed')).toBeTruthy();
     expect(screen.getByText('S123')).toBeTruthy();
     expect(screen.getByText('A sourced test bill')).toBeTruthy();
     expect(screen.getByText('Who will win?')).toBeTruthy();
+    expect(screen.getByText(/No sourced forecast is published for Chris Van Hollen/)).toBeTruthy();
     expect(screen.getByRole('link', { name: /Enter your street address/ }).getAttribute('href')).toBe('https://ziplook.house.gov/htbin/findrep_house?ZIP=21208');
     expect(screen.queryByText('Representative data is not yet available here')).toBeNull();
   });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Search, Users, AlertCircle, ArrowLeft, Heart, ExternalLink, FileText, Vote as VoteIcon, ChartNoAxesCombined, Landmark } from 'lucide-react';
+import { MapPin, Search, Users, AlertCircle, ArrowLeft, ArrowRight, Heart, ExternalLink, FileText, Vote as VoteIcon, ChartNoAxesCombined, Landmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getApiBaseUrl } from '../api/client';
 import { PoliticsSectorHeader } from '../components/SectorHeader';
@@ -684,7 +684,27 @@ export default function RepresentativeLookupPage() {
               </div>
             )}
 
+            <nav aria-label="Representative action steps" className="mb-4 overflow-x-auto rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-3 sm:px-4">
+              <ol className="grid min-w-[620px] grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-3">
+                <li className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-xs font-black text-slate-950">1</span>
+                  <span><span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Choose</span><span className="block text-sm font-semibold text-slate-200">A representative</span></span>
+                </li>
+                <ArrowRight className="h-5 w-5 text-slate-600" aria-hidden="true" />
+                <li className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-xs font-black text-slate-300">2</span>
+                  <span><span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Review</span><span className="block text-sm font-semibold text-slate-200">Their public record</span></span>
+                </li>
+                <ArrowRight className="h-5 w-5 text-slate-600" aria-hidden="true" />
+                <li className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-xs font-black text-slate-300">3</span>
+                  <span><span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Then</span><span className="block text-sm font-semibold text-slate-200">Contact the office</span></span>
+                </li>
+              </ol>
+            </nav>
+
             <div
+              id="representative-results-cards"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -706,14 +726,14 @@ export default function RepresentativeLookupPage() {
             <section style={{ marginTop: 22 }} aria-labelledby="connected-records-heading">
               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
-                  <p style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--color-text-3)' }}>
+                  <p style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: '#818a96' }}>
                     Connected public record
                   </p>
                   <h2 id="connected-records-heading" style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 750 }}>
                     What they did—and what comes next
                   </h2>
                 </div>
-                <p style={{ maxWidth: 520, fontFamily: "'Inter', sans-serif", fontSize: 12, lineHeight: 1.55, color: 'var(--color-text-3)' }}>
+                <p style={{ maxWidth: 520, fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.6, color: '#8f98a5' }}>
                   Votes, bills, forecasts, and oversight data are joined to the same verified person record used by ACT.
                 </p>
               </div>
@@ -802,9 +822,10 @@ function shortDate(value: string | null): string {
 }
 
 function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
+  const recordText = { body: '#b0b7c1', muted: '#858e9a', label: '#8e97a3' };
   const panels = {
     shell: { borderRadius: 12, border: '1px solid var(--color-border)', background: '#101318', padding: 16 } as React.CSSProperties,
-    label: { fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase' as const, color: 'var(--color-text-3)' },
+    label: { fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: '.13em', textTransform: 'uppercase' as const, color: recordText.label },
   };
   return <article style={{ borderRadius: 16, border: '1px solid var(--color-border)', background: 'var(--color-surface)', padding: 18 }}>
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -816,7 +837,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
           <Link to={`/politics/people/${rep.person_id}`} style={{ color: 'var(--color-text-1)', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700 }}>
             {rep.display_name}
           </Link>
-          <p style={{ marginTop: 2, fontFamily: "'Inter', sans-serif", fontSize: 11, color: 'var(--color-text-3)' }}>
+          <p style={{ marginTop: 3, fontFamily: "'Inter', sans-serif", fontSize: 12, lineHeight: 1.5, color: recordText.muted }}>
             ACT, votes, bills, money, and forecasts use this same person record.
           </p>
         </div>
@@ -832,34 +853,34 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
         {rep.votes.length ? rep.votes.slice(0, 3).map((vote, index) => <div key={`${vote.vote_date}-${index}`} style={{ marginTop: 11, paddingTop: index ? 11 : 0, borderTop: index ? '1px solid var(--color-border)' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 750, color: vote.position.toLowerCase().includes('nay') ? '#c8a4a4' : '#a8c3b4' }}>{vote.position}</span>
-            <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>{shortDate(vote.vote_date)}</span>
+            <span style={{ fontSize: 10, color: recordText.muted }}>{shortDate(vote.vote_date)}</span>
           </div>
-          <p style={{ marginTop: 5, fontSize: 11, lineHeight: 1.45, color: 'var(--color-text-2)' }}>{vote.related_bill || vote.question || 'Congressional roll-call vote'}</p>
-          {vote.source_url && <a href={vote.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 5, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-3)', fontSize: 9 }}>Congress.gov <ExternalLink size={9} /></a>}
-        </div>) : <p style={{ marginTop: 12, fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No roll-call votes are available in the connected source yet.</p>}
+          <p style={{ marginTop: 5, fontSize: 12, lineHeight: 1.5, color: recordText.body }}>{vote.related_bill || vote.question || 'Congressional roll-call vote'}</p>
+          {vote.source_url && <a href={vote.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.muted, fontSize: 10 }}>Congress.gov <ExternalLink size={10} /></a>}
+        </div>) : <p style={{ marginTop: 12, fontSize: 12, lineHeight: 1.55, color: recordText.muted }}>No roll-call votes are available in the connected source yet.</p>}
       </section>
 
       <section style={panels.shell}>
         <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={12} /> Bills</p>
         {rep.bills.length ? rep.bills.slice(0, 3).map((bill, index) => <div key={`${bill.bill_id}-${bill.role}`} style={{ marginTop: 11, paddingTop: index ? 11 : 0, borderTop: index ? '1px solid var(--color-border)' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, color: 'var(--color-text-3)', textTransform: 'uppercase' }}>{bill.role}</span>
-            {bill.policy_area && <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>· {bill.policy_area}</span>}
+            <span style={{ fontSize: 10, color: recordText.muted, textTransform: 'uppercase' }}>{bill.role}</span>
+            {bill.policy_area && <span style={{ fontSize: 10, color: recordText.muted }}>· {bill.policy_area}</span>}
           </div>
-          <a href={bill.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 5, display: 'block', color: 'var(--color-text-2)', fontSize: 11, lineHeight: 1.45, textDecoration: 'none' }}>{bill.title}</a>
-          <p style={{ marginTop: 4, fontSize: 9, color: 'var(--color-text-3)' }}>{bill.status || 'Status pending'} · {shortDate(bill.latest_action_date)}</p>
-        </div>) : <p style={{ marginTop: 12, fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No sponsored or cosponsored bills are available in the connected source yet.</p>}
+          <a href={bill.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 6, display: 'block', color: recordText.body, fontSize: 12, lineHeight: 1.5, textDecoration: 'none' }}>{bill.title}</a>
+          <p style={{ marginTop: 5, fontSize: 10, lineHeight: 1.4, color: recordText.muted }}>{bill.status || 'Status pending'} · {shortDate(bill.latest_action_date)}</p>
+        </div>) : <p style={{ marginTop: 12, fontSize: 12, lineHeight: 1.55, color: recordText.muted }}>No sponsored or cosponsored bills are available in the connected source yet.</p>}
       </section>
 
       <section style={panels.shell}>
         <p style={{ ...panels.label, display: 'flex', alignItems: 'center', gap: 6 }}><ChartNoAxesCombined size={12} /> Next-election outlook</p>
         {rep.election_forecasts.length ? rep.election_forecasts.map((forecast) => <div key={forecast.id} style={{ marginTop: 11 }}>
-          <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-2)' }}>{forecast.question}</p>
-          <p style={{ marginTop: 5, fontSize: 9, color: 'var(--color-text-3)' }}>Closes {shortDate(forecast.closes_at)} · source-backed civic forecast</p>
-          <Link to={forecast.forecast_url} style={{ marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>Open Bets <ExternalLink size={9} /></Link>
+          <p style={{ fontSize: 12, lineHeight: 1.55, color: recordText.body }}>{forecast.question}</p>
+          <p style={{ marginTop: 5, fontSize: 10, lineHeight: 1.4, color: recordText.muted }}>Closes {shortDate(forecast.closes_at)} · source-backed civic forecast</p>
+          <Link to={forecast.forecast_url} style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.body, fontSize: 11 }}>Open Bets <ExternalLink size={10} /></Link>
         </div>) : <div style={{ marginTop: 12 }}>
-          <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-text-3)' }}>No verified election forecast is connected to this person yet. We will not guess.</p>
-          <Link to="/forecasts" style={{ marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>View sourced forecasts <ExternalLink size={9} /></Link>
+          <p style={{ fontSize: 12, lineHeight: 1.55, color: recordText.muted }}>No sourced forecast is published for {rep.display_name}’s next election yet. This will connect automatically when a verified contest market is available.</p>
+          <Link to="/forecasts" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.body, fontSize: 11 }}>Browse all sourced forecasts <ExternalLink size={10} /></Link>
         </div>}
       </section>
 
@@ -873,10 +894,10 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
             ['Alerts', rep.anomalies.length],
           ].map(([label, value]) => <div key={String(label)} style={{ borderRadius: 9, background: '#171a1f', padding: '9px 10px' }}>
             <strong style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{value}</strong>
-            <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>{label}</span>
+            <span style={{ fontSize: 10, color: recordText.muted }}>{label}</span>
           </div>)}
         </div>
-        <Link to={`/politics/people/${rep.person_id}`} style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-text-2)', fontSize: 10 }}>Inspect sources <ExternalLink size={9} /></Link>
+        <Link to={`/politics/people/${rep.person_id}`} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.body, fontSize: 11 }}>Inspect sources <ExternalLink size={10} /></Link>
       </section>
     </div>
   </article>;

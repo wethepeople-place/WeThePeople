@@ -76,7 +76,8 @@ it('offers official state links when exact local details are not published', asy
   fireEvent.change(screen.getByLabelText('1. ZIP code'), { target: { value: '21136' } });
   fireEvent.change(screen.getByLabelText('2. House number and street'), { target: { value: '126 Lamport Rd' } });
   fireEvent.click(screen.getByRole('button', { name: 'Find my election' }));
-  expect(await screen.findByText('Your official local details are not published here yet.')).toBeTruthy();
+  const noticeHeading = await screen.findByText('Your official local details are not published here yet.');
+  expect(noticeHeading).toBeTruthy();
   expect(screen.getByText('This does not mean there is no election.', { exact: false })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Continue with Maryland information' })).toBeTruthy();
   expect(screen.getAllByRole('link', { name: /Maryland voting rules/ }).length).toBeGreaterThan(0);

@@ -73,7 +73,7 @@ const weatherUrl = (item: ElectionLocation, electionDay: string | null) => {
   return `https://www.google.com/search?q=${encodeURIComponent(`weather ${place}${electionDay ? ` ${formatDate(electionDay)}` : ''}`)}`;
 };
 
-function OfficialFallbackLinks({ stateCode, compact = false }: { stateCode: string; compact?: boolean }) {
+function OfficialFallbackLinks({ stateCode, compact = false, dark = false }: { stateCode: string; compact?: boolean; dark?: boolean }) {
   const stateName = stateCode ? US_STATE_NAMES[stateCode] : '';
   const links = [
     { label: stateName ? `${stateName} voting rules` : 'State voting rules', description: 'Registration, deadlines, and voting options.', publisher: 'Vote.gov', url: stateCode ? voteGovStateUrl(stateCode) : 'https://vote.gov/' },
@@ -82,10 +82,10 @@ function OfficialFallbackLinks({ stateCode, compact = false }: { stateCode: stri
     { label: 'Ballot and local election office', description: 'Find the official office that publishes sample ballots and local details.', publisher: 'U.S. Election Assistance Commission', url: EAC_ELECTION_OFFICE_URL },
   ];
   return <div className={compact ? 'mt-3 grid gap-2' : 'mt-4 grid gap-3'}>
-    {links.map((link) => <a key={link.label} className="rounded-xl border border-slate-200 bg-white p-3 text-left outline-none transition hover:border-sky-300 focus-visible:ring-4 focus-visible:ring-sky-200" href={link.url} target="_blank" rel="noreferrer">
-      <span className="flex items-start justify-between gap-2 font-bold text-[#174f80]">{link.label}<ExternalLink className="mt-0.5 h-4 w-4 shrink-0" /></span>
-      {!compact && <span className="mt-1 block text-sm leading-5 text-slate-600">{link.description}</span>}
-      <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Official source · {link.publisher}</span>
+    {links.map((link) => <a key={link.label} className={`rounded-xl border p-3 text-left outline-none transition focus-visible:ring-4 ${dark ? 'border-white/10 bg-[#14171c] hover:border-white/20 focus-visible:ring-slate-500/20' : 'border-slate-200 bg-white hover:border-sky-300 focus-visible:ring-sky-200'}`} href={link.url} target="_blank" rel="noreferrer">
+      <span className={`flex items-start justify-between gap-2 font-bold ${dark ? 'text-slate-200' : 'text-[#174f80]'}`}>{link.label}<ExternalLink className="mt-0.5 h-4 w-4 shrink-0" /></span>
+      {!compact && <span className={`mt-1 block text-sm leading-5 ${dark ? 'text-slate-400' : 'text-slate-600'}`}>{link.description}</span>}
+      <span className={`mt-2 block text-[11px] font-semibold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-500'}`}>Official source · {link.publisher}</span>
       <span className="mt-1 block text-[11px] text-slate-500">Live publisher page — confirm current details there</span>
     </a>)}
   </div>;
@@ -191,7 +191,7 @@ export default function ElectionsPage() {
         {catalogLoaded && catalogAvailability === 'unavailable' && <div role="alert" className="mt-5 rounded-xl bg-rose-50 p-4 text-rose-950">
           <h3 className="font-bold">Election provider is temporarily unavailable</h3>
           <p className="mt-1 text-sm leading-6">We cannot check ballot-data coverage right now, so your address is not requested or sent. This does not mean your state has no election.</p>
-          <OfficialFallbackLinks stateCode={selectedState} compact />
+          <OfficialFallbackLinks stateCode={selectedState} compact dark={isEmbedded} />
         </div>}
 
         {catalogLoaded && catalogAvailability === 'stale' && <div role="status" className="mt-5 rounded-xl bg-sky-50 p-4 text-sky-950"><strong>Using the most recent available election catalog.</strong><p className="mt-1 text-sm leading-6">The provider could not refresh just now. Confirm all dates and ballot details with your election office.</p></div>}
@@ -201,7 +201,7 @@ export default function ElectionsPage() {
         {selectedState && catalogLoaded && catalogAvailability !== 'unavailable' && !hasCoverage && <div role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-950">
           <h3 className="font-bold">Ballot data is not available here yet</h3>
           <p className="mt-1 text-sm leading-6">Our provider is not currently publishing election data for {US_STATE_NAMES[selectedState]}. Your address was not requested or sent.</p>
-          <OfficialFallbackLinks stateCode={selectedState} compact />
+          <OfficialFallbackLinks stateCode={selectedState} compact dark={isEmbedded} />
         </div>}
 
         {selectedState && catalogAvailability !== 'unavailable' && hasCoverage && showAddressLookup && <div id="address-lookup" className="mt-5 border-t border-slate-200 pt-5">
@@ -211,10 +211,10 @@ export default function ElectionsPage() {
             {/^\d{5}(?:-\d{4})?$/.test(zipCode.trim()) && <div><label className="block text-sm font-bold" htmlFor="election-street">2. House number and street</label><input id="election-street" required minLength={3} maxLength={120} autoComplete="address-line1" value={streetAddress} onChange={(event) => { setStreetAddress(event.target.value); setNotice(''); }} placeholder="Example: 126 Lamport Road" aria-describedby="election-street-help" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-[#f7f7f9] px-4 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/10" /><p id="election-street-help" className="mt-2 text-xs leading-5 text-slate-500">The house number is required because voting precincts can split the same street. City and state are not requested again.</p><button disabled={loading} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#292d33] px-5 font-bold text-white shadow-lg shadow-slate-950/10 transition hover:bg-[#343940] focus-visible:ring-4 focus-visible:ring-slate-400/15 disabled:opacity-60"><Search className="h-5 w-5" />{loading ? 'Finding ballot…' : 'Find my election'}</button></div>}
           </form>
           <button type="button" onClick={() => { setShowAddressLookup(false); setShowStateInformation(true); setZipCode(''); setStreetAddress(''); setNotice(''); }} className="mt-3 min-h-10 text-sm font-bold text-[#174f80] underline">Continue with state information</button>
-          {notice && <div role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
+          {notice && <div role="alert" className={isEmbedded ? 'mt-4 rounded-xl border border-white/10 bg-[#1b1e24] p-4 text-sm text-slate-200' : 'mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950'}>
             <strong>{noAddressCoverage ? 'Your official local details are not published here yet.' : 'We could not complete the lookup.'}</strong>
             <p className="mt-1 leading-6">{notice}{noAddressCoverage ? ' This does not mean there is no election.' : ''}</p>
-            {noAddressCoverage ? <><OfficialFallbackLinks stateCode={selectedState} compact /><button type="button" onClick={() => { setShowAddressLookup(false); setShowStateInformation(true); setNotice(''); }} className="mt-3 min-h-10 font-bold text-[#174f80] underline">Continue with {US_STATE_NAMES[selectedState]} information</button></> : <p className="mt-2 leading-6">Try again shortly or use your state or local election office.</p>}
+            {noAddressCoverage ? <><OfficialFallbackLinks stateCode={selectedState} compact dark={isEmbedded} /><button type="button" onClick={() => { setShowAddressLookup(false); setShowStateInformation(true); setNotice(''); }} className={`mt-3 min-h-10 font-bold underline ${isEmbedded ? 'text-slate-200 decoration-slate-500 underline-offset-4' : 'text-[#174f80]'}`}>Continue with {US_STATE_NAMES[selectedState]} information</button></> : <p className="mt-2 leading-6">Try again shortly or use your state or local election office.</p>}
           </div>}
         </div>}
       </section>
@@ -222,7 +222,7 @@ export default function ElectionsPage() {
       {!result && selectedState && showStateInformation && <section className="mt-5 grid gap-3 md:grid-cols-2">
         {hasCoverage && <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2"><p className="text-sm font-semibold text-slate-700">Need precinct-level ballot and polling-place details?</p><button type="button" onClick={() => { setShowStateInformation(false); setShowAddressLookup(true); }} className="min-h-10 shrink-0 rounded-xl bg-[#dda91f] px-4 text-sm font-bold text-slate-950">Use my address</button></div>}
         <article className="rounded-2xl border border-slate-200 bg-white p-5"><CalendarDays className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Upcoming elections</h2>{catalogAvailability === 'loading' ? <p className="mt-2 text-slate-600">Checking public election calendars…</p> : catalogAvailability === 'unavailable' ? <p className="mt-2 text-slate-600">Live calendar sources could not be reached. Use the official voter-services links.</p> : !selectedState ? <p className="mt-2 text-slate-600">Select your state to see upcoming election dates, deadlines, and sources.</p> : stateElections.length ? <ul className="mt-3 space-y-3">{stateElections.map((item) => { const presentation = electionPresentation(item, selectedState); return <li key={item.id} className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0"><strong className="block">{presentation.name}</strong><p className="mt-1 text-sm font-semibold text-slate-700">{formatDate(item.election_day)}</p>{presentation.description && presentation.description !== presentation.name && <p className="mt-1 text-sm leading-5 text-slate-600">{presentation.description}</p>}{item.registration_deadline && <><p className="mt-2 text-xs text-slate-600">Provider-listed regular registration deadline: <strong>{formatDate(item.registration_deadline)}</strong></p><p className="mt-1 text-xs leading-5 text-slate-500">Deadlines vary by registration method. Later online, grace-period, or Election Day options may be available; verify the official state guidance.</p></>}{item.source && <a className="mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#174f80]" href={item.source.url} target="_blank" rel="noreferrer">Source · {item.source.name}<ExternalLink className="h-3.5 w-3.5" /></a>}</li>; })}</ul> : <div className="mt-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>No published statewide date was returned.</strong><p>Local or special elections may still apply. Confirm with the official election office.</p></div>}</article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Use live official sources for state rules, polling-place tools, sample-ballot publishers, and local election offices.</p><OfficialFallbackLinks stateCode={selectedState} /></article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5"><Landmark className="h-6 w-6 text-[#214f78]" /><h2 className="mt-3 text-xl font-bold">Official voter services</h2><p className="mt-2 leading-6 text-slate-600">Use live official sources for state rules, polling-place tools, sample-ballot publishers, and local election offices.</p><OfficialFallbackLinks stateCode={selectedState} dark={isEmbedded} /></article>
       </section>}
 
       {!result && selectedState && showStateInformation && <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

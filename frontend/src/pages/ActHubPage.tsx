@@ -1,6 +1,16 @@
-import { ArrowDown, Users, Vote } from 'lucide-react';
+import { ArrowDown, ArrowRight, Users, Vote } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+
+function StepDirection({ number, label }: { number: string; label: string }) {
+  return <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-7 hidden w-28 items-center justify-end gap-3 xl:flex">
+    <div className="text-right">
+      <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-slate-600">Step {number}</p>
+      <p className="mt-1 text-xs font-semibold text-slate-400">{label}</p>
+    </div>
+    <ArrowRight className="h-6 w-6 shrink-0 text-slate-500" strokeWidth={1.75} />
+  </div>;
+}
 
 export default function ActHubPage() {
   const [searchParams] = useSearchParams();
@@ -60,12 +70,27 @@ export default function ActHubPage() {
           </figure>
         </div>
       </header>
-      {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">ACT context: {targetType} · {targetId}</p>}
+      {targetType && targetId && <p className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-sm text-slate-300">You came here ready to act. Start with Step 1, or go straight to Step 2.</p>}
       <div aria-label="ACT options" className="mt-6 sm:mt-8">
-        <section aria-labelledby="act-option-vote" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
-          <div className="flex items-center gap-4 border-b border-white/[0.06] bg-white/[0.025] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#59616d] to-[#343941] text-base font-bold text-slate-100 shadow-lg shadow-black/20" aria-hidden="true">01</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Voting</p><h2 id="act-option-vote" className="mt-1 text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Plan my vote</h2><p className="mt-1 text-sm text-slate-500">See what is on your ballot and find where to vote.</p></div><Vote className="ml-auto hidden h-6 w-6 text-slate-600 sm:block" aria-hidden="true" /></div>
-          <iframe ref={electionsFrame} title="Step 1: Plan my vote" src="/elections?embed=1" style={{ height: frameHeights.elections }} className="block w-full border-0 bg-[#eef1f5]" loading="eager" />
-        </section>
+        <nav aria-label="Your two-step action path" className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3 text-sm sm:px-5">
+          <a href="#act-option-vote" className="flex min-w-0 items-center gap-3 rounded-xl p-2 outline-none hover:bg-white/[0.035] focus-visible:ring-4 focus-visible:ring-slate-400/15">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-xs font-black text-slate-950">1</span>
+            <span className="min-w-0"><span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Start here</span><span className="block truncate font-semibold text-slate-200">Plan your vote</span></span>
+          </a>
+          <ArrowRight className="h-5 w-5 text-slate-600" aria-hidden="true" />
+          <a href="#act-option-reps" className="flex min-w-0 items-center gap-3 rounded-xl p-2 outline-none hover:bg-white/[0.035] focus-visible:ring-4 focus-visible:ring-slate-400/15">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-xs font-black text-slate-300">2</span>
+            <span className="min-w-0"><span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Then</span><span className="block truncate font-semibold text-slate-200">Contact your reps</span></span>
+          </a>
+        </nav>
+
+        <div className="relative">
+          <StepDirection number="1" label="Start here" />
+          <section aria-labelledby="act-option-vote" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
+            <div className="flex items-center gap-4 border-b border-white/[0.06] bg-white/[0.025] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#59616d] to-[#343941] text-base font-bold text-slate-100 shadow-lg shadow-black/20" aria-hidden="true">01</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Voting · Step 1 of 2</p><h2 id="act-option-vote" className="mt-1 text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Plan my vote</h2><p className="mt-1 text-sm text-slate-500">Choose your state below to begin. We will guide you through the rest.</p></div><Vote className="ml-auto hidden h-6 w-6 text-slate-600 sm:block" aria-hidden="true" /></div>
+            <iframe ref={electionsFrame} title="Step 1: Plan my vote" src="/elections?embed=1" style={{ height: frameHeights.elections }} className="block w-full border-0 bg-[#eef1f5]" loading="eager" />
+          </section>
+        </div>
 
         <div className="relative flex h-24 items-center justify-center" aria-label="Continue to step 2">
           <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-white/[0.04] via-slate-500/45 to-white/[0.04]" />
@@ -79,10 +104,13 @@ export default function ActHubPage() {
           </a>
         </div>
 
-        <section aria-labelledby="act-option-reps" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
-          <div className="flex items-center gap-4 border-b border-white/10 bg-white/[0.035] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-base font-bold text-slate-200" aria-hidden="true">02</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Representation</p><h2 id="act-option-reps" className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">Contact my representatives</h2><p className="mt-1 text-sm text-slate-400">Find who represents you and choose how to contact them.</p></div><Users className="ml-auto hidden h-6 w-6 text-slate-500 sm:block" aria-hidden="true" /></div>
-          <iframe ref={representativesFrame} title="Step 2: Contact my representatives" src="/politics/find-rep?embed=1" onLoad={() => { if (sharedZip) representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip: sharedZip }, window.location.origin); }} style={{ height: frameHeights.representatives }} className="block w-full border-0 bg-[#0b111b]" loading="lazy" />
-        </section>
+        <div className="relative">
+          <StepDirection number="2" label="Next step" />
+          <section aria-labelledby="act-option-reps" className="overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#121418] shadow-2xl shadow-black/20">
+            <div className="flex items-center gap-4 border-b border-white/10 bg-white/[0.035] p-5 text-white sm:p-7"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-base font-bold text-slate-200" aria-hidden="true">02</span><div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Representation · Step 2 of 2</p><h2 id="act-option-reps" className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">Contact my representatives</h2><p className="mt-1 text-sm text-slate-400">Enter your ZIP code below, choose a representative, then decide how to contact them.</p></div><Users className="ml-auto hidden h-6 w-6 text-slate-500 sm:block" aria-hidden="true" /></div>
+            <iframe ref={representativesFrame} title="Step 2: Contact my representatives" src="/politics/find-rep?embed=1" onLoad={() => { if (sharedZip) representativesFrame.current?.contentWindow?.postMessage({ type: 'wtp:act-zip', zip: sharedZip }, window.location.origin); }} style={{ height: frameHeights.representatives }} className="block w-full border-0 bg-[#0b111b]" loading="lazy" />
+          </section>
+        </div>
       </div>
     </div>
   </main>;
