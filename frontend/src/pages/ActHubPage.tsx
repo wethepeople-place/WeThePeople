@@ -3,12 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 
 function StepDirection({ number, label }: { number: string; label: string }) {
-  return <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-7 hidden w-28 items-center justify-end gap-3 xl:flex">
+  const stepOne = number === '1';
+  return <div aria-hidden="true" className={`pointer-events-none absolute -left-32 top-7 hidden w-28 items-center justify-end gap-3 xl:flex ${stepOne ? 'text-[#9dbce7]' : 'text-[#afa0d4]'}`}>
     <div className="text-right">
-      <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-slate-600">Step {number}</p>
-      <p className="mt-1 text-xs font-semibold text-slate-400">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-80">Step {number}</p>
+      <p className="mt-1 text-sm font-bold">{label}</p>
     </div>
-    <ArrowRight className="h-6 w-6 shrink-0 text-slate-500" strokeWidth={1.75} />
+    <ArrowRight className="h-7 w-7 shrink-0" strokeWidth={2.25} />
   </div>;
 }
 
@@ -102,11 +103,11 @@ export default function ActHubPage() {
           <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-white/[0.04] via-slate-500/45 to-white/[0.04]" />
           <a
             href="#act-option-reps"
-            className="group relative inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#15171c]/95 px-4 text-xs font-semibold tracking-wide text-slate-300 shadow-xl shadow-black/20 backdrop-blur-xl transition hover:border-white/20 hover:bg-[#1b1e24] hover:text-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-400/15"
+            className="group relative inline-flex min-h-12 items-center gap-2 rounded-full border border-[#9584bd]/55 bg-[#302a43] px-5 text-sm font-bold tracking-wide text-[#e5dff1] shadow-xl shadow-black/20 backdrop-blur-xl transition hover:border-[#b2a2d9]/80 hover:bg-[#39314e] hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#9584bd]/30"
           >
             <span className="hidden sm:inline">Next: contact your representatives</span>
             <span className="sm:hidden">Continue to step 2</span>
-            <ArrowDown className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-y-0.5 group-hover:text-slate-300" aria-hidden="true" />
+            <ArrowDown className="h-5 w-5 text-[#afa0d4] transition-transform group-hover:translate-y-0.5 group-hover:text-white" aria-hidden="true" />
           </a>
         </div>
 
