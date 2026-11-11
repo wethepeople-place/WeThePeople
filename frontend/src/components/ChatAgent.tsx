@@ -323,14 +323,14 @@ export default function CivicGuide() {
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onClick={() => setOpen(true)}
             className="fixed bottom-24 left-4 z-[9998] flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-[#15171c]/95 px-4 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2"
-            aria-label="Open chat assistant"
+            aria-label="Open Civic Guide"
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] shadow-lg shadow-black/20"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
               <path d="M8 12h.01" />
               <path d="M12 12h.01" />
               <path d="M16 12h.01" />
-            </svg></span><span className="hidden text-sm font-semibold sm:inline">Get guidance</span>
+            </svg></span><span className="hidden text-sm font-semibold sm:inline">Confused?</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -349,7 +349,7 @@ export default function CivicGuide() {
             <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
               <div className="flex items-center gap-3">
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] text-sm font-black text-slate-100 shadow-lg shadow-black/20">W</span>
-                <div><span className="block text-sm font-semibold text-white">WTP Guide</span><span className="block text-[11px] text-slate-500">Here to help you take action</span></div>
+                <div><span className="block text-sm font-semibold text-white">Civic Guide</span><span className="block text-[11px] text-slate-500">Here to help you take action</span></div>
                 <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white/[0.07] border border-white/10 text-[10px] font-mono text-white/30 ml-1">
                   {navigator.platform?.includes("Mac") ? "\u2318K" : "Ctrl+K"}
                 </kbd>
