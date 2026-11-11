@@ -217,6 +217,8 @@ def get_issue_bills(slug: str, db: Session = Depends(get_db)):
                 row.bill.latest_action_date.isoformat() if row.bill.latest_action_date else None
             ),
             "relevance_note": row.relevance_note,
+            "summary_text": row.bill.summary_text,
+            "summary_source": "crs" if row.bill.summary_text else "unavailable",
             "source": _source(row.source),
         }
         for row in reviewed_rows
@@ -252,6 +254,8 @@ def get_issue_bills(slug: str, db: Session = Depends(get_db)):
             "latest_action_text": bill.latest_action_text,
             "latest_action_date": bill.latest_action_date.isoformat() if bill.latest_action_date else None,
             "relevance_note": bill_match_note(slug, bill),
+            "summary_text": bill.summary_text,
+            "summary_source": "crs" if bill.summary_text else "unavailable",
             "source": {
                 "url": source_url,
                 "publisher": "Congress.gov",

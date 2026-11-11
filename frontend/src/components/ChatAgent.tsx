@@ -322,7 +322,7 @@ export default function CivicGuide() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-24 left-4 z-[9998] flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-[#15171c]/95 px-4 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2"
+            className="fixed bottom-24 right-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#15171c]/95 text-white shadow-2xl shadow-black/35 backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 hover:scale-[1.02] hover:border-white/25 hover:bg-[#1c1f26] md:bottom-24 md:right-6 md:h-14 md:w-auto md:gap-2 md:rounded-2xl md:px-4"
             aria-label="Open Civic Guide"
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#5a616c] to-[#30343a] shadow-lg shadow-black/20"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -330,7 +330,7 @@ export default function CivicGuide() {
               <path d="M8 12h.01" />
               <path d="M12 12h.01" />
               <path d="M16 12h.01" />
-            </svg></span><span className="hidden text-sm font-semibold sm:inline">Confused?</span>
+            </svg></span><span className="hidden text-sm font-semibold md:inline">Confused?</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -343,7 +343,7 @@ export default function CivicGuide() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-24 left-4 z-[9999] flex h-[600px] w-[430px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101216]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:left-6 md:max-w-[calc(100vw-48px)]"
+            className="fixed bottom-24 right-4 z-[90] flex h-[600px] w-[430px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101216]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-6 md:max-w-[calc(100vw-48px)]"
           >
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">

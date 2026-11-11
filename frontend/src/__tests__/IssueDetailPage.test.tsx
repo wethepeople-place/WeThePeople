@@ -4,6 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import IssueDetailPage from '../pages/IssueDetailPage';
 
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ isAuthenticated: false, authedFetch: fetch }) }));
+
 const source = { url: 'https://example.gov/source', publisher: 'Official source', retrieved_at: '2026-11-01T00:00:00Z' };
 
 function renderIssue(path = '/issues/immigration') {
@@ -15,7 +17,8 @@ function mockIssueFetch({ evidence = [], bills = [], videos = [], billTotal = bi
 } = {}) {
   vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
     const url = String(input);
-    const payload = url.includes('/evidence') ? { issue_slug: 'immigration', series: evidence }
+    const payload = url.includes('/discussions/videos/') ? { items: [] }
+      : url.includes('/evidence') ? { issue_slug: 'immigration', series: evidence }
       : url.includes('/bills') ? { issue_slug: 'immigration', total: billTotal, bills }
         : url.includes('/videos') ? { total: videoTotal, videos }
           : { slug: 'immigration', title: 'Immigration', summary: 'Immigration, border policy, DACA, family separation, and ICE.' };
@@ -48,7 +51,7 @@ describe('IssueDetailPage guided issue journey', () => {
     expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/discussions'))).toBe(false);
   });
 
-  it('formats a single percentage observation clearly without calling it a trend', async () => {
+  it('shows a comparable Census immigration series with exact annual values', async () => {
     mockIssueFetch({ evidence: [{
       key: 'agenda-immigration', title: 'Adults naming Immigration as a 2026 government priority',
       unit: 'percent of U.S. adults', geography: { type: 'country', id: 'US' }, source,
@@ -57,11 +60,13 @@ describe('IssueDetailPage guided issue journey', () => {
     renderIssue();
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Immigration facts & trends' })).toBeTruthy());
-    expect(screen.getByText('44%')).toBeTruthy();
-    expect(screen.getByText('One sourced observation')).toBeTruthy();
-    expect(screen.getByRole('img', { name: '44% on a scale from 0 to 100 percent' })).toBeTruthy();
-    expect(screen.queryByText(/Trend appears/)).toBeNull();
-    expect(screen.getByRole('link', { name: /Official source/ }).getAttribute('href')).toBe(source.url);
+    expect(screen.getByRole('heading', { name: 'Net international migration to the United States' })).toBeTruthy();
+    expect(screen.getByText('376,026')).toBeTruthy();
+    expect(screen.getByText('2,734,468')).toBeTruthy();
+    expect(screen.getByText('1,262,202')).toBeTruthy();
+    expect(screen.getByText('54% lower than 2024')).toBeTruthy();
+    expect(screen.queryByText('44%')).toBeNull();
+    expect(screen.getByRole('link', { name: /U.S. Census Bureau/ })).toBeTruthy();
   });
 
   it('shows one video section, guides discussion through videos, and expands real items only', async () => {
@@ -75,12 +80,30 @@ describe('IssueDetailPage guided issue journey', () => {
     renderIssue();
 
     const watch = await screen.findByRole('region', { name: 'Watch and discuss immigration' });
-    expect(within(watch).getAllByRole('link')).toHaveLength(3);
+    expect(within(watch).getAllByRole('button', { name: /Watch and discuss:/ })).toHaveLength(3);
     expect(within(watch).getByText('Shared by a community member')).toBeTruthy();
     expect(within(watch).getAllByText('Reviewed source')).toHaveLength(2);
     fireEvent.click(within(watch).getByRole('button', { name: 'Show 1 more videos' }));
-    expect(within(watch).getAllByRole('link')).toHaveLength(4);
+    expect(within(watch).getAllByRole('button', { name: /Watch and discuss:/ })).toHaveLength(4);
     expect(within(watch).getByText('Showing 4 recent videos from 39 connected to immigration.')).toBeTruthy();
+  });
+
+  it('opens a video with engagement and comments without leaving the issue page', async () => {
+    mockIssueFetch({ videos: [{
+      video_id: 'immigration-video', content_origin: 'reviewed', caption: 'Immigration explained', creator_label: 'Public broadcaster',
+      delivery: { mode: 'official_embed', provider: 'youtube', provider_video_id: 'abc123', canonical_url: 'https://www.youtube.com/watch?v=abc123', source_label: 'YouTube', poster_url: null, development_only: false },
+      issue: { slug: 'immigration', title: 'Immigration' }, like_count: 4, discussion_count: 2,
+    }] });
+    renderIssue();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Watch and discuss: Immigration explained' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Immigration explained' });
+    expect(within(dialog).getByText('Watch without leaving this issue')).toBeTruthy();
+    expect(within(dialog).getByLabelText('Comments for Immigration explained')).toBeTruthy();
+    expect(within(dialog).getByRole('link', { name: 'Open full video page' }).getAttribute('href')).toBe('/videos/immigration-video');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close video' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Immigration explained' })).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Immigration' })).toBeTruthy();
   });
 
   it('uses readable bill cards with relevance, latest action, and a predictable expansion', async () => {
@@ -93,8 +116,9 @@ describe('IssueDetailPage guided issue journey', () => {
     renderIssue();
 
     await waitFor(() => expect(screen.getAllByRole('link', { name: /View bill/ })).toHaveLength(3));
-    expect(screen.getAllByText('Why it appears here')).toHaveLength(3);
-    expect(screen.getAllByText(/Latest official action/)).toHaveLength(3);
+    expect(screen.getAllByText('What this bill would do')).toHaveLength(3);
+    expect(screen.getAllByText(/A trustworthy plain-language summary/)).toHaveLength(3);
+    expect(screen.getAllByText('Status and official details')).toHaveLength(3);
     expect(screen.getByText('Showing 5 recent bills from 689 connected through the official Congress.gov policy area. Relevance is not an endorsement.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show 2 more bills' }));
     expect(screen.getAllByRole('link', { name: /View bill/ })).toHaveLength(5);

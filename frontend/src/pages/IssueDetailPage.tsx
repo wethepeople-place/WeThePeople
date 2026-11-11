@@ -3,7 +3,7 @@ import {
   ArrowLeft, ArrowRight, ChevronDown, ChevronUp, ExternalLink, FileText,
   Landmark, MessageCircle, Play, Search, TrendingUp, Users, Vote,
 } from 'lucide-react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   fetchIssueDetail,
   type EvidenceSeries,
@@ -14,6 +14,8 @@ import {
   type IssueVideo,
 } from '../api/issues';
 import { getApiBaseUrl } from '../api/client';
+import IssueVideoDialog from '../components/IssueVideoDialog';
+import { ISSUE_TRENDS } from '../data/issueTrends';
 
 type State = {
   summary: IssueSummary;
@@ -46,6 +48,9 @@ function valueLabel(series: EvidenceSeries, value: number) {
 }
 
 function evidenceExplanation(series: EvidenceSeries, issueTitle: string) {
+  if (series.key.startsWith('census-net-international-migration')) {
+    return 'People added to the U.S. population through international migration, minus people who left, during each annual estimate period. This is not a count of border encounters.';
+  }
   if (series.unit.toLowerCase().includes('percent') && series.title.toLowerCase().includes('government priority')) {
     return `Share of U.S. adults who named ${issueTitle.toLowerCase()} as a 2026 government priority in the cited survey.`;
   }
@@ -79,22 +84,16 @@ function EvidenceVisual({ series }: { series: EvidenceSeries }) {
   }
 
   if (observations.length > 1) {
-    const values = observations.map((item) => item.value);
-    const min = Math.min(...values);
-    const range = Math.max(...values) - min || 1;
-    const points = observations.map((item, index) => ({
-      x: 36 + (index / (observations.length - 1)) * 488,
-      y: 122 - ((item.value - min) / range) * 86,
-      ...item,
-    }));
-    return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
-      <svg viewBox="0 0 560 160" className="w-full" role="img" aria-label={`${series.title} trend with ${observations.length} sourced observations`}>
-        {[36, 79, 122].map((y) => <line key={y} x1="36" x2="524" y1={y} y2={y} stroke="#cbd5e1" strokeDasharray="4 5" />)}
-        <polyline points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#245b87" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((point) => <g key={point.date}><circle cx={point.x} cy={point.y} r="6" fill="#245b87" /><text x={point.x} y={point.y - 12} textAnchor="middle" fontSize="12" fontWeight="800" fill="#153f62">{valueLabel(series, point.value)}</text></g>)}
-        <text x="36" y="152" fontSize="11" fontWeight="700" fill="#64748b">{date(observations[0].date)}</text>
-        <text x="524" y="152" textAnchor="end" fontSize="11" fontWeight="700" fill="#64748b">{date(observations.at(-1)!.date)}</text>
-      </svg>
+    const max = Math.max(...observations.map((item) => item.value)) || 1;
+    const latest = observations.at(-1)!;
+    const previous = observations.at(-2)!;
+    const change = previous.value ? Math.round(((latest.value - previous.value) / previous.value) * 100) : 0;
+    return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5" role="img" aria-label={`${series.title}, ${observations.map((item) => `${new Date(item.date).getUTCFullYear()}: ${valueLabel(series, item.value)}`).join(', ')}`}>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-slate-700">Annual total</p><p className={`rounded-full px-3 py-1 text-xs font-black ${change < 0 ? 'bg-emerald-100 text-emerald-900' : 'bg-sky-100 text-sky-900'}`}>{Math.abs(change)}% {change < 0 ? 'lower' : 'higher'} than {new Date(previous.date).getUTCFullYear()}</p></div>
+      <div className="overflow-x-auto pb-1"><div className="grid min-w-[620px] items-end gap-3 border-b border-slate-300 px-2 pt-8" style={{ gridTemplateColumns: `repeat(${observations.length}, minmax(88px, 1fr))` }}>
+        {observations.map((item) => <div key={item.date} className="flex min-w-0 flex-col items-center justify-end"><span className="mb-2 whitespace-nowrap text-[11px] font-black text-[#153f62] sm:text-xs">{number(item.value)}</span><div className="w-full max-w-16 rounded-t-lg bg-[#245b87]" style={{ height: `${Math.max(18, (item.value / max) * 150)}px` }} /><span className="py-2 text-xs font-black text-slate-600">{new Date(item.date).getUTCFullYear()}</span></div>)}
+      </div></div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">Exact annual counts are shown above each bar. Latest comparable Census vintage: {new Date(latest.date).getUTCFullYear()}.</p>
     </div>;
   }
   return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">No observations are available yet.</div>;
@@ -117,7 +116,9 @@ function ActionCard({ icon: Icon, title, text, to, accent = false }: { icon: typ
 
 export default function IssueDetailPage() {
   const { slug = 'housing-rent' } = useParams();
-  const { hash } = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { hash } = location;
   const [data, setData] = useState<State | null>(null);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const [showAllBills, setShowAllBills] = useState(false);
@@ -141,9 +142,20 @@ export default function IssueDetailPage() {
   if (error) return <main className="min-h-screen bg-[#edede9] px-6 py-16 text-slate-950"><div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8"><h1 className="text-3xl font-black">Issue guide</h1><p className="mt-3 text-slate-600">We could not load this issue right now. Please try again. Your other pages are still available.</p></div></main>;
   if (!data) return <main className="min-h-screen bg-[#edede9] p-16 text-center text-slate-600">Loading sourced issue data…</main>;
 
-  const leadSeries = data.evidence.find((series) => series.observations.length > 1) || data.evidence[0];
+  const leadSeries = ISSUE_TRENDS[slug] || data.evidence.find((series) => series.observations.length > 1) || data.evidence[0];
   const issueName = data.summary.title;
   const issueLower = issueName.toLowerCase();
+  const selectedVideoId = new URLSearchParams(location.search).get('video');
+  const selectedVideo = data.videos.find((video) => video.video_id === selectedVideoId) || null;
+  const openVideo = (video: IssueVideo) => {
+    const params = new URLSearchParams(location.search); params.set('video', video.video_id);
+    navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash });
+  };
+  const closeVideo = () => {
+    const params = new URLSearchParams(location.search); params.delete('video');
+    navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, { replace: true });
+  };
+  const updateVideo = (next: IssueVideo) => setData((current) => current ? { ...current, videos: current.videos.map((item) => item.video_id === next.video_id ? next : item) } : current);
 
   return <main id="main-content" className="min-h-screen bg-[#edede9] pb-40 text-slate-950 md:pb-28">
     <header className="bg-[#245b87] px-5 py-6 text-white md:py-9">
@@ -173,10 +185,10 @@ export default function IssueDetailPage() {
         </div>
         {!data.availability.videos ? <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Videos are temporarily unavailable. You can still review legislation and take action below.</p>
           : data.videos.length === 0 ? <p className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No reviewed videos are connected to {issueLower} yet. Continue below for official bills and actions.</p>
-            : <><div className="mt-5 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <Link key={video.video_id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm outline-none transition hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200" to={`/videos/${video.video_id}?play=1`}>
+            : <><div className="mt-5 grid gap-4 md:grid-cols-3">{data.videos.slice(0, showAllVideos ? data.videos.length : 3).map((video) => <button type="button" key={video.video_id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm outline-none transition hover:border-[#245b87] focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => openVideo(video)} aria-label={`Watch and discuss: ${video.caption}`}>
               {videoThumbnail(video) ? <img src={videoThumbnail(video)!} alt="" className="aspect-video w-full bg-slate-200 object-cover" loading="lazy" /> : <span aria-hidden="true" className="grid aspect-video w-full place-items-center bg-slate-200 text-[#245b87]"><Play className="h-10 w-10" /></span>}
               <span className="block p-4"><span className="block text-[11px] font-black uppercase tracking-[.14em] text-[#245b87]">{video.content_origin === 'community' ? 'Shared by a community member' : 'Reviewed source'}</span><span className="mt-2 block text-base font-black leading-6 text-slate-950 group-hover:text-[#164d78]">{video.caption}</span><span className="mt-2 block text-sm text-slate-600">{video.creator_label}</span><span className="mt-3 block text-sm font-bold text-[#164d78]">Watch and comment <ArrowRight className="inline h-4 w-4" /></span></span>
-            </Link>)}</div>
+            </button>)}</div>
             {data.videos.length > 3 && <button type="button" aria-expanded={showAllVideos} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllVideos((current) => !current)}>{showAllVideos ? <><ChevronUp className="h-5 w-5" />Show fewer videos</> : <><ChevronDown className="h-5 w-5" />Show {data.videos.length - 3} more videos</>}</button>}
             {data.videoTotal > data.videos.length && <p className="mt-3 text-sm text-slate-600">Showing {data.videos.length} recent videos from {data.videoTotal} connected to {issueLower}.</p>}</>}
       </section>
@@ -189,8 +201,8 @@ export default function IssueDetailPage() {
         {data.availability.bills && data.bills.length === 0 && <p className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No official bills are connected yet. You can still contact representatives or prepare to vote below.</p>}
         <div className="mt-5 space-y-4">{data.bills.slice(0, showAllBills ? data.bills.length : 3).map((bill) => <article key={bill.bill_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col justify-between gap-3 sm:flex-row"><div><p className="text-xs font-black uppercase tracking-[.12em] text-[#245b87]">{bill.bill_type.toUpperCase()} {bill.bill_number} · {bill.congress}th Congress</p><h3 className="mt-2 text-xl font-black text-slate-950">{bill.title || bill.bill_id}</h3></div><span className="h-fit w-fit shrink-0 rounded-full bg-[#e8f0f7] px-3 py-1 text-xs font-black text-[#164d78]">{phaseLabel[bill.phase]}</span></div>
-          {bill.relevance_note && <div className="mt-4 rounded-xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Why it appears here</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.relevance_note}</p></div>}
-          {bill.latest_action_text && <div className="mt-4"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Latest official action{bill.latest_action_date ? ` · ${date(bill.latest_action_date)}` : ''}</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.latest_action_text}</p></div>}
+          <div className="mt-4 rounded-xl border border-sky-100 bg-[#f3f8fc] p-4"><p className="text-xs font-black uppercase tracking-[.12em] text-[#245b87]">What this bill would do</p>{bill.summary_text ? <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-800">{bill.summary_text.replace(/^AI-generated summary \(no CRS summary published yet\):\s*/i, '')}</p> : <p className="mt-2 text-sm leading-6 text-slate-600">A trustworthy plain-language summary is not available yet. Open the bill to review its official text and details.</p>}<p className="mt-2 text-[11px] font-bold text-slate-500">{bill.summary_source === 'crs' ? 'Official Congressional Research Service summary' : 'No summary added—WeThePeople will not guess'}</p></div>
+          <details className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3"><summary className="cursor-pointer text-sm font-black text-[#164d78]">Status and official details</summary>{bill.relevance_note && <div className="mt-3"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Why it appears here</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.relevance_note}</p></div>}{bill.latest_action_text && <div className="mt-3"><p className="text-xs font-black uppercase tracking-[.12em] text-slate-500">Latest official action{bill.latest_action_date ? ` · ${date(bill.latest_action_date)}` : ''}</p><p className="mt-1 text-sm leading-6 text-slate-700">{bill.latest_action_text}</p></div>}</details>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><SourceLink source={bill.source} /><Link className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[#245b87] px-4 text-sm font-black text-white outline-none hover:bg-[#164d78] focus-visible:ring-4 focus-visible:ring-sky-200" to={`/politics/bill/${bill.bill_id}`}>View bill <FileText className="h-4 w-4" /></Link></div>
         </article>)}</div>
         {data.bills.length > 3 && <button type="button" aria-expanded={showAllBills} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-[#164d78] outline-none hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-sky-200" onClick={() => setShowAllBills((current) => !current)}>{showAllBills ? <><ChevronUp className="h-5 w-5" />Show fewer bills</> : <><ChevronDown className="h-5 w-5" />Show {data.bills.length - 3} more bills</>}</button>}
@@ -202,5 +214,6 @@ export default function IssueDetailPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-3"><ActionCard icon={Users} title="Contact your representatives" text={`Find your officials and decide how to contact them about ${issueLower}.`} to={`/politics/find-rep?issue=${encodeURIComponent(slug)}`} accent /><ActionCard icon={Landmark} title="Review the legislation" text="Return to the bills above and choose one to examine in detail." to={`/issues/${slug}#legislation`} /><ActionCard icon={Vote} title="Prepare to vote" text="Check your ballot and polling information before the next election." to={`/act?target_type=issue&target_id=${encodeURIComponent(slug)}#act-option-vote`} /></div>
       </section>
     </div>
+    {selectedVideo && <IssueVideoDialog video={selectedVideo} returnPath={`${location.pathname}?video=${encodeURIComponent(selectedVideo.video_id)}`} onClose={closeVideo} onChange={updateVideo} />}
   </main>;
 }

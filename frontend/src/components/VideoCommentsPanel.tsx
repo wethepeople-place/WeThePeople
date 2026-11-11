@@ -19,6 +19,7 @@ type Props = {
   videoCaption: string;
   open: boolean;
   onClose: () => void;
+  embedded?: boolean;
 };
 
 function ReplyThread({ post, videoId }: { post: PublicDiscussionPost; videoId: string }) {
@@ -93,7 +94,7 @@ function ReplyThread({ post, videoId }: { post: PublicDiscussionPost; videoId: s
   </article>;
 }
 
-export default function VideoCommentsPanel({ videoId, videoCaption, open, onClose }: Props) {
+export default function VideoCommentsPanel({ videoId, videoCaption, open, onClose, embedded = false }: Props) {
   const { isAuthenticated } = useAuth();
   const [items, setItems] = useState<PublicDiscussionPost[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,11 +128,10 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
   };
 
   if (!open) return null;
-  return <div className="fixed inset-0 z-[80] flex items-end justify-end bg-black/70 md:items-stretch" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <aside aria-label={`Comments for ${videoCaption}`} aria-modal="true" role="dialog" className="flex h-[86vh] w-full flex-col overflow-hidden rounded-t-3xl border-l border-white/10 bg-[#090d16] text-white shadow-2xl md:h-full md:max-w-md md:rounded-none">
+  const panel = <aside aria-label={`Comments for ${videoCaption}`} aria-modal={embedded ? undefined : 'true'} role={embedded ? undefined : 'dialog'} className={`flex w-full flex-col overflow-hidden border-l border-white/10 bg-[#090d16] text-white ${embedded ? 'h-full' : 'h-[86vh] rounded-t-3xl shadow-2xl md:h-full md:max-w-md md:rounded-none'}`}>
       <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <div><h2 className="text-xl font-bold">Comments <span className="text-slate-400">{items.reduce((sum, item) => sum + 1 + item.reply_count, 0)}</span></h2><p className="mt-1 line-clamp-1 text-xs text-slate-400">{videoCaption}</p></div>
-        <button autoFocus type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-content-center rounded-full bg-white/10 outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-label="Close comments"><X className="h-5 w-5" /></button>
+        {!embedded && <button autoFocus type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-content-center rounded-full bg-white/10 outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-label="Close comments"><X className="h-5 w-5" /></button>}
       </header>
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {loading && <p className="p-6 text-slate-400">Loading comments…</p>}
@@ -146,6 +146,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
           <button disabled={submitting} className="grid min-h-12 min-w-12 place-content-center rounded-full bg-amber-300 text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70 disabled:opacity-60" aria-label="Submit comment for review"><Send className="h-5 w-5" /></button>
         </form> : <Link className="block rounded-full bg-amber-300 px-5 py-3 text-center font-bold text-slate-950 outline-none focus-visible:ring-4 focus-visible:ring-white/70" to={`/login?next=${encodeURIComponent(`/videos/${videoId}?comments=1`)}`}>Sign in to comment</Link>}
       </footer>
-    </aside>
-  </div>;
+    </aside>;
+  if (embedded) return panel;
+  return <div className="fixed inset-0 z-[80] flex items-end justify-end bg-black/70 md:items-stretch" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>{panel}</div>;
 }

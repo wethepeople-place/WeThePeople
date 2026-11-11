@@ -34,11 +34,17 @@ export type IssueBill = {
   title: string | null; policy_area: string | null;
   phase: 'past' | 'current' | 'upcoming' | 'enacted'; status_bucket: string | null;
   status_reason: string | null; latest_action_text: string | null;
-  latest_action_date: string | null; relevance_note: string | null; source: IssueSource;
+  latest_action_date: string | null; relevance_note: string | null;
+  summary_text?: string | null; summary_source?: 'crs' | 'ai' | 'unavailable' | null; source: IssueSource;
 };
 export type IssueVideo = {
   video_id: string; content_origin: 'reviewed' | 'community'; caption: string; creator_label: string;
-  delivery?: { provider: string | null; provider_video_id: string | null; poster_url: string | null } | null;
+  transcript?: string | null; media_url?: string; published_at?: string;
+  delivery?: { mode?: 'official_embed' | 'hosted_video' | 'link_out'; provider: string | null; provider_video_id: string | null; poster_url: string | null; canonical_url?: string; source_label?: string | null; development_only?: boolean } | null;
+  accessibility?: { text_kind: 'overview' | 'transcript'; official_transcript_url: string; official_transcript_label: string; overview_points?: string[]; development_only: boolean } | null;
+  source?: { url: string; publisher: string };
+  bills?: Array<{ bill_id: string; title: string | null }>;
+  discussion_count?: number; like_count?: number; liked?: boolean; saved?: boolean;
   issue: { slug: string; title: string };
 };
 export type FederalJob = {

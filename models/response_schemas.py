@@ -517,6 +517,8 @@ class IssueBillItem(BaseModel):
     latest_action_text: Optional[str] = None
     latest_action_date: Optional[str] = None
     relevance_note: Optional[str] = None
+    summary_text: Optional[str] = None
+    summary_source: Optional[Literal["crs", "ai", "unavailable"]] = None
     source: IssueSource
 
 class IssueBillsResponse(BaseModel):

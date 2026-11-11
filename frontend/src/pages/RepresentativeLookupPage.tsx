@@ -911,9 +911,11 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <Link to={`/civic/promises?person_id=${encodeURIComponent(rep.person_id)}&person_name=${encodeURIComponent(rep.display_name)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #485466', color: '#d7e0eb', padding: '0 13px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-          View promises
-        </Link>
+        {rep.promises.length ? <Link to={`/civic/promises?person_id=${encodeURIComponent(rep.person_id)}&person_name=${encodeURIComponent(rep.display_name)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #6b7b90', background: '#f4f7fb', color: '#142033', padding: '0 13px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
+          View {rep.promises.length} sourced {rep.promises.length === 1 ? 'promise' : 'promises'}
+        </Link> : <span aria-label="No sourced promises available" style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #3d4755', background: '#171c24', color: '#aeb8c6', padding: '0 13px', fontSize: 13, fontWeight: 700 }}>
+          No promises available
+        </span>}
         <Link to={rep.election_forecasts[0]?.forecast_url || `/forecasts?person_id=${encodeURIComponent(rep.person_id)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10, background: '#d3dbe7', color: '#111722', padding: '0 14px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
           What happens next? <ArrowRight size={14} />
         </Link>
