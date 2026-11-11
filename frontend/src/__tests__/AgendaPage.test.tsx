@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 
@@ -6,7 +6,7 @@ import AgendaPage from '../pages/AgendaPage';
 
 afterEach(() => vi.unstubAllGlobals());
 
-it('renders the sourced public-priorities agenda and expands all 20 issues', async () => {
+it('renders all 20 sourced public-priority issues by default', async () => {
   const items = Array.from({ length: 20 }, (_, index) => ({
     rank: index + 1,
     slug: index === 0 ? 'immigration' : index === 5 ? 'housing-rent' : `issue-${index + 1}`,
@@ -27,11 +27,11 @@ it('renders the sourced public-priorities agenda and expands all 20 issues', asy
   expect(await screen.findByRole('heading', { name: 'Immigration' })).toBeTruthy();
   expect(screen.getByText(/1,146 U.S. adults/)).toBeTruthy();
   expect(screen.getByText(/Respondents could name up to five priorities/)).toBeTruthy();
-  expect(screen.queryByRole('heading', { name: 'Housing & Rent' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Show 15 more issues' }));
+  expect(screen.getByText(/they are not WTP votes/)).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Housing & Rent' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Show .* issues|Show top 5/ })).toBeNull();
   expect(screen.getByRole('link', { name: /Housing & Rent/ }).getAttribute('href')).toBe('/issues/housing-rent');
-  expect(screen.getByRole('link', { name: 'Propose an issue' }).getAttribute('href')).toBe('/discuss?compose=1#composer');
+  expect(screen.queryByRole('link', { name: 'Propose an issue' })).toBeNull();
   expect(screen.getByRole('link', { name: /View AP-NORC source/ }).getAttribute('href')).toBe('https://apnorc.org/example');
   expect(screen.queryByText(/214,508/)).toBeNull();
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, ChevronDown, ChevronUp, ExternalLink, Info, MessageSquarePlus } from 'lucide-react';
+import { ArrowRight, ExternalLink, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { fetchIssueAgenda, type IssueAgenda } from '../api/issues';
@@ -12,7 +12,6 @@ const formatSurveyDates = (start: string, end: string) => {
 export default function AgendaPage() {
   const [agenda, setAgenda] = useState<IssueAgenda | null>(null);
   const [error, setError] = useState('');
-  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -20,8 +19,7 @@ export default function AgendaPage() {
     return () => { active = false; };
   }, []);
 
-  const visibleItems = agenda?.items.slice(0, showAll ? agenda.items.length : 5) || [];
-  const remaining = Math.max(0, (agenda?.items.length || 0) - 5);
+  const visibleItems = agenda?.items || [];
 
   return <main id="main-content" className="min-h-screen bg-[#e9eef4] pb-36 text-slate-950 md:pb-20">
     <header className="bg-[#245b87] px-5 py-5 text-white md:py-9">
@@ -68,17 +66,18 @@ export default function AgendaPage() {
           </Link>)}
         </div>
 
-        {remaining > 0 && <button type="button" onClick={() => setShowAll((value) => !value)} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-black text-[#245b87] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-200">
-          {showAll ? <><ChevronUp className="h-4 w-4" />Show top 5</> : <><ChevronDown className="h-4 w-4" />Show {remaining} more issues</>}
-        </button>}
       </section>
-
-      <Link to="/discuss?compose=1#composer" className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#dda91f] px-5 font-black text-slate-950"><MessageSquarePlus className="h-5 w-5" />Propose an issue</Link>
 
       {agenda && <details id="how-ranking-works" className="mt-5 scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 sm:rounded-2xl sm:p-5">
         <summary className="cursor-pointer font-black text-[#245b87]">How this ranking works</summary>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{agenda.methodology.description} Percentages are the share who named an issue among up to five responses; they are not WTP votes and do not sum to 100. {agenda.methodology.tie_break}</p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Respondents could name up to five priorities. The sampling margin is ±{agenda.methodology.margin_of_error_points.toFixed(1)} points. Issue pages without reviewed receipts clearly say that material is still being assembled.</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">
+          <li>{agenda.methodology.description}</li>
+          <li>Respondents could name up to five priorities.</li>
+          <li>Percentages are the share who named each issue; they are not WTP votes and do not sum to 100.</li>
+          <li>The sampling margin is ±{agenda.methodology.margin_of_error_points.toFixed(1)} points.</li>
+          <li>{agenda.methodology.tie_break}</li>
+          <li>Issue pages clearly identify material that is still being assembled.</li>
+        </ul>
         <a href={agenda.methodology.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-1.5 font-bold text-[#245b87] underline">View AP-NORC source <ExternalLink className="h-4 w-4" /></a>
       </details>}
     </div>
