@@ -126,7 +126,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
   };
 
   if (!open) return null;
-  return <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/70 md:items-stretch" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className="fixed inset-0 z-[80] flex items-end justify-end bg-black/70 md:items-stretch" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside aria-label={`Comments for ${videoCaption}`} aria-modal="true" role="dialog" className="flex h-[86vh] w-full flex-col overflow-hidden rounded-t-3xl border-l border-white/10 bg-[#090d16] text-white shadow-2xl md:h-full md:max-w-md md:rounded-none">
       <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <div><h2 className="text-xl font-bold">Comments <span className="text-slate-400">{items.reduce((sum, item) => sum + 1 + item.reply_count, 0)}</span></h2><p className="mt-1 line-clamp-1 text-xs text-slate-400">{videoCaption}</p></div>
@@ -138,7 +138,7 @@ export default function VideoCommentsPanel({ videoId, videoCaption, open, onClos
         {!loading && !error && items.length === 0 && <div className="grid min-h-64 place-content-center px-8 text-center"><MessageCircle className="mx-auto h-9 w-9 text-slate-500" /><h3 className="mt-4 text-lg font-semibold">No published comments yet</h3><p className="mt-2 text-sm leading-6 text-slate-400">Start a sourced, civil conversation. Nothing is posted automatically.</p></div>}
         {!loading && items.map((post) => <ReplyThread key={post.id} post={post} videoId={videoId} onReplyCreated={onClose} />)}
       </div>
-      <footer className="border-t border-white/10 bg-[#090d16] p-4">
+      <footer className="border-t border-white/10 bg-[#090d16] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
         {isAuthenticated ? <form onSubmit={submit} className="flex items-end gap-2">
           <label className="sr-only" htmlFor={`video-comment-${videoId}`}>Add a comment</label>
           <textarea id={`video-comment-${videoId}`} required maxLength={10000} rows={2} value={body} onChange={(event) => setBody(event.target.value)} className="min-h-12 flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus-visible:ring-4 focus-visible:ring-amber-300/70" placeholder="Add a comment…" />

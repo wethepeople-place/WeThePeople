@@ -14,7 +14,10 @@ it('closes after a video comment is submitted and leaves the video in place', as
     .mockResolvedValueOnce({ ok: true, json: async () => ({ total: 0, limit: 20, offset: 0, items: [] }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 14, moderation_status: 'pending', message: 'Submitted for moderation' }) }));
 
-  render(<MemoryRouter><VideoCommentsPanel videoId="community-42" videoCaption="Housing video" open onClose={onClose} /></MemoryRouter>);
+  const { container } = render(<MemoryRouter><VideoCommentsPanel videoId="community-42" videoCaption="Housing video" open onClose={onClose} /></MemoryRouter>);
+
+  expect(container.firstElementChild?.className).toContain('z-[80]');
+  expect(container.querySelector('footer')?.className).toContain('safe-area-inset-bottom');
 
   const comment = await screen.findByRole('textbox', { name: 'Add a comment' });
   fireEvent.change(comment, { target: { value: 'A useful reply.' } });
