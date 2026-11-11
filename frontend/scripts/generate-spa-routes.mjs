@@ -31,6 +31,11 @@ function withSocialMetadata(html, { canonicalUrl, title, description }) {
 
 await writeRoute(['watch'], indexHtml)
 await writeRoute(['videos'], indexHtml)
+await writeRoute(['agenda'], withSocialMetadata(indexHtml, {
+  canonicalUrl: 'https://app.wethepeople.place/agenda',
+  title: "The People's Agenda | WeThePeople.place",
+  description: 'Twenty public priorities connected to evidence, representatives, laws, elections, and action.',
+}))
 await writeRoute(['saved'], indexHtml)
 await writeRoute(['politics', 'find-rep'], indexHtml)
 await writeRoute(['act'], indexHtml)

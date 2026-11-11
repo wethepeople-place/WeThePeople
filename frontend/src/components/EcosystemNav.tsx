@@ -58,9 +58,9 @@ const SITES: Record<Exclude<EcosystemSite, 'core'>, SiteDef> & { core: SiteDef }
   },
   civic: {
     key: 'civic',
-    name: 'Civic Hub',
-    display: 'Civic Hub',
-    href: '/civic',
+    name: 'Agenda',
+    display: 'Agenda',
+    href: '/agenda',
     accent: '#C5A028',
     dim: 'rgba(197,160,40,0.12)',
     text: '#D8B84A',

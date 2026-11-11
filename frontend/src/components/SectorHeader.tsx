@@ -471,7 +471,7 @@ export function EducationSectorHeader() {
 
 const CIVIC_LINKS: NavLink[] = [
   { label: 'Sectors', to: '/' },
-  { label: 'Civic Hub', to: '/civic' },
+  { label: 'Agenda', to: '/agenda' },
   { label: 'Promises', to: '/civic/promises' },
   { label: 'Proposals', to: '/civic/proposals' },
   { label: 'Badges', to: '/civic/badges' },

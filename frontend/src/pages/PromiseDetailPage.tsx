@@ -130,7 +130,7 @@ export default function PromiseDetailPage() {
             {error || 'Promise not found'}
           </p>
           <Link
-            to="/civic"
+            to="/agenda"
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: '14px',
@@ -151,7 +151,7 @@ export default function PromiseDetailPage() {
     <main id="main-content" style={pageShell}>
       <div style={contentWrap}>
         <Link
-          to="/civic"
+          to="/agenda"
           style={backLink}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent-text)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-2)'; }}

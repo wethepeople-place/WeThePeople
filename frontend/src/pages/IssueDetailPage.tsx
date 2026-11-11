@@ -124,7 +124,7 @@ export default function IssueDetailPage() {
   return <main id="main-content" className="min-h-screen bg-[#edede9] pb-32 text-slate-950 md:pb-20">
     <header className="bg-[#245b87] px-5 py-5 text-white md:py-8">
       <div className="mx-auto max-w-3xl">
-        <Link to="/civic" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-sky-50"><ArrowLeft className="h-4 w-4" />Agenda</Link>
+        <Link to="/agenda" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-sky-50"><ArrowLeft className="h-4 w-4" />Agenda</Link>
         <p className="mt-1 text-xs font-bold uppercase tracking-[.16em] text-sky-100">Issue hub</p>
         <h1 className="mt-1 text-3xl font-black tracking-tight md:text-5xl">{data.summary.title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-50 md:text-base">{data.summary.summary || 'Reviewed public evidence, legislation, solutions, and ways to participate.'}</p>

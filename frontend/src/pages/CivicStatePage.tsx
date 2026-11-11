@@ -95,7 +95,7 @@ export default function CivicStatePage() {
       style={{ maxWidth: 1100, margin: '0 auto', color: 'var(--color-text-1)' }}
     >
       <Link
-        to="/civic"
+        to="/agenda"
         className="inline-flex items-center gap-2 mb-6 no-underline"
         style={{ color: 'var(--color-text-3)', fontSize: 13 }}
       >

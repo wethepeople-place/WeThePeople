@@ -403,8 +403,9 @@ const App: React.FC = () => (
           <Route path="/education/enforcement" element={<EducationLayout><SectorEnforcementPage /></EducationLayout>} />
           <Route path="/education/:companyId" element={<EducationLayout><EducationCompanyProfilePage /></EducationLayout>} />
 
-          {/* Civic Hub — accountability, proposals, badges, verification */}
-          <Route path="/civic" element={<AgendaPage />} />
+          {/* Agenda is canonical; keep /civic as a compatibility redirect. */}
+          <Route path="/agenda" element={<AgendaPage />} />
+          <Route path="/civic" element={<Navigate to="/agenda" replace />} />
           <Route path="/civic/state/:state" element={<CivicStatePage />} />
           <Route path="/civic/promises" element={<CivicHubPage />} />
           <Route path="/civic/promises/:promiseId" element={<PromiseDetailPage />} />

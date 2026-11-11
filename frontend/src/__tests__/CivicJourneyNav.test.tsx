@@ -7,7 +7,7 @@ it('connects the simplified civic journey destinations', () => {
   render(<MemoryRouter initialEntries={['/government']}><CivicJourneyNav /></MemoryRouter>);
 
   const expected = {
-    Agenda: '/civic',
+    Agenda: '/agenda',
     Videos: '/videos',
     Issues: '/issues/housing-rent',
     ACT: '/act',

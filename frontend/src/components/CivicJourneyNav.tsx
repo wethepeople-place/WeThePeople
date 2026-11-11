@@ -11,7 +11,7 @@ type JourneyItem = {
 
 const primary: JourneyItem[] = [
   { label: 'Videos', to: '/videos', Icon: Play },
-  { label: 'Agenda', to: '/civic', Icon: List },
+  { label: 'Agenda', to: '/agenda', Icon: List },
   { label: 'Jobs', to: 'https://research.wethepeople.place/gov-salaries', Icon: BriefcaseBusiness, external: true },
   { label: 'ACT', to: '/act', Icon: Landmark },
   { label: 'Reps', to: '/politics/find-rep', Icon: Users },
@@ -21,7 +21,7 @@ const primary: JourneyItem[] = [
 
 const desktop: Array<{ label: string; to: string; external?: boolean }> = [
   { label: 'Videos', to: '/videos' },
-  { label: 'Agenda', to: '/civic' },
+  { label: 'Agenda', to: '/agenda' },
   { label: 'Issues', to: '/issues/housing-rent' },
   { label: 'ACT', to: '/act' },
   { label: 'Representatives', to: '/politics/find-rep' },

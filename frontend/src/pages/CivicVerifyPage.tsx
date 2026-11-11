@@ -121,7 +121,7 @@ export default function CivicVerifyPage() {
     <main id="main-content" style={pageShell}>
       <div style={contentWrap}>
         <Link
-          to="/civic"
+          to="/agenda"
           style={backLink}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent-text)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-2)'; }}
