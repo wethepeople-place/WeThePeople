@@ -44,7 +44,7 @@ export default function ActHubPage() {
           <div>
             <div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-slate-400 shadow-[0_0_14px_rgba(180,190,205,0.35)]" /><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Civic action</p></div>
             <h1 className="mt-5 text-sm font-semibold tracking-wide text-slate-400">ACT</h1>
-            <p className="mt-2 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-100 sm:text-5xl xl:text-6xl">Don’t like what those old men decide? <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">Change who gets to decide.</span></p>
+            <p className="mt-2 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-100 sm:text-5xl xl:text-6xl">Don’t like what those old folks decide? <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">Change who gets to decide.</span></p>
             <p className="mt-5 max-w-3xl text-lg font-medium leading-7 text-slate-200 sm:text-2xl sm:leading-8">If their agenda doesn’t align with yours, vote them out.</p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">Plan your vote. Contact your representatives. Make your voice count. You stay in control; nothing is sent without your say.</p>
           </div>
