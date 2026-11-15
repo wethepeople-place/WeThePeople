@@ -345,7 +345,7 @@ export default function RepresentativeLookupPage() {
           {issueSlug && (
             <p style={{ marginTop: 12, fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--color-text-2)' }}>
               Looking up representatives for this issue journey.{' '}
-              <Link to={`/issues/${encodeURIComponent(issueSlug)}`} style={{ color: 'var(--color-accent-text)' }}>
+              <Link to={`/issues/${encodeURIComponent(issueSlug)}`} target={isEmbedded ? '_blank' : undefined} rel={isEmbedded ? 'noreferrer' : undefined} style={{ color: 'var(--color-accent-text)' }}>
                 Return to official evidence
               </Link>
             </p>
@@ -763,7 +763,7 @@ export default function RepresentativeLookupPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: idx * 0.06 }}
                 >
-                  <RepCard rep={rep} issueSlug={issueSlug} />
+                  <RepCard rep={rep} issueSlug={issueSlug} openLinksInNewTab={isEmbedded} />
                 </motion.div>
               ))}
             </div>
@@ -783,7 +783,7 @@ export default function RepresentativeLookupPage() {
                 </p>
               </div>
               <div style={{ display: 'grid', gap: 14 }}>
-                {reps.map((rep) => <ConnectedRepresentativeRecord key={`record-${rep.person_id}`} rep={rep} />)}
+                {reps.map((rep) => <ConnectedRepresentativeRecord key={`record-${rep.person_id}`} rep={rep} openLinksInNewTab={isEmbedded} />)}
               </div>
               {generatedAt && <p style={{ marginTop: 10, textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--color-text-3)' }}>
                 Record assembled {new Date(generatedAt).toLocaleString()}
@@ -866,7 +866,7 @@ function shortDate(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
+function ConnectedRepresentativeRecord({ rep, openLinksInNewTab = false }: { rep: Representative; openLinksInNewTab?: boolean }) {
   const recordText = { body: '#e1e7ef', muted: '#b5bfcc', label: '#c8d1dd', link: '#c6d9f2' };
   const panels = {
     shell: { borderRadius: 14, border: '1px solid #303845', background: '#141820', padding: 18 } as React.CSSProperties,
@@ -877,7 +877,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <RepresentativePortrait rep={rep} size={48} radius={12} />
         <div>
-          <Link to={`/politics/people/${rep.person_id}`} style={{ color: '#f4f7fb', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 750 }}>
+          <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ color: '#f4f7fb', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 750 }}>
             {rep.display_name}
           </Link>
           <p style={{ marginTop: 4, fontFamily: "'Inter', sans-serif", fontSize: 14, lineHeight: 1.55, color: recordText.muted }}>
@@ -885,7 +885,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
           </p>
         </div>
       </div>
-      <Link to={`/politics/people/${rep.person_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 40, borderRadius: 10, border: '1px solid #394250', background: '#161b22', padding: '0 14px', color: recordText.link, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+      <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 40, borderRadius: 10, border: '1px solid #394250', background: '#161b22', padding: '0 14px', color: recordText.link, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
         Full public record <ExternalLink size={12} />
       </Link>
     </header>
@@ -904,19 +904,19 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
             What do you think happens next for {rep.display_name}?
           </h3>
           {rep.promises.length ? <p style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.55, color: '#c6cfdb' }}>
-            Promise to watch: <Link to={`/civic/promises/${rep.promises[0].id}`} style={{ color: '#d8e6f8', fontWeight: 700 }}>{rep.promises[0].title}</Link>
+            Promise to watch: <Link to={`/civic/promises/${rep.promises[0].id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ color: '#d8e6f8', fontWeight: 700 }}>{rep.promises[0].title}</Link>
           </p> : <p style={{ marginTop: 5, fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.55, color: '#b8c2cf' }}>
             No sourced promise is connected yet. We won’t guess.
           </p>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {rep.promises.length ? <Link to={`/civic/promises?person_id=${encodeURIComponent(rep.person_id)}&person_name=${encodeURIComponent(rep.display_name)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #6b7b90', background: '#f4f7fb', color: '#142033', padding: '0 13px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
+        {rep.promises.length ? <Link to={`/civic/promises?person_id=${encodeURIComponent(rep.person_id)}&person_name=${encodeURIComponent(rep.display_name)}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #6b7b90', background: '#f4f7fb', color: '#142033', padding: '0 13px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
           View {rep.promises.length} sourced {rep.promises.length === 1 ? 'promise' : 'promises'}
         </Link> : <span aria-label="No sourced promises available" style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid #3d4755', background: '#171c24', color: '#aeb8c6', padding: '0 13px', fontSize: 13, fontWeight: 700 }}>
           No promises available
         </span>}
-        <Link to={rep.election_forecasts[0]?.forecast_url || `/forecasts?person_id=${encodeURIComponent(rep.person_id)}`} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10, background: '#d3dbe7', color: '#111722', padding: '0 14px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
+        <Link to={rep.election_forecasts[0]?.forecast_url || `/forecasts?person_id=${encodeURIComponent(rep.person_id)}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ display: 'inline-flex', minHeight: 40, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10, background: '#d3dbe7', color: '#111722', padding: '0 14px', textDecoration: 'none', fontSize: 13, fontWeight: 800 }}>
           What happens next? <ArrowRight size={14} />
         </Link>
       </div>
@@ -952,10 +952,10 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
         {rep.election_forecasts.length ? rep.election_forecasts.map((forecast) => <div key={forecast.id} style={{ marginTop: 11 }}>
           <p style={{ fontSize: 14, lineHeight: 1.6, color: recordText.body }}>{forecast.question}</p>
           <p style={{ marginTop: 6, fontSize: 12, lineHeight: 1.45, color: recordText.muted }}>Closes {shortDate(forecast.closes_at)} · source-backed civic forecast</p>
-          <Link to={forecast.forecast_url} style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Open Bets <ExternalLink size={11} /></Link>
+          <Link to={forecast.forecast_url} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Open Bets <ExternalLink size={11} /></Link>
         </div>) : <div style={{ marginTop: 12 }}>
           <p style={{ fontSize: 14, lineHeight: 1.65, color: recordText.body }}>No sourced forecast is published for {rep.display_name}’s next election yet. This will connect automatically when a verified contest market is available.</p>
-          <Link to="/forecasts" style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Browse all sourced forecasts <ExternalLink size={11} /></Link>
+          <Link to="/forecasts" target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Browse all sourced forecasts <ExternalLink size={11} /></Link>
         </div>}
       </section>
 
@@ -972,7 +972,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
             <span style={{ display: 'block', marginTop: 3, fontSize: 12, lineHeight: 1.35, color: recordText.muted }}>{label}</span>
           </div>)}
         </div>
-        <Link to={`/politics/people/${rep.person_id}`} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Inspect sources <ExternalLink size={11} /></Link>
+        <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 13, fontWeight: 650 }}>Inspect sources <ExternalLink size={11} /></Link>
       </section>
     </div>
   </article>;
@@ -980,7 +980,7 @@ function ConnectedRepresentativeRecord({ rep }: { rep: Representative }) {
 
 // ── Rep Card ──
 
-function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }) {
+function RepCard({ rep, issueSlug, openLinksInNewTab = false }: { rep: Representative; issueSlug?: string; openLinksInNewTab?: boolean }) {
   const hex = partyHex(rep.party);
   const token = partyToken(rep.party);
   const isSenate = chamberLabel(rep.chamber) === 'Senate';
@@ -1018,7 +1018,7 @@ function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }
               }}
             >
               {rep.display_name}
-            </h3></a> : <Link to={`/politics/people/${rep.person_id}`} style={{ textDecoration: 'none' }}><h3
+            </h3></a> : <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ textDecoration: 'none' }}><h3
               style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >{rep.display_name}</h3></Link>}
             <p
@@ -1096,7 +1096,7 @@ function RepCard({ rep, issueSlug }: { rep: Representative; issueSlug?: string }
           )}
         </div>
 
-        <RepresentativeActPanel personId={rep.person_id} displayName={rep.display_name} issueSlug={issueSlug} />
+        <RepresentativeActPanel personId={rep.person_id} displayName={rep.display_name} issueSlug={issueSlug} openLinksInNewTab={openLinksInNewTab} />
 
         {/* Contribute to campaign */}
         <a
