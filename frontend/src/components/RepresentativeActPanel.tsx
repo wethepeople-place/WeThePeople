@@ -9,13 +9,14 @@ type Props = {
   personId: string;
   displayName: string;
   issueSlug?: string;
+  openLinksInNewTab?: boolean;
 };
 
 function receiptKey(personId: string, kind: 'call' | 'message') {
   return `rep-${personId}-${kind}`;
 }
 
-export default function RepresentativeActPanel({ personId, displayName, issueSlug = '' }: Props) {
+export default function RepresentativeActPanel({ personId, displayName, issueSlug = '', openLinksInNewTab = false }: Props) {
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<RepresentativeActOptions | null>(null);
@@ -73,7 +74,7 @@ export default function RepresentativeActPanel({ personId, displayName, issueSlu
             <a href={`tel:${options.fallback.phone}`} onClick={() => { if (isAuthenticated) void record('call', 'opened'); }} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 outline-none focus-visible:ring-4 focus-visible:ring-slate-400/20"><span className="flex items-center gap-2 font-bold"><Phone className="h-4 w-4" />{options.fallback.label}</span><span className="mt-2 block text-lg text-slate-200">{options.fallback.phone}</span><span className="mt-1 block text-xs text-slate-500">Official switchboard · ask for the office</span></a>
           </div></section>
           <section><label htmlFor={`act-message-${personId}`} className="font-bold">Prepare your message</label><textarea id={`act-message-${personId}`} rows={7} maxLength={5000} value={message} onChange={(event) => setMessage(event.target.value)} className="mt-3 w-full rounded-2xl border border-white/10 bg-black/20 p-4 leading-6 text-white outline-none focus-visible:ring-4 focus-visible:ring-slate-400/20" /><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void copyMessage()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-slate-200 px-5 py-2 font-bold text-slate-950"><Clipboard className="h-4 w-4" />Copy message</button>{options.contacts.filter((item) => item.contact_url).map((item) => <a key={item.id} href={item.contact_url!} target="_blank" rel="noreferrer" onClick={() => { if (isAuthenticated) void record('message', 'opened'); }} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-5 py-2 font-bold"><ExternalLink className="h-4 w-4" />Open {item.label}</a>)}</div><p className="mt-3 text-xs leading-5 text-slate-400">{options.message_policy.instructions}</p></section>
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold">Private action receipt</h3>{isAuthenticated ? <><p className="mt-1 text-sm text-slate-300">Receipts are private by default and never contain your message or call information.</p><button type="button" onClick={() => void record('message', 'user_confirmed_submitted')} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 py-2 font-bold"><Check className="h-4 w-4" />I submitted it myself</button></> : <p className="mt-1 text-sm text-slate-300"><Link className="font-bold text-slate-200 underline" to="/login">Sign in</Link> if you want to save a private receipt. You can still call or copy without an account.</p>}</section>
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold">Private action receipt</h3>{isAuthenticated ? <><p className="mt-1 text-sm text-slate-300">Receipts are private by default and never contain your message or call information.</p><button type="button" onClick={() => void record('message', 'user_confirmed_submitted')} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 py-2 font-bold"><Check className="h-4 w-4" />I submitted it myself</button></> : <p className="mt-1 text-sm text-slate-300"><Link className="font-bold text-slate-200 underline" to="/login" target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined}>Sign in</Link> if you want to save a private receipt. You can still call or copy without an account.</p>}</section>
           {notice && <p role="status" className="text-sm text-slate-300">{notice}</p>}
         </div>}
       </section>

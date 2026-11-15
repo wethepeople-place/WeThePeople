@@ -51,7 +51,7 @@ describe('RepresentativeLookupPage coverage state', () => {
       }),
     }));
 
-    render(<MemoryRouter><RepresentativeLookupPage /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/politics/find-rep?embed=1']}><RepresentativeLookupPage /></MemoryRouter>);
     fireEvent.change(screen.getByPlaceholderText(/Enter your zip code/), { target: { value: '21208' } });
     fireEvent.click(screen.getByRole('button', { name: /look up/i }));
 
@@ -64,6 +64,9 @@ describe('RepresentativeLookupPage coverage state', () => {
     expect(screen.queryByRole('heading', { name: 'What do you think happens next?' })).toBeNull();
     expect(screen.getByRole('heading', { name: 'What do you think happens next for Angela D. Alsobrooks?' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'What do you think happens next for Chris Van Hollen?' })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: 'Full public record' })[0].getAttribute('target')).toBe('_blank');
+    expect(screen.getAllByRole('link', { name: /What happens next/ })[0].getAttribute('target')).toBe('_blank');
+    expect(screen.getAllByRole('link', { name: 'Browse all sourced forecasts' })[0].getAttribute('target')).toBe('_blank');
     expect(screen.getAllByLabelText('No sourced promises available')).toHaveLength(2);
     expect(screen.queryByRole('link', { name: /View .*promise/ })).toBeNull();
     expect(screen.getAllByText('Chris Van Hollen').length).toBeGreaterThan(0);
