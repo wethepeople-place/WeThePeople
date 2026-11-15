@@ -203,7 +203,8 @@ const GlobalOverlays: React.FC = () => {
 
 const AppChrome: React.FC = () => {
   const { search } = useLocation();
-  if (new URLSearchParams(search).get('embed') === '1') return null;
+  const isEmbedded = new URLSearchParams(search).get('embed') === '1' || window.self !== window.top;
+  if (isEmbedded) return null;
   return <><EcosystemNav active="core" /><CivicJourneyNav /><GlobalOverlays /></>;
 };
 
