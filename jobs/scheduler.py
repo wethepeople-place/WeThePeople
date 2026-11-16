@@ -137,6 +137,13 @@ JOB_REGISTRY: List[JobDef] = [
         description="Senate roll-call votes from senate.gov XML",
     ),
     JobDef(
+        name="sync_curated_promises",
+        script="jobs/seed_promises.py",
+        interval_hours=24,
+        timeout_sec=300,
+        description="Idempotent source-backed public commitments for tracked members",
+    ),
+    JobDef(
         # Was previously unscheduled — left the Actions table stuck at
         # 2026-02-25 for ~9 weeks until the gap was caught in the May 2
         # walkthrough audit. Wires the existing connector

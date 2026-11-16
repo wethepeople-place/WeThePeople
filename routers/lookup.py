@@ -32,7 +32,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from cachetools import TTLCache
 
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
 
@@ -467,8 +467,16 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
     vote_rows = []
     try:
         vote_rows = (
-            db.query(Vote, MemberVote.position, MemberVote.bioguide_id)
+            db.query(Vote, MemberVote.position, MemberVote.bioguide_id, Bill.title.label("bill_title"))
             .join(MemberVote, MemberVote.vote_id == Vote.id)
+            .outerjoin(
+                Bill,
+                and_(
+                    Bill.congress == Vote.related_bill_congress,
+                    func.lower(Bill.bill_type) == func.lower(Vote.related_bill_type),
+                    Bill.bill_number == Vote.related_bill_number,
+                ),
+            )
             .filter(
                 MemberVote.bioguide_id.in_([bid for bid in bioguide_ids if bid]),
             )
@@ -479,12 +487,13 @@ def zip_lookup(zip_code: str, db: Session = Depends(get_db)):
         vote_rows = []
 
     votes_by_pid: Dict[str, List] = {pid: [] for pid in person_ids}
-    for vote, position, bid in vote_rows:
+    for vote, position, bid, bill_title in vote_rows:
         pid = bioguide_to_pid.get(bid)
         bucket = votes_by_pid.get(pid) if pid else None
         if bucket is not None and len(bucket) < 5:
             bucket.append({
                 "question": vote.question,
+                "bill_title": bill_title,
                 "vote_date": str(vote.vote_date) if vote.vote_date else None,
                 "result": vote.result,
                 "position": position,

@@ -10,13 +10,14 @@ type Props = {
   displayName: string;
   issueSlug?: string;
   openLinksInNewTab?: boolean;
+  buttonVariant?: 'card' | 'compact';
 };
 
 function receiptKey(personId: string, kind: 'call' | 'message') {
   return `rep-${personId}-${kind}`;
 }
 
-export default function RepresentativeActPanel({ personId, displayName, issueSlug = '', openLinksInNewTab = false }: Props) {
+export default function RepresentativeActPanel({ personId, displayName, issueSlug = '', openLinksInNewTab = false, buttonVariant = 'card' }: Props) {
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<RepresentativeActOptions | null>(null);
@@ -60,7 +61,13 @@ export default function RepresentativeActPanel({ personId, displayName, issueSlu
   };
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.045] px-4 py-2 text-sm font-semibold text-slate-200 outline-none transition hover:bg-white/[.075] focus-visible:ring-4 focus-visible:ring-slate-400/20">
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className={buttonVariant === 'compact'
+        ? 'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.045] px-4 py-2 text-sm font-semibold text-slate-200 outline-none transition hover:bg-white/[.075] focus-visible:ring-4 focus-visible:ring-slate-400/20'
+        : 'mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.045] px-4 py-2 text-sm font-semibold text-slate-200 outline-none transition hover:bg-white/[.075] focus-visible:ring-4 focus-visible:ring-slate-400/20'}
+    >
       <Megaphone className="h-4 w-4" /> ACT: contact office
     </button>
     {open && <div className="fixed inset-0 z-[80] grid place-items-end bg-black/70 md:place-items-center" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>

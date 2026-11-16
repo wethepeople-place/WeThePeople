@@ -58,6 +58,12 @@ DB_PATH = os.getenv("DATABASE_URL", "sqlite:///wethepeople.db")
 FEC_API_KEY = os.getenv("FEC_API_KEY", "DEMO_KEY")
 FEC_BASE_URL = "https://api.open.fec.gov/v1"
 
+
+def current_fec_cycle(today: Optional[date] = None) -> str:
+    """Return the FEC two-year transaction period containing ``today``."""
+    year = (today or date.today()).year
+    return str(year if year % 2 == 0 else year + 1)
+
 engine = create_engine(DB_PATH, connect_args={"check_same_thread": False} if "sqlite" in DB_PATH else {})
 
 import sqlalchemy.event as sa_event
@@ -352,7 +358,13 @@ def main():
                                               "education", "telecom"],
                         help="Only sync for this sector")
     parser.add_argument("--entity-id", type=str, help="Only sync for this entity_id")
-    parser.add_argument("--cycle", type=str, default="2024", help="Election cycle (default: 2024)")
+    default_cycle = current_fec_cycle()
+    parser.add_argument(
+        "--cycle",
+        type=str,
+        default=default_cycle,
+        help=f"FEC two-year transaction period (default: current cycle, {default_cycle})",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print what would be synced without writing")
     args = parser.parse_args()
 

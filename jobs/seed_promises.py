@@ -33,6 +33,44 @@ from models.civic_models import Promise  # noqa: E402
 
 
 PROMISES = [
+    # Maryland delegation. These are source-backed public commitments;
+    # progress remains unscored until reviewed evidence is linked.
+    {
+        "person_id": "andy_harris",
+        "bioguide_id": "H001052",
+        "person_name": "Andy Harris",
+        "title": "Preserve the Chesapeake Bay for future generations",
+        "description": "States that preserving the Chesapeake Bay is a priority and supports multi-state action to protect the Bay and its waterways.",
+        "source_url": "https://harris.house.gov/issues",
+        "promise_date": None,
+        "category": "environment",
+        "status": "pending",
+        "progress": 0,
+    },
+    {
+        "person_id": "angela_alsobrooks",
+        "bioguide_id": "A000382",
+        "person_name": "Angela D. Alsobrooks",
+        "title": "Support a higher federal minimum wage indexed to inflation",
+        "description": "Committed during her Senate campaign to support increasing the federal minimum wage and indexing future increases to inflation.",
+        "source_url": "https://www.angelaalsobrooks.com/priority/standing-up-for-workers",
+        "promise_date": None,
+        "category": "economy",
+        "status": "pending",
+        "progress": 0,
+    },
+    {
+        "person_id": "chris_van_hollen",
+        "bioguide_id": "V000128",
+        "person_name": "Chris Van Hollen",
+        "title": "Lower prescription drug costs and expand affordable care",
+        "description": "Commits to lowering prescription drug costs and improving the quality, affordability, and accessibility of health care.",
+        "source_url": "https://www.vanhollen.senate.gov/about/issues/health-care",
+        "promise_date": None,
+        "category": "healthcare",
+        "status": "pending",
+        "progress": 0,
+    },
     # NOTE: Executive-branch figures (Trump, Biden, Harris, Vance) are not
     # in the `tracked_members` table — that table only holds members of
     # Congress. Their promises were dropped from this seed. A separate
@@ -238,8 +276,16 @@ PROMISES = [
 def seed() -> int:
     db = SessionLocal()
     try:
-        # Build set of valid person_ids so we can warn cleanly on mismatches
-        valid_ids = {row.person_id for row in db.query(TrackedMember.person_id).all()}
+        # Production person_id slugs have changed over time. Resolve curated
+        # commitments through Congress's stable Bioguide ID when a seed slug
+        # does not match the current tracked-members row.
+        members = db.query(TrackedMember.person_id, TrackedMember.bioguide_id).all()
+        valid_ids = {row.person_id for row in members}
+        person_id_by_bioguide = {
+            row.bioguide_id.upper(): row.person_id
+            for row in members
+            if row.bioguide_id
+        }
 
         created = 0
         skipped_dup = 0
@@ -247,6 +293,8 @@ def seed() -> int:
 
         for p in PROMISES:
             person_id = p["person_id"]
+            if person_id not in valid_ids and p.get("bioguide_id"):
+                person_id = person_id_by_bioguide.get(str(p["bioguide_id"]).upper(), person_id)
             title = p["title"]
 
             if person_id not in valid_ids:

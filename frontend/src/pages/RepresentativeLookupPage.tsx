@@ -24,6 +24,7 @@ interface Representative {
   official_url?: string | null;
   votes: Array<{
     question: string | null;
+    bill_title: string | null;
     vote_date: string | null;
     result: string | null;
     position: string;
@@ -783,7 +784,7 @@ export default function RepresentativeLookupPage() {
                 </p>
               </div>
               <div style={{ display: 'grid', gap: 14 }}>
-                {reps.map((rep) => <ConnectedRepresentativeRecord key={`record-${rep.person_id}`} rep={rep} openLinksInNewTab={isEmbedded} />)}
+                {reps.map((rep) => <ConnectedRepresentativeRecord key={`record-${rep.person_id}`} rep={rep} issueSlug={issueSlug} openLinksInNewTab={isEmbedded} />)}
               </div>
               {generatedAt && <p style={{ marginTop: 10, textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--color-text-3)' }}>
                 Record assembled {new Date(generatedAt).toLocaleString()}
@@ -866,7 +867,7 @@ function shortDate(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function ConnectedRepresentativeRecord({ rep, openLinksInNewTab = false }: { rep: Representative; openLinksInNewTab?: boolean }) {
+function ConnectedRepresentativeRecord({ rep, issueSlug = '', openLinksInNewTab = false }: { rep: Representative; issueSlug?: string; openLinksInNewTab?: boolean }) {
   const recordText = { body: '#e1e7ef', muted: '#b5bfcc', label: '#c8d1dd', link: '#c6d9f2' };
   const panels = {
     shell: { borderRadius: 14, border: '1px solid #303845', background: '#141820', padding: 18 } as React.CSSProperties,
@@ -885,9 +886,12 @@ function ConnectedRepresentativeRecord({ rep, openLinksInNewTab = false }: { rep
           </p>
         </div>
       </div>
-      <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 40, borderRadius: 10, border: '1px solid #394250', background: '#161b22', padding: '0 14px', color: recordText.link, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-        Full public record <ExternalLink size={12} />
-      </Link>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <RepresentativeActPanel personId={rep.person_id} displayName={rep.display_name} issueSlug={issueSlug} openLinksInNewTab={openLinksInNewTab} buttonVariant="compact" />
+        <Link to={`/politics/people/${rep.person_id}`} target={openLinksInNewTab ? '_blank' : undefined} rel={openLinksInNewTab ? 'noreferrer' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 40, borderRadius: 10, border: '1px solid #394250', background: '#161b22', padding: '0 14px', color: recordText.link, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+          Full public record <ExternalLink size={12} />
+        </Link>
+      </div>
     </header>
 
     <section
@@ -930,7 +934,8 @@ function ConnectedRepresentativeRecord({ rep, openLinksInNewTab = false }: { rep
             <span style={{ fontSize: 13, fontWeight: 800, color: vote.position.toLowerCase().includes('nay') ? '#f0b9b9' : '#b9dfca' }}>{vote.position}</span>
             <span style={{ fontSize: 12, color: recordText.muted }}>{shortDate(vote.vote_date)}</span>
           </div>
-          <p style={{ marginTop: 6, fontSize: 14, lineHeight: 1.55, color: recordText.body }}>{vote.related_bill || vote.question || 'Congressional roll-call vote'}</p>
+          <p style={{ marginTop: 6, fontSize: 14, lineHeight: 1.55, color: recordText.body }}>{vote.bill_title || vote.question || vote.related_bill || 'Congressional roll-call vote'}</p>
+          {vote.bill_title && vote.related_bill && <p style={{ marginTop: 3, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: recordText.muted }}>{vote.related_bill}</p>}
           {vote.source_url && <a href={vote.source_url} target="_blank" rel="noreferrer" style={{ marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 4, color: recordText.link, fontSize: 12, fontWeight: 650 }}>Congress.gov <ExternalLink size={11} /></a>}
         </div>) : <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6, color: recordText.muted }}>No roll-call votes are available in the connected source yet.</p>}
       </section>
