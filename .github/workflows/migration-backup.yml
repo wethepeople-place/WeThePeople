@@ -122,7 +122,7 @@ jobs:
           echo "remote_stage=backup_created"
 
           chmod 600 "$host_backup"
-          integrity="$(docker exec -e BACKUP_DB="$container_backup" "$container" python - <<'PY'
+          integrity="$(docker exec -i -e BACKUP_DB="$container_backup" "$container" python - <<'PY'
           import os
           import sqlite3
           connection = sqlite3.connect(f'file:{os.environ["BACKUP_DB"]}?mode=ro', uri=True)
