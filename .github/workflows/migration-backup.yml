@@ -48,7 +48,8 @@ jobs:
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
           ssh root@api.wethepeople.place bash -s -- "$name" <<'REMOTE'
-          set -euo pipefail
+          set -Eeuo pipefail
+          trap 'code=$?; echo "REMOTE_BACKUP_FAILED line=${LINENO} exit=${code}" >&2' ERR
           name="$1"
           container="wtp-api"
           timer="wtp-congress-legislation-sync.timer"
@@ -59,6 +60,7 @@ jobs:
             echo "Expected production container is not present" >&2
             exit 1
           fi
+          echo "remote_stage=container_validated"
           if [ "$(systemctl is-active "$service" 2>/dev/null || true)" = "active" ]; then
             echo "Congress legislation synchronization is active; aborting without taking a backup" >&2
             exit 1
@@ -73,6 +75,7 @@ jobs:
           if [ "$timer_was_active" = "active" ]; then
             systemctl stop "$timer"
           fi
+          echo "remote_stage=scheduler_quiesced"
 
           db_url="$(docker exec "$container" sh -lc 'printf %s "$WTP_DB_URL"')"
           case "$db_url" in
@@ -83,12 +86,14 @@ jobs:
             /*) ;;
             *) source_db="/app/${source_db#./}" ;;
           esac
+          echo "remote_stage=database_resolved"
 
           host_data="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' "$container")"
           if [ -z "$host_data" ]; then
             echo "Could not identify the /app/data host mount" >&2
             exit 1
           fi
+          echo "remote_stage=host_mount_resolved"
 
           container_backup="/app/data/watch-backups/${name}"
           host_backup="${host_data}/watch-backups/${name}"
@@ -114,6 +119,7 @@ jobs:
               dst.close()
               src.close()
           PY
+          echo "remote_stage=backup_created"
 
           chmod 600 "$host_backup"
           integrity="$(docker exec -e BACKUP_DB="$container_backup" "$container" python - <<'PY'
@@ -127,6 +133,7 @@ jobs:
           PY
           )"
           [ "$integrity" = "ok" ]
+          echo "remote_stage=backup_verified"
           sha256="$(sha256sum "$host_backup" | awk '{print $1}')"
           size_bytes="$(stat -c '%s' "$host_backup")"
           source_revision="$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$container" 2>/dev/null || true)"
@@ -142,6 +149,7 @@ jobs:
           integrity_check=${integrity}
           EOF
           chmod 600 "${host_backup}.manifest"
+          echo "remote_stage=manifest_written"
           REMOTE
 
       - name: Download and independently verify the backup
