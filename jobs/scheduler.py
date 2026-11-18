@@ -46,11 +46,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-LOG_DIR = ROOT / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+RUNTIME_DIR = Path(os.getenv("WTP_RUNTIME_DIR", str(ROOT))).resolve()
+LOG_DIR = RUNTIME_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-LOCK_FILE = ROOT / ".scheduler.lock"
-STATE_FILE = ROOT / "scheduler_state.json"
+LOCK_FILE = RUNTIME_DIR / ".scheduler.lock"
+STATE_FILE = RUNTIME_DIR / "scheduler_state.json"
 
 logging.basicConfig(
     level=logging.INFO,
