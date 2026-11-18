@@ -1,10 +1,10 @@
-# PostgreSQL staging migration rehearsal
+# Render SQLite staging migration rehearsal
 
 This runbook is a template, not authorization to access production. Replace every placeholder, obtain an approved maintenance window, and rehearse with non-production data first.
 
 ## Preconditions
 
-- Canonical migration and application test gates pass on an empty PostgreSQL staging database.
+- The Render service is live in migration-hold mode with its persistent disk attached.
 - Source and target connection secrets come from the approved secret manager and are never written to logs or artifacts.
 - The operator has documented approver, start time, abort time, and communication channel.
 - The source remains authoritative until cutover is explicitly approved.
@@ -23,13 +23,14 @@ For every table, record source and target row counts, primary-key minimum/maximu
 
 No unexplained mismatch may be waived verbally. Record an explicit disposition and approver.
 
-## Load order and sequences
+## Restore procedure
 
-1. Load reference and parent tables before dependent tables.
-2. Preserve primary keys exactly; do not remap user, civic-record, discussion, video, or solution IDs.
-3. Load private moderation and credential tables only through the restricted migration role.
-4. Reset each PostgreSQL sequence to at least the imported table maximum.
-5. Re-run the complete reconciliation manifest after sequence reset.
+1. Download the encrypted GitHub Actions artifact from the recorded backup run.
+2. Decrypt only inside the restricted restore job and verify its recorded SHA-256.
+3. Run `PRAGMA integrity_check` before upload and again on the Render disk.
+4. Install the database atomically as `/app/data/wethepeople.db` while the app remains in migration-hold mode.
+5. Set `WTP_MIGRATION_HOLD=0`, keep `WTP_SCHEDULER_ENABLED=0`, and redeploy.
+6. Re-run the complete reconciliation manifest against the restored database.
 
 ## Cutover rehearsal
 
@@ -43,7 +44,7 @@ No unexplained mismatch may be waived verbally. Record an explicit disposition a
 
 Abort on any failed blocking test, unexplained reconciliation mismatch, secret exposure, foreign-key orphan, sequence regression, or material error/latency increase.
 
-Before PostgreSQL accepts authoritative writes, rollback means reconnecting staging to the unchanged source and discarding the failed target. After PostgreSQL accepts writes, do not switch to stale SQLite unless a reverse-delta procedure has been separately rehearsed. Pause service and restore from the tested PostgreSQL backup instead.
+Before Render accepts authoritative writes, rollback means keeping DNS on the unchanged Hetzner source and discarding the failed staging target. After Render accepts writes, do not switch to stale SQLite unless a reverse-delta procedure has been separately rehearsed. Pause the service and restore only from a tested backup that contains the accepted writes.
 
 ## Evidence to retain
 
