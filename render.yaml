@@ -9,7 +9,9 @@ services:
     dockerContext: .
     dockerCommand: /app/deploy/render-entrypoint.sh
     healthCheckPath: /health
-    autoDeployTrigger: checksPass
+    # Staging deploys are manual so an unrelated main-branch push cannot restart
+    # the disk-backed SQLite service during migration verification.
+    autoDeployTrigger: 'off'
     disk:
       name: wethepeople-data-staging
       mountPath: /app/data
