@@ -56,6 +56,7 @@ COPY services/ services/
 COPY jobs/ jobs/
 COPY utils/ utils/
 COPY config/ config/
+COPY deploy/ deploy/
 COPY data/agenda_2026_apnorc.json data/agenda_2026_apnorc.json
 COPY runtime_data/watch_census_production_pilot.json runtime_data/watch_census_production_pilot.json
 COPY alembic/ alembic/
@@ -70,6 +71,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Data directory for SQLite DB (mount as volume)
 RUN mkdir -p /app/data
+RUN chmod +x /app/deploy/render-entrypoint.sh
+# Render's SSH bridge requires the container user to have a usable SSH home.
+RUN mkdir -p /root/.ssh \
+    && chmod 0700 /root/.ssh \
+    && usermod --unlock root
 VOLUME ["/app/data"]
 
 EXPOSE 8006

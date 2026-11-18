@@ -5,13 +5,14 @@ backup, import, reconciliation, and rollback gates below pass.
 
 ## Target architecture
 
-- `wethepeople-api-staging`: paid Render web service, built from the repository
-  Dockerfile.
-- `wethepeople-scheduler-staging`: paid Render background worker using the same
-  image and managed database.
-- `wethepeople-postgres-staging`: paid managed PostgreSQL. SQLite must not be
-  placed on a Render persistent disk because a disk cannot be shared safely by
-  the API and scheduler services.
+- `wethepeople-api-staging`: one paid Render web service built from the
+  repository Dockerfile, with a 1 GB persistent disk mounted at `/app/data`.
+- The API and scheduler run in the same service instance so both use the same
+  SQLite file. The scheduler remains disabled until the restored staging API
+  passes its read-only smoke tests.
+- PostgreSQL is intentionally deferred. The current application still contains
+  SQLite-specific queries and does not install a PostgreSQL driver; creating a
+  managed PostgreSQL stack before that work is complete would be unsafe.
 - `app.wethepeople.place`: remains on GitHub Pages.
 - `api.wethepeople.place`: remains pointed at Hetzner until cutover approval.
 
@@ -40,19 +41,20 @@ Before modifying the live server:
 
 1. Validate `render.yaml` against the current Render Blueprint schema and CLI.
 2. Review the planned paid resources before applying the Blueprint.
-3. Create the staging services and PostgreSQL in the same Render region.
+3. Create the staging service and its persistent disk in Virginia.
 4. Add production-equivalent secret keys through Render without printing or
    committing their values.
-5. Run the canonical Alembic upgrade against the empty PostgreSQL database.
+5. Keep `WTP_MIGRATION_HOLD=1` and `WTP_SCHEDULER_ENABLED=0` until the verified
+   encrypted backup is restored to `/app/data/wethepeople.db`.
 
 ## Gate 3: data migration and reconciliation
 
 Use `docs/phase7/STAGING_MIGRATION_RUNBOOK.md` as the blocking checklist.
 
-1. Import the verified SQLite backup into PostgreSQL while Hetzner remains the
+1. Restore the verified SQLite backup to Render while Hetzner remains the
    authoritative production source.
-2. Preserve stable IDs and reset every PostgreSQL sequence above the imported
-   maximum.
+2. Verify the uploaded SHA-256 and run `PRAGMA integrity_check` before atomically
+   installing the database file.
 3. Compare every table's row count, ID range, duplicate keys, nullability,
    foreign-key orphans, and ordered stable-ID hashes.
 4. Resolve every mismatch; no unexplained mismatch may be waived.
@@ -67,7 +69,7 @@ Cutover requires separate approval after the staging report passes.
 
 1. Announce a short maintenance window and stop Hetzner writers.
 2. Capture and verify the final SQLite backup/delta.
-3. Import and reconcile the final data in Render PostgreSQL.
+3. Restore and reconcile the final data on the Render persistent disk.
 4. Point `api.wethepeople.place` to the verified Render web service.
 5. Verify TLS, CORS, authentication, representative lookup, and scheduler
    health from the public application.
@@ -76,6 +78,6 @@ Cutover requires separate approval after the staging report passes.
 ## Rollback boundary
 
 Before Render accepts writes, rollback is DNS back to the unchanged Hetzner
-service. After Render accepts writes, do not restore stale SQLite. Pause Render
-writers and restore from the tested PostgreSQL backup instead.
+service. After Render accepts writes, pause Render writers and restore only from
+a newer verified SQLite backup that includes every accepted write.
 

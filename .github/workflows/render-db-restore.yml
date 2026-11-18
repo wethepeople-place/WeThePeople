@@ -1,0 +1,130 @@
+name: Restore verified SQLite backup to Render staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: GitHub Actions run containing the encrypted migration backup
+        required: true
+        default: "44297650874"
+      render_service_id:
+        description: Render service ID (srv-...)
+        required: true
+      render_region:
+        description: Render SSH region
+        required: true
+        type: choice
+        default: virginia
+        options:
+          - virginia
+          - ohio
+          - oregon
+          - frankfurt
+          - singapore
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download encrypted backup artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wtp-render-migration-${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: migration-backup
+
+      - name: Install age and SQLite
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age sqlite3
+
+      - name: Materialize the existing migration identity
+        shell: bash
+        env:
+          MIGRATION_KEY: ${{ secrets.HETZNER_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s\n' "$MIGRATION_KEY" > migration-key
+
+      - name: Decrypt and independently verify the source backup
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          encrypted="$(find migration-backup -maxdepth 1 -type f -name '*.db.age' -print -quit)"
+          manifest="$(find migration-backup -maxdepth 1 -type f -name '*.manifest' -print -quit)"
+          test -n "$encrypted"
+          test -n "$manifest"
+          age --decrypt -i migration-key -o wethepeople.db "$encrypted"
+          expected="$(awk -F= '$1 == "sha256" {print $2}' "$manifest")"
+          actual="$(sha256sum wethepeople.db | awk '{print $1}')"
+          test -n "$expected"
+          test "$actual" = "$expected"
+          test "$(sqlite3 wethepeople.db 'PRAGMA integrity_check;')" = "ok"
+          echo "sha256=$actual" >> "$GITHUB_OUTPUT"
+
+      - name: Pin the official Render SSH host key
+        shell: bash
+        env:
+          RENDER_REGION: ${{ inputs.render_region }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          case "$RENDER_REGION" in
+            virginia) key='AAAAC3NzaC1lZDI1NTE5AAAAIJ6uO0jKQX9IjefnLz+pxTgfPhsPBhNuvxmvCFrxqxAM' ;;
+            ohio) key='AAAAC3NzaC1lZDI1NTE5AAAAINMjC1BfZQ3CYotN1/EqI48hvBpZ80zfgRdK8NpP58v1' ;;
+            oregon) key='AAAAC3NzaC1lZDI1NTE5AAAAIFON8eay2FgHDBIVOLxWn/AWnsDJhCVvlY1igWEFoLD2' ;;
+            frankfurt) key='AAAAC3NzaC1lZDI1NTE5AAAAILg6kMvQOQjMREehk1wvBKsfe1I3+acRuS8cVSdLjinK' ;;
+            singapore) key='AAAAC3NzaC1lZDI1NTE5AAAAIGVcVcsy7RXA60ZyHs/OMS5aQj4YQy7Qn2nJCXHz4zLA' ;;
+            *) exit 2 ;;
+          esac
+          printf 'ssh.%s.render.com ssh-ed25519 %s\n' "$RENDER_REGION" "$key" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload, verify, and atomically install the database
+        shell: bash
+        env:
+          SERVICE_ID: ${{ inputs.render_service_id }}
+          RENDER_REGION: ${{ inputs.render_region }}
+          EXPECTED_SHA256: ${{ steps.verify.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          target="${SERVICE_ID}@ssh.${RENDER_REGION}.render.com"
+          scp -s -i migration-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            wethepeople.db "${target}:/app/data/wethepeople.db.incoming"
+          ssh -i migration-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$target" \
+            env EXPECTED_SHA256="$EXPECTED_SHA256" python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+          import sqlite3
+
+          incoming = Path('/app/data/wethepeople.db.incoming')
+          target = Path('/app/data/wethepeople.db')
+          digest = hashlib.sha256(incoming.read_bytes()).hexdigest()
+          if digest != os.environ['EXPECTED_SHA256']:
+              raise SystemExit('uploaded database checksum mismatch')
+          connection = sqlite3.connect(f'file:{incoming}?mode=ro', uri=True)
+          try:
+              result = connection.execute('PRAGMA integrity_check').fetchone()[0]
+          finally:
+              connection.close()
+          if result != 'ok':
+              raise SystemExit(f'uploaded database integrity check failed: {result}')
+          incoming.replace(target)
+          target.chmod(0o600)
+          print(f'installed {target} sha256={digest} size={target.stat().st_size}')
+          PY
+
+      - name: Remove plaintext migration material
+        if: always()
+        shell: bash
+        run: |
+          shred -u wethepeople.db migration-key 2>/dev/null || true
