@@ -1,0 +1,187 @@
+name: Prepare encrypted migration backup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/migration-backup.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-render-migration-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Back up and verify production SQLite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Verify production health before backup
+        run: curl --fail --silent --show-error https://api.wethepeople.place/health > /dev/null
+
+      - name: Install encryption tool
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+
+      - name: Set up the existing Hetzner deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the current production host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H api.wethepeople.place >> ~/.ssh/known_hosts
+
+      - name: Create transaction-consistent server backup
+        id: backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          name="pre-render-migration-${stamp}.db"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+          ssh root@api.wethepeople.place bash -s -- "$name" <<'REMOTE'
+          set -euo pipefail
+          name="$1"
+          container="wtp-api"
+          timer="wtp-congress-legislation-sync.timer"
+          service="wtp-congress-legislation-sync.service"
+          timer_was_active="$(systemctl is-active "$timer" 2>/dev/null || true)"
+
+          if ! docker inspect "$container" >/dev/null 2>&1; then
+            echo "Expected production container is not present" >&2
+            exit 1
+          fi
+          if [ "$(systemctl is-active "$service" 2>/dev/null || true)" = "active" ]; then
+            echo "Congress legislation synchronization is active; aborting without taking a backup" >&2
+            exit 1
+          fi
+
+          restore_timer() {
+            if [ "$timer_was_active" = "active" ]; then
+              systemctl start "$timer"
+            fi
+          }
+          trap restore_timer EXIT
+          if [ "$timer_was_active" = "active" ]; then
+            systemctl stop "$timer"
+          fi
+
+          db_url="$(docker exec "$container" sh -lc 'printf %s "$WTP_DB_URL"')"
+          case "$db_url" in
+            sqlite:///*) source_db="${db_url#sqlite:///}" ;;
+            *) echo "Production WTP_DB_URL is not a file-backed SQLite URL" >&2; exit 1 ;;
+          esac
+          case "$source_db" in
+            /*) ;;
+            *) source_db="/app/${source_db#./}" ;;
+          esac
+
+          host_data="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' "$container")"
+          if [ -z "$host_data" ]; then
+            echo "Could not identify the /app/data host mount" >&2
+            exit 1
+          fi
+
+          container_backup="/app/data/watch-backups/${name}"
+          host_backup="${host_data}/watch-backups/${name}"
+          mkdir -p "$(dirname "$host_backup")"
+
+          docker exec -i \
+            -e SOURCE_DB="$source_db" \
+            -e BACKUP_DB="$container_backup" \
+            "$container" python - <<'PY'
+          import os
+          import sqlite3
+
+          source = os.environ["SOURCE_DB"]
+          target = os.environ["BACKUP_DB"]
+          src = sqlite3.connect(f"file:{source}?mode=ro", uri=True, timeout=30)
+          dst = sqlite3.connect(target, timeout=30)
+          try:
+              src.backup(dst)
+              result = dst.execute("PRAGMA integrity_check").fetchone()[0]
+              if result != "ok":
+                  raise SystemExit(f"integrity_check failed: {result}")
+          finally:
+              dst.close()
+              src.close()
+          PY
+
+          chmod 600 "$host_backup"
+          integrity="$(docker exec -e BACKUP_DB="$container_backup" "$container" python - <<'PY'
+          import os
+          import sqlite3
+          connection = sqlite3.connect(f'file:{os.environ["BACKUP_DB"]}?mode=ro', uri=True)
+          try:
+              print(connection.execute("PRAGMA integrity_check").fetchone()[0])
+          finally:
+              connection.close()
+          PY
+          )"
+          [ "$integrity" = "ok" ]
+          sha256="$(sha256sum "$host_backup" | awk '{print $1}')"
+          size_bytes="$(stat -c '%s' "$host_backup")"
+          source_revision="$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$container" 2>/dev/null || true)"
+
+          cat > "${host_backup}.manifest" <<EOF
+          created_utc=${stamp:-${name#pre-render-migration-}}
+          source_container=${container}
+          source_database=${source_db}
+          source_revision=${source_revision}
+          backup_name=${name}
+          size_bytes=${size_bytes}
+          sha256=${sha256}
+          integrity_check=${integrity}
+          EOF
+          chmod 600 "${host_backup}.manifest"
+          REMOTE
+
+      - name: Download and independently verify the backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="${{ steps.backup.outputs.name }}"
+          scp "root@api.wethepeople.place:/opt/wethepeople/data/watch-backups/${name}" "$name"
+          scp "root@api.wethepeople.place:/opt/wethepeople/data/watch-backups/${name}.manifest" "${name}.manifest"
+          expected="$(awk -F= '$1 == "sha256" {print $2}' "${name}.manifest")"
+          actual="$(sha256sum "$name" | awk '{print $1}')"
+          test -n "$expected"
+          test "$actual" = "$expected"
+          test "$(sqlite3 "$name" 'PRAGMA integrity_check;')" = "ok"
+
+      - name: Encrypt to the owner's existing SSH key
+        id: encrypt
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="${{ steps.backup.outputs.name }}"
+          encrypted="${name}.age"
+          printf '%s\n' 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF2jUgYo8cMFkpFNBpJwPVFtC6voCiuP7pAymfF8yRRC' > recipient.txt
+          age -R recipient.txt -o "$encrypted" "$name"
+          encrypted_sha256="$(sha256sum "$encrypted" | awk '{print $1}')"
+          printf '%s  %s\n' "$encrypted_sha256" "$encrypted" > "${encrypted}.sha256"
+          echo "artifact_name=wtp-render-migration-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+          shred -u "$name" recipient.txt
+
+      - name: Verify production health after backup
+        run: curl --fail --silent --show-error https://api.wethepeople.place/health > /dev/null
+
+      - name: Upload encrypted off-server backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.encrypt.outputs.artifact_name }}
+          path: |
+            ${{ steps.backup.outputs.name }}.age
+            ${{ steps.backup.outputs.name }}.age.sha256
+            ${{ steps.backup.outputs.name }}.manifest
+          if-no-files-found: error
+          retention-days: 30
+
