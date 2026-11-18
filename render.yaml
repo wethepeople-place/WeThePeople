@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: wethepeople-api-staging
+    runtime: docker
+    plan: 0.5c-512mb
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2
+    preDeployCommand: alembic -c alembic-canonical.ini upgrade head
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: WTP_ENV
+        value: staging
+      - key: WTP_DB_URL
+        fromDatabase:
+          name: wethepeople-postgres-staging
+          property: connectionString
+      - key: DISABLE_STARTUP_FETCH
+        value: "1"
+      - key: CORS_ALLOW_ORIGINS
+        value: https://app.wethepeople.place
+      - key: WTP_PUBLIC_APP_URL
+        value: https://app.wethepeople.place
+      - key: WTP_REQUIRE_AUTH
+        value: "0"
+      - key: WTP_JWT_SECRET
+        generateValue: true
+
+  - type: worker
+    name: wethepeople-scheduler-staging
+    runtime: docker
+    plan: 0.5c-512mb
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python jobs/scheduler.py
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: WTP_ENV
+        value: staging
+      - key: WTP_DB_URL
+        fromDatabase:
+          name: wethepeople-postgres-staging
+          property: connectionString
+      - key: DISABLE_STARTUP_FETCH
+        value: "1"
+
+databases:
+  - name: wethepeople-postgres-staging
+    databaseName: wethepeople_staging
+    user: wethepeople_staging
+    plan: 0.1c-256mb
+    region: virginia
+    diskSizeGB: 1
+
