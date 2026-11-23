@@ -9,14 +9,20 @@ import { getOfficialEmbedUrl, getValidatedProvider } from '../features/watch/pro
 import ShareButton from './ShareButton';
 import VideoCommentsPanel from './VideoCommentsPanel';
 
-type Props = { video: IssueVideo | null; returnPath: string; onClose: () => void; onChange: (video: IssueVideo) => void };
+type Props = { video: IssueVideo | null; videos: IssueVideo[]; returnPath: string; onClose: () => void; onChange: (video: IssueVideo) => void; onSelect: (video: IssueVideo) => void };
+
+function postedDate(value?: string) {
+  if (!value) return 'Date unavailable';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Date unavailable' : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(parsed);
+}
 
 function posterUrl(video: IssueVideo) {
   const value = video.delivery?.poster_url;
   return value?.startsWith('/') ? `${getApiBaseUrl()}${value}` : value;
 }
 
-export default function IssueVideoDialog({ video, returnPath, onClose, onChange }: Props) {
+export default function IssueVideoDialog({ video, videos, returnPath, onClose, onChange, onSelect }: Props) {
   const { isAuthenticated, authedFetch } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState('');
@@ -62,7 +68,7 @@ export default function IssueVideoDialog({ video, returnPath, onClose, onChange 
     <section role="dialog" aria-modal="true" aria-labelledby="issue-video-title" className="mx-auto grid h-full max-w-7xl overflow-hidden bg-[#070b14] text-white shadow-2xl md:h-[calc(100vh-2.5rem)] md:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] md:rounded-3xl md:border md:border-white/15">
       <div className="flex min-h-0 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
-          <div className="min-w-0"><p className="text-[11px] font-black uppercase tracking-[.14em] text-amber-300">Watch without leaving this issue</p><h2 id="issue-video-title" className="truncate text-base font-black sm:text-lg">{video.caption}</h2></div>
+          <div className="min-w-0"><p className="text-[11px] font-black uppercase tracking-[.14em] text-amber-300">Watch without leaving this issue · {video.issue.title}</p><h2 id="issue-video-title" className="truncate text-base font-black sm:text-lg">{video.caption}</h2></div>
           <button autoFocus type="button" onClick={onClose} className="grid min-h-11 min-w-11 shrink-0 place-content-center rounded-full bg-white/10 outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70" aria-label="Close video"><X className="h-5 w-5" /></button>
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -71,7 +77,7 @@ export default function IssueVideoDialog({ video, returnPath, onClose, onChange 
               : normalizedDelivery?.mode === 'hosted_video' && video.media_url ? <video className="absolute inset-0 h-full w-full object-contain" src={video.media_url} controls playsInline />
                 : <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">{posterUrl(video) && <img src={posterUrl(video)!} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />}<div className="absolute inset-0 bg-black/50" /><div className="relative"><p className="font-bold text-slate-200">Playback opens at the original source.</p>{canonicalUrl && <a className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 font-black text-slate-950" href={canonicalUrl} target="_blank" rel="noreferrer">Open video <ExternalLink className="h-4 w-4" /></a>}</div></div>}
           </div>
-          <div className="p-4 sm:p-6"><p className="text-sm font-bold uppercase tracking-wider text-amber-300">{video.creator_label}</p><h3 className="mt-2 text-xl font-black sm:text-2xl">{video.caption}</h3>
+          <div className="p-4 sm:p-6"><p className="text-sm font-bold uppercase tracking-wider text-amber-300">{video.creator_label}</p><h3 className="mt-2 text-xl font-black sm:text-2xl">{video.caption}</h3><p className="mt-2 text-sm text-slate-400">Topic: {video.issue.title} · Posted {postedDate(video.published_at)}</p>
             <div className="mt-5 flex flex-wrap gap-2">
               <button type="button" disabled={busy === 'like'} aria-pressed={Boolean(video.liked)} onClick={() => void toggle('like')} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 font-bold"><Heart className={`h-5 w-5 ${video.liked ? 'fill-rose-500 text-rose-500' : ''}`} />{video.like_count || 0}</button>
               <button type="button" disabled={busy === 'save'} aria-pressed={Boolean(video.saved)} onClick={() => void toggle('save')} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 font-bold"><Bookmark className={`h-5 w-5 ${video.saved ? 'fill-white' : ''}`} />Save</button>
@@ -79,7 +85,12 @@ export default function IssueVideoDialog({ video, returnPath, onClose, onChange 
               <ShareButton url={`${window.location.origin}/videos/${video.video_id}`} title={video.caption} text={video.caption} />
             </div>
             <p className="sr-only" role="status" aria-live="polite">{message}</p>
-            <Link className="mt-5 inline-block text-sm font-bold text-amber-300 underline" to={`/videos/${video.video_id}`}>Open full video page</Link>
+            <Link className="mt-5 inline-block text-sm font-bold text-amber-300 underline" to={`/videos/${video.video_id}?issue=${encodeURIComponent(video.issue.slug)}&play=1`}>Open all {video.issue.title} videos</Link>
+            {videos.length > 1 && <section className="mt-8 border-t border-white/10 pt-6" aria-label={`More videos about ${video.issue.title}`}>
+              <h4 className="text-lg font-black">More {video.issue.title} videos</h4>
+              <p className="mt-1 text-sm text-slate-400">Scroll down to browse and open another video in this issue.</p>
+              <div className="mt-3 space-y-2">{videos.filter((item) => item.video_id !== video.video_id).map((item) => <button key={item.video_id} type="button" onClick={() => onSelect(item)} className="flex min-h-16 w-full flex-col items-start justify-center rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 text-left outline-none hover:bg-white/10 focus-visible:ring-4 focus-visible:ring-amber-300/70"><span className="font-bold leading-5">{item.caption}</span><span className="mt-1 text-xs text-slate-400">{item.creator_label} · Posted {postedDate(item.published_at)}</span></button>)}</div>
+            </section>}
           </div>
         </div>
       </div>

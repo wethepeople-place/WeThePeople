@@ -46,6 +46,11 @@ type Accessibility = {
 const DEVELOPMENT_EMBED_AUTHORIZED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEVELOPMENT_WATCH_EMBED === 'true';
 const DESIGN_SPONSOR_BANNER = '/ad-designs/common-ground-coffee-728x90.png';
 
+function postedDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Date unavailable' : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(parsed);
+}
+
 function SponsorBanner() {
   return <aside aria-label="Sponsored advertisement preview" className="mx-auto hidden w-full max-w-[728px] md:block">
     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Sponsored preview</p>
@@ -116,6 +121,8 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
 function WatchStatus({ item }: { item: Video; position: number; total: number }) {
   return <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest">
     <span className="rounded-full border border-amber-300/40 px-3 py-1.5 text-amber-300">{item.content_origin === 'community' ? 'Community shared' : 'Reviewed source'}</span>
+    <span className="rounded-full border border-white/15 px-3 py-1.5 text-slate-200">Video topic: {item.issue.title}</span>
+    <span className="basis-full text-xs font-medium normal-case tracking-normal text-slate-400">Posted {postedDate(item.published_at)} · Scroll down for more videos in this feed</span>
   </div>;
 }
 
@@ -305,6 +312,8 @@ export default function WatchVideoPage() {
   const location = useLocation();
   const selectedIssueSlug = new URLSearchParams(location.search).get('issue') || '';
   const initialVideoId = useRef(videoId || '');
+  const initialIssueSlug = useRef(selectedIssueSlug);
+  const feedViewportRef = useRef<HTMLElement | null>(null);
   const observerRouteId = useRef('');
   const lastScrolledRouteId = useRef('');
   const navigate = useNavigate();
@@ -337,6 +346,7 @@ export default function WatchVideoPage() {
   useEffect(() => {
     const controller = new AbortController();
     const loadFeed = async () => {
+      feedViewportRef.current?.scrollTo({ top: 0, behavior: 'auto' });
       setLoaded(false);
       setError('');
       const issueFilter = selectedIssueSlug ? `&issue_slug=${encodeURIComponent(selectedIssueSlug)}` : '';
@@ -344,7 +354,7 @@ export default function WatchVideoPage() {
       if (!feedResponse.ok) throw new Error('Watch could not load');
       const feed = await feedResponse.json() as Feed;
       let items = feed.videos;
-      const requestedId = selectedIssueSlug ? '' : initialVideoId.current;
+      const requestedId = selectedIssueSlug === initialIssueSlug.current ? initialVideoId.current : '';
       if (requestedId && !items.some((item) => item.video_id === requestedId)) {
         const exactResponse = await authedFetch(`${getApiBaseUrl()}/videos/${encodeURIComponent(requestedId)}`, { signal: controller.signal });
         if (exactResponse.status === 404) throw new Error('This civic video is unavailable.');
@@ -444,5 +454,5 @@ export default function WatchVideoPage() {
   if (!videos.length && !fallbacks.length && loadingContinuation) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading real civic material…</main>;
   if (!videos.length && !fallbacks.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">Civic material is temporarily unavailable.</h1><p className="max-w-xl text-slate-300">Nothing synthetic will be inserted. Try the live civic records again.</p><button type="button" className="rounded-full bg-amber-300 px-5 py-3 font-bold text-slate-950" onClick={() => void loadContinuation()}>Try again</button></main>;
   const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
-  return <><main onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label="Civic video feed"><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/agenda">Explore the full Agenda</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
+  return <><main ref={feedViewportRef} onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label={selectedIssueSlug ? `Civic video feed for ${videos[0]?.issue.title || selectedIssueSlug}` : 'Civic video feed'}><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/agenda">Explore the full Agenda</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }
