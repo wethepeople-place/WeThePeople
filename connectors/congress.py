@@ -15,7 +15,7 @@ from utils.normalization import (
     extract_chamber_from_action,
     extract_committee_from_action
 )
-from sqlalchemy import exists
+from sqlalchemy import exists, case
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from utils.congress_urls import congress_bill_url
@@ -45,7 +45,7 @@ MEMBERS = {
 }
 
 
-def get_tracked_members():
+def get_tracked_members(person_ids=None, limit_members=None):
     """
     Load members from TrackedMember table (the source of truth).
     Returns dict of {person_id: bioguide_id} for all active members with bioguide IDs.
@@ -55,19 +55,33 @@ def get_tracked_members():
         from models.database import TrackedMember
         session = SessionLocal()
         try:
-            members = session.query(TrackedMember).filter(
+            query = session.query(TrackedMember).filter(
                 TrackedMember.is_active == 1,
                 TrackedMember.bioguide_id.isnot(None),
                 TrackedMember.bioguide_id != ""
-            ).all()
-            result = {m.person_id: m.bioguide_id for m in members}
-            if result:
-                return result
+            )
+            if person_ids:
+                query = query.filter(TrackedMember.person_id.in_(person_ids))
+            query = query.order_by(
+                TrackedMember.needs_ingest.desc(),
+                case((TrackedMember.last_full_refresh_at.is_(None), 0), else_=1),
+                TrackedMember.last_full_refresh_at.asc(),
+                TrackedMember.display_name.asc(),
+            )
+            if limit_members and limit_members > 0:
+                query = query.limit(limit_members)
+            members = query.all()
+            return {m.person_id: m.bioguide_id for m in members}
         finally:
             session.close()
     except Exception as e:
         logger.warning("Could not load tracked members from DB: %s", e)
-    return MEMBERS
+    fallback = MEMBERS
+    if person_ids:
+        fallback = {key: value for key, value in fallback.items() if key in person_ids}
+    if limit_members and limit_members > 0:
+        fallback = dict(list(fallback.items())[:limit_members])
+    return fallback
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -120,9 +134,9 @@ def fetch_paged(url, item_key, limit_pages=5):
         params = {"format": "json", "offset": offset}
         
         r = robust_get(url, HEADERS, params)
-        if r.status_code != 200:
-            logger.error("Pagination failed at offset %d: %d", offset, r.status_code)
-            break
+        if r is None or r.status_code != 200:
+            status = r.status_code if r is not None else "no-response"
+            raise RuntimeError(f"Congress.gov pagination failed at offset {offset}: {status}")
         
         data = r.json()
         items = data.get(item_key, [])
@@ -236,52 +250,83 @@ def fetch_member_cosponsored(bioguide_id, limit_pages=5):
 # MAIN INGESTION FUNCTION
 # ============================================================================
 
-def ingest_member_legislation(limit_pages=5, person_ids=None):
+def ingest_member_legislation(limit_pages=5, person_ids=None, limit_members=None):
     """
     Member-centric ingestion: fetch sponsored + cosponsored bills for each tracked member.
 
     Args:
         limit_pages: Max pages to fetch per endpoint (20 results per page)
-        person_ids: Optional list of person_ids to process. If None, processes all tracked members.
+        person_ids: Optional list of person_ids to process. If None, processes due members.
+        limit_members: Optional cap used by the scheduler for restartable batches.
     """
     session = SessionLocal()
     total_added = 0
 
     try:
-        all_members = get_tracked_members()
-
-        # Filter to specific members if requested
+        members_to_process = get_tracked_members(
+            person_ids=person_ids,
+            limit_members=None if person_ids else limit_members,
+        )
         if person_ids:
-            members_to_process = {k: v for k, v in all_members.items() if k in person_ids}
             missing = set(person_ids) - set(members_to_process.keys())
             if missing:
                 logger.warning("These person_ids not found in tracked members: %s", missing)
-        else:
-            members_to_process = all_members
 
         logger.info("Processing %d members...", len(members_to_process))
+        processed_members = 0
+        failed_members = 0
 
         for person_name, bioguide_id in members_to_process.items():
             logger.info("Processing: %s (%s)", person_name.upper(), bioguide_id)
 
             member_added = 0
+            try:
+                # Fetch sponsored bills
+                sponsored = fetch_member_sponsored(bioguide_id, limit_pages)
+                for bill in sponsored:
+                    if process_bill_item(session, person_name, bill, "Sponsored"):
+                        member_added += 1
 
-            # Fetch sponsored bills
-            sponsored = fetch_member_sponsored(bioguide_id, limit_pages)
-            for bill in sponsored:
-                if process_bill_item(session, person_name, bill, "Sponsored"):
-                    member_added += 1
+                # Fetch cosponsored bills
+                cosponsored = fetch_member_cosponsored(bioguide_id, limit_pages)
+                for bill in cosponsored:
+                    if process_bill_item(session, person_name, bill, "Cosponsored"):
+                        member_added += 1
 
-            # Fetch cosponsored bills
-            cosponsored = fetch_member_cosponsored(bioguide_id, limit_pages)
-            for bill in cosponsored:
-                if process_bill_item(session, person_name, bill, "Cosponsored"):
-                    member_added += 1
+                # This timestamp is the coverage signal used by /compare to
+                # distinguish a true zero from a member we have not imported.
+                from models.database import TrackedMember
+                tracked = (
+                    session.query(TrackedMember)
+                    .filter(TrackedMember.person_id == person_name)
+                    .one_or_none()
+                )
+                if tracked:
+                    tracked.last_full_refresh_at = datetime.now(timezone.utc)
+                    tracked.needs_ingest = 0
+                    session.commit()
+                processed_members += 1
+            except Exception as exc:
+                session.rollback()
+                failed_members += 1
+                logger.exception("Failed to refresh %s: %s", person_name, exc)
+                continue
 
             total_added += member_added
             logger.info("Added %d new actions for %s", member_added, person_name)
 
-        logger.info("Ingestion complete — %d total new legislative actions", total_added)
+        logger.info(
+            "Ingestion complete - members=%d failed=%d new_actions=%d",
+            processed_members,
+            failed_members,
+            total_added,
+        )
+        return {
+            "selected_members": len(members_to_process),
+            "processed_members": processed_members,
+            "failed_members": failed_members,
+            "new_actions": total_added,
+        }
     finally:
         session.close()
 
