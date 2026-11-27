@@ -76,10 +76,10 @@ function WatchQuickComposer() {
 
 function CivicActions({ item, onComments }: { item: Video; onComments: () => void }) {
   return <div className="mt-5 min-w-0">
-    <div aria-label="Explore this video" className="grid grid-cols-3 gap-3">
-      <Link aria-label={`Explore ${item.issue.title}`} className="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 text-sm font-bold text-white outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70 sm:text-base" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}><ExternalLink className="h-5 w-5 shrink-0" /><span>Explore</span></Link>
-      <button type="button" onClick={onComments} aria-label="View comments for this video" className="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 text-sm font-bold text-white outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70 sm:text-base"><MessageCircle className="h-5 w-5 shrink-0" /><span>Comments</span><span className="text-slate-300">{item.discussion_count}</span></button>
-      <Link aria-label={`Act on ${item.issue.title}`} className="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl bg-amber-300 px-3 text-sm font-black text-slate-950 outline-none hover:bg-amber-200 focus-visible:ring-4 focus-visible:ring-white/70 sm:text-base" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}><Zap className="h-5 w-5 shrink-0 fill-current" /><span>ACT</span></Link>
+    <div aria-label="Explore this video" className="grid grid-cols-3 gap-2 sm:gap-3">
+      <Link aria-label={`Explore ${item.issue.title}`} className="inline-flex h-12 min-w-0 items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 text-xs font-bold text-white outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70 sm:h-14 sm:gap-2 sm:rounded-2xl sm:px-3 sm:text-base" to={`/issues/${item.issue.slug}`} state={{ returnToVideoId: item.video_id }}><ExternalLink className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" /><span>Explore</span></Link>
+      <button type="button" onClick={onComments} aria-label="View comments for this video" className="relative inline-flex h-12 min-w-0 items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 text-xs font-bold text-white outline-none hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-amber-300/70 sm:h-14 sm:gap-2 sm:rounded-2xl sm:px-3 sm:text-base"><MessageCircle className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" /><span>Comments</span><span className="absolute right-1.5 top-1 text-[10px] text-slate-300 sm:static sm:text-base">{item.discussion_count}</span></button>
+      <Link aria-label={`Act on ${item.issue.title}`} className="inline-flex h-12 min-w-0 items-center justify-center gap-1 rounded-xl bg-amber-300 px-2 text-xs font-black text-slate-950 outline-none hover:bg-amber-200 focus-visible:ring-4 focus-visible:ring-white/70 sm:h-14 sm:gap-2 sm:rounded-2xl sm:px-3 sm:text-base" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}><Zap className="h-4 w-4 shrink-0 fill-current sm:h-5 sm:w-5" /><span>ACT</span></Link>
     </div>
     {(item.content_origin !== 'community' || item.bills.length > 0) && <div aria-label="Video sources" className="mt-3 flex flex-wrap gap-3 [&_a]:rounded-full [&_a]:bg-white/90 [&_a]:px-4 [&_a]:py-3 [&_a]:font-bold [&_a]:text-slate-950 [&_a]:outline-none [&_a]:focus-visible:ring-4 [&_a]:focus-visible:ring-amber-300/70">
       {item.content_origin !== 'community' && <a href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <ExternalLink className="inline h-4 w-4" /></a>}
@@ -93,7 +93,7 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'like' | 'save' | ''>('');
   const [message, setMessage] = useState('');
-  const buttonClass = 'grid min-h-14 min-w-14 place-items-center gap-1 rounded-full bg-black/65 p-2 text-xs font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60';
+  const buttonClass = 'grid h-11 w-11 place-items-center gap-0.5 rounded-full bg-black/70 p-1.5 text-[10px] font-bold text-white outline-none transition focus-visible:ring-4 focus-visible:ring-amber-300/70 disabled:opacity-60 sm:h-12 sm:w-12 sm:text-xs';
   const signIn = () => navigate(`/login?next=${encodeURIComponent(`/videos/${item.video_id}`)}`);
   const toggle = async (kind: 'like' | 'save') => {
     if (!isAuthenticated) { signIn(); return; }
@@ -108,11 +108,10 @@ function ActionRail({ item, onChange, onComments }: { item: Video; onChange: (ne
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Action failed.'); }
     finally { setBusy(''); }
   };
-  return <aside className="absolute bottom-24 right-3 z-10 flex flex-col gap-3 sm:right-5" aria-label="Video actions">
-    <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-6 w-6 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
-    <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-6 w-6" aria-hidden="true" /><span>{item.discussion_count}</span></button>
-    <Link className={`${buttonClass} !bg-amber-300 !text-slate-950 lg:hidden`} aria-label="Act on this video" to={`/act?target_type=video&target_id=${encodeURIComponent(item.video_id)}`}><Zap className="h-6 w-6 fill-current" aria-hidden="true" /><span>ACT</span></Link>
-    <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-6 w-6 ${item.saved ? 'fill-white' : ''}`} aria-hidden="true" /><span>Save</span></button>
+  return <aside className="absolute bottom-3 right-2 z-10 flex flex-col gap-2 sm:bottom-5 sm:right-3" aria-label="Video actions">
+    <button type="button" className={buttonClass} aria-label={`${item.liked ? 'Unlike' : 'Like'} video, ${item.like_count} likes`} aria-pressed={item.liked} disabled={busy === 'like'} onClick={() => void toggle('like')}><Heart className={`h-5 w-5 ${item.liked ? 'fill-rose-500 text-rose-500' : ''}`} aria-hidden="true" /><span aria-live="polite">{item.like_count}</span></button>
+    <button type="button" className={buttonClass} aria-label={`Open comments for this video, ${item.discussion_count} published contributions`} onClick={onComments}><MessageCircle className="h-5 w-5" aria-hidden="true" /><span>{item.discussion_count}</span></button>
+    <button type="button" className={buttonClass} aria-label={item.saved ? 'Remove video from private saved collection' : 'Save video privately'} aria-pressed={item.saved} disabled={busy === 'save'} onClick={() => void toggle('save')}><Bookmark className={`h-5 w-5 ${item.saved ? 'fill-white' : ''}`} aria-hidden="true" /><span>Save</span></button>
     <ShareButton rail url={`${window.location.origin}/videos/${item.video_id}`} title={item.caption} text={item.caption} />
     <span className="sr-only" role="status" aria-live="polite">{message}</span>
   </aside>;
@@ -183,10 +182,10 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
   const providerLabel = getProviderLabel(provider);
   const privacyLine = `Playing connects to ${providerLabel}`;
   const posterUrl = embed.poster_url?.startsWith('/videos/') ? `${getApiBaseUrl()}${embed.poster_url}` : embed.poster_url;
-  return <article data-video-id={item.video_id} className="min-h-screen snap-start bg-[#070b14] text-white" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center gap-8 px-4 py-8 lg:px-8">
-      <div className="grid w-full items-center gap-6 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:pt-16">
-      <div className="relative mx-auto aspect-[9/16] max-h-[72vh] w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40">
+  return <article data-video-id={item.video_id} className="snap-start border-b border-white/10 bg-[#070b14] text-white lg:min-h-screen" aria-current={active ? 'true' : undefined} aria-label={`${item.creator_label}. ${item.caption}`}>
+    <div className="mx-auto max-w-7xl px-3 pb-10 pt-5 sm:px-4 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:gap-8 lg:px-8 lg:py-8">
+      <div className="grid w-full items-center gap-4 lg:grid-cols-[minmax(320px,0.82fr)_minmax(340px,1fr)] lg:gap-6 lg:pt-16">
+      <div data-video-autoplay-id={item.video_id} className="order-2 relative mx-auto aspect-[9/16] max-h-[72vh] w-full max-w-md overflow-hidden rounded-2xl border border-white/15 bg-[#111827] text-center shadow-2xl shadow-black/40 sm:rounded-3xl lg:order-1">
         <ActionRail item={item} onChange={onChange} onComments={onComments} />
         {playerLoaded && !failed ? <iframe
           className="absolute inset-0 h-full w-full"
@@ -208,12 +207,16 @@ function OfficialEmbedCard({ item, active, embed, position, total, onChange, onC
           </div>
         </div>}
       </div>
-      <div className="min-w-0 py-3 lg:py-6">
-        <WatchStatus item={item} position={position} total={total} />
-        <IssueCategorySelector item={item} />
-        <h1 className="mt-3 text-2xl font-bold sm:text-4xl">{item.caption}</h1>
-        <NarrativePanel item={item} />
-        <CivicActions item={item} onComments={onComments} />
+      <div className="contents lg:order-2 lg:block lg:min-w-0 lg:py-6">
+        <div className="order-1 min-w-0 pb-2 pt-1">
+          <WatchStatus item={item} position={position} total={total} />
+          <IssueCategorySelector item={item} />
+          <h1 className="mt-3 text-2xl font-bold leading-tight sm:text-4xl">{item.caption}</h1>
+        </div>
+        <div className="order-3 min-w-0">
+          <CivicActions item={item} onComments={onComments} />
+          <NarrativePanel item={item} />
+        </div>
       </div>
       </div>
       <div className="mt-12 hidden pb-8 md:block"><SponsorBanner /></div>
@@ -250,7 +253,7 @@ function NativeVideoCard({ item, active, reducedMotion, onActive, position, tota
   }, [active, reducedMotion, manualPause]);
   return <article data-video-id={item.video_id} className="relative min-h-screen snap-start overflow-hidden bg-[#070b14] text-white" aria-label={`${item.creator_label}. ${item.caption}`}>
     <ActionRail item={item} onChange={onChange} onComments={onComments} />
-    {!unavailable ? <video ref={video} className="absolute inset-0 h-full w-full object-cover" src={item.media_url} muted={muted} loop playsInline preload={active ? 'auto' : 'metadata'} onError={() => setUnavailable(true)} onClick={onActive} /> :
+    {!unavailable ? <video ref={video} data-video-autoplay-id={item.video_id} className="absolute inset-0 h-full w-full object-cover" src={item.media_url} muted={muted} loop playsInline preload={active ? 'auto' : 'metadata'} onError={() => setUnavailable(true)} onClick={onActive} /> :
       <div className="absolute inset-0 grid place-content-center p-8 text-center" role="alert"><h2 className="text-2xl font-bold">Video unavailable</h2><p className="mt-2 text-slate-300">The transcript and official evidence remain available.</p></div>}
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10" />
     <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl p-6 pb-12 sm:p-10">
@@ -433,8 +436,8 @@ export default function WatchVideoPage() {
   }, [billCatalogExhausted, error, fallbacks.length, loadContinuation, loaded, videoCatalogExhausted, videos.length]);
   useEffect(() => {
     if (!videos.length) return;
-    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; const issueQuery = selectedIssueSlug ? `?issue=${encodeURIComponent(selectedIssueSlug)}` : ''; navigate(`/videos/${id}${issueQuery}`, { replace: true }); } }, { threshold: [0.6] });
-    document.querySelectorAll('[data-video-id]').forEach((node) => observer.observe(node));
+    const observer = new IntersectionObserver((entries) => { const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (visible) { const id = (visible.target as HTMLElement).dataset.videoAutoplayId || ''; if (!id) return; setActiveId(id); observerRouteId.current = id; const issueQuery = selectedIssueSlug ? `?issue=${encodeURIComponent(selectedIssueSlug)}` : ''; navigate(`/videos/${id}${issueQuery}`, { replace: true }); } }, { root: feedViewportRef.current, threshold: [0.5] });
+    document.querySelectorAll('[data-video-autoplay-id]').forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, [videos, navigate, selectedIssueSlug]);
   useEffect(() => {
@@ -454,5 +457,5 @@ export default function WatchVideoPage() {
   if (!videos.length && !fallbacks.length && loadingContinuation) return <main className="min-h-screen bg-[#070b14] p-12 text-center text-white">Loading real civic material…</main>;
   if (!videos.length && !fallbacks.length) return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070b14] p-4 text-center text-white"><WatchQuickComposer /><h1 className="mt-5 text-3xl font-bold">Civic material is temporarily unavailable.</h1><p className="max-w-xl text-slate-300">Nothing synthetic will be inserted. Try the live civic records again.</p><button type="button" className="rounded-full bg-amber-300 px-5 py-3 font-bold text-slate-950" onClick={() => void loadContinuation()}>Try again</button></main>;
   const commentsVideo = videos.find((item) => item.video_id === commentsVideoId) || null;
-  return <><main ref={feedViewportRef} onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-screen snap-y snap-proximity overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label={selectedIssueSlug ? `Civic video feed for ${videos[0]?.issue.title || selectedIssueSlug}` : 'Civic video feed'}><div className="absolute inset-x-0 top-3 z-30"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/agenda">Explore the full Agenda</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
+  return <><main ref={feedViewportRef} onScroll={(event) => { const node = event.currentTarget; if (node.scrollHeight - node.scrollTop - node.clientHeight < node.clientHeight * 2) void loadContinuation(); }} className="relative h-[calc(100dvh-52px)] snap-y snap-proximity scroll-pb-[72px] overflow-y-auto overscroll-y-contain bg-[#070b14]" aria-label={selectedIssueSlug ? `Civic video feed for ${videos[0]?.issue.title || selectedIssueSlug}` : 'Civic video feed'}><div className="absolute inset-x-0 top-3 z-30 hidden md:block"><WatchQuickComposer /></div>{videos.map((item, index) => <VideoCard key={item.video_id} item={item} active={activeId === item.video_id} reducedMotion={reducedMotion} onActive={() => setActiveId(item.video_id)} onChange={updateVideo} onComments={() => openComments(item)} position={index + 1} total={videos.length} />)}{fallbacks.map((item) => <CivicFallbackCard key={item.key} item={item} />)}{(loadingContinuation || continuationError || billCatalogExhausted) && <section className="snap-start bg-[#070b14] px-6 py-8 text-center text-sm text-slate-300" aria-live="polite">{loadingContinuation ? 'Loading more real civic material…' : continuationError ? <><p>{continuationError} Already-loaded items remain available.</p><button type="button" className="mt-3 rounded-full border border-amber-300 px-4 py-2 font-bold text-amber-300" onClick={() => void loadContinuation()}>Try again</button></> : <><p>You are caught up with the available real feed.</p><Link className="mt-3 inline-block font-bold text-amber-300 underline" to="/agenda">Explore the full Agenda</Link></>}</section>}</main>{commentsVideo && <VideoCommentsPanel videoId={commentsVideo.video_id} videoCaption={commentsVideo.caption} open onClose={closeComments} />}</>;
 }
