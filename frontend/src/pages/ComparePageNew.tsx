@@ -24,12 +24,12 @@ const PARTY_TOKEN: Record<string, string> = {
   I: 'var(--color-ind)',
 };
 
-const TIER_KEYS = ['strong', 'moderate', 'weak', 'none'] as const;
-const TIER_HEX: Record<string, string> = {
-  strong: '#3DB87A',
-  moderate: '#4A7FDE',
-  weak: '#C5A028',
-  none: '#E05555',
+const VOTE_KEYS = ['yes', 'no', 'present', 'not_voting'] as const;
+const VOTE_HEX: Record<string, string> = {
+  yes: '#3DB87A',
+  no: '#E05555',
+  present: '#C5A028',
+  not_voting: '#6E7A85',
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ export default function ComparePageNew() {
   useEffect(() => {
     let cancelled = false;
     apiClient
-      .getPeople({ limit: 500, active_only: true })
+      .getPeople({ limit: 1000, active_only: true })
       .then((res) => { if (!cancelled) setAllPeople(res.people || []); })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoadingPeople(false); });
@@ -463,6 +463,27 @@ export default function ComparePageNew() {
             ))}
           </div>
 
+          {comparisonPairs.some(({ data }) => data.data_status !== 'available') && (
+            <div
+              role="status"
+              style={{
+                padding: '12px 14px',
+                marginBottom: 24,
+                borderRadius: 10,
+                border: '1px solid rgba(197,160,40,0.35)',
+                background: 'rgba(197,160,40,0.08)',
+                color: 'var(--color-text-2)',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ color: 'var(--color-text-1)' }}>Data coverage notice.</strong>{' '}
+              Some official records are still being imported. Missing records are labeled “Not loaded”
+              instead of being shown as zero.
+            </div>
+          )}
+
           {/* OVERVIEW METRICS */}
           <SectionEyebrow>Overview metrics</SectionEyebrow>
           <div
@@ -475,19 +496,72 @@ export default function ComparePageNew() {
             }}
           >
             {[
-              { label: 'Claims tracked', values: comparisonPairs.map(({ data }) => data.total_claims ?? 0) },
-              { label: 'Claims evaluated', values: comparisonPairs.map(({ data }) => data.total_scored ?? 0) },
-              { label: 'Legislative actions', values: comparisonPairs.map(({ data }) => data.total_actions ?? 0) },
+              {
+                label: 'Imported sponsored bills',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.sponsored_bills ?? 0,
+                  display: data.action_data_available ? (data.sponsored_bills ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Imported cosponsored bills',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.cosponsored_bills ?? 0,
+                  display: data.action_data_available ? (data.cosponsored_bills ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Imported sponsored bills enacted',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.enacted_bills ?? 0,
+                  display: data.action_data_available ? (data.enacted_bills ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Roll-call records',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.total_votes ?? 0,
+                  display: data.vote_data_available ? (data.total_votes ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Votes with party majority',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.party_alignment_rate ?? -1,
+                  display: data.party_alignment_rate == null ? 'Not loaded' : `${data.party_alignment_rate.toFixed(1)}%`,
+                })),
+              },
+              {
+                label: 'Cross-party votes',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.cross_party_votes ?? 0,
+                  display: data.vote_data_available ? (data.cross_party_votes ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Committee assignments',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.committee_count ?? 0,
+                  display: data.committee_data_available ? (data.committee_count ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
+              {
+                label: 'Committee leadership roles',
+                values: comparisonPairs.map(({ data }) => ({
+                  number: data.committee_leadership_roles ?? 0,
+                  display: data.committee_data_available ? (data.committee_leadership_roles ?? 0).toLocaleString() : 'Not loaded',
+                })),
+              },
             ].map((m, mi, arr) => {
-              const best = maxIndices(m.values);
+              const best = maxIndices(m.values.map((value) => value.number));
               const isTwo = comparisonPairs.length === 2;
               return (
                 <MatrixRow
                   key={m.label}
                   isLast={mi === arr.length - 1}
                   label={m.label}
-                  cells={m.values.map((v, i) => ({
-                    value: v.toLocaleString(),
+                  cells={m.values.map((value, i) => ({
+                    value: value.display,
                     isBest: best.has(i),
                     hex: partyHex(comparisonPairs[i].person.party),
                   }))}
@@ -497,10 +571,10 @@ export default function ComparePageNew() {
             })}
           </div>
 
-          {/* ACTIVITY BREAKDOWN */}
-          {comparisonPairs.some(({ data }) => data.by_tier && Object.keys(data.by_tier || {}).length > 0) && (
+          {/* VOTE BREAKDOWN */}
+          {comparisonPairs.some(({ data }) => data.vote_data_available) && (
             <>
-              <SectionEyebrow>Activity breakdown</SectionEyebrow>
+              <SectionEyebrow>Roll-call breakdown</SectionEyebrow>
               <div
                 style={{
                   display: 'grid',
@@ -510,10 +584,10 @@ export default function ComparePageNew() {
                 }}
               >
                 {comparisonPairs.map(({ person, data }) => {
-                  const tier = data.by_tier || {};
-                  const total = Object.values(tier).reduce((a: number, b: number) => a + b, 0) || 1;
+                  const positions = data.vote_positions || {};
+                  const total = Object.values(positions).reduce((a: number, b: number) => a + b, 0) || 1;
                   const pctData: Record<string, number> = {};
-                  TIER_KEYS.forEach((k) => { pctData[k] = ((tier[k] || 0) / total) * 100; });
+                  VOTE_KEYS.forEach((key) => { pctData[key] = ((positions[key] || 0) / total) * 100; });
                   return (
                     <div
                       key={person.person_id}
@@ -538,7 +612,13 @@ export default function ComparePageNew() {
                       >
                         {person.display_name}
                       </div>
-                      <StackedBar data={pctData} keys={TIER_KEYS} colorMap={TIER_HEX} />
+                      {data.vote_data_available ? (
+                        <StackedBar data={pctData} keys={VOTE_KEYS} colorMap={VOTE_HEX} />
+                      ) : (
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--color-text-3)' }}>
+                          Not loaded
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -567,8 +647,8 @@ export default function ComparePageNew() {
                       isLast={rowIdx === policyRows.length - 1}
                       label={row.area}
                       cells={row.values.map((v, i) => ({
-                        value: String(v),
-                        isBest: best.has(i),
+                        value: comparisonPairs[i].data.action_data_available ? String(v) : 'Not loaded',
+                        isBest: comparisonPairs[i].data.action_data_available && best.has(i),
                         hex: partyHex(comparisonPairs[i].person.party),
                       }))}
                       twoColumn={isTwo}
@@ -588,9 +668,44 @@ export default function ComparePageNew() {
                 padding: '16px 0',
               }}
             >
-              No policy area data available.
+              {comparisonPairs.some(({ data }) => !data.action_data_available)
+                ? 'Policy area records have not been loaded for every selected member.'
+                : 'No policy area data is available for these members.'}
             </p>
           )}
+
+          <div
+            style={{
+              marginTop: 28,
+              paddingTop: 18,
+              borderTop: '1px solid var(--color-border)',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              lineHeight: 1.65,
+              color: 'var(--color-text-3)',
+            }}
+          >
+            <strong style={{ color: 'var(--color-text-2)' }}>Sources and method.</strong>{' '}
+            Member identities and portraits come from the{' '}
+            <a href="https://bioguide.congress.gov/" target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)' }}>
+              Congressional Bioguide
+            </a>
+            ; bills and House roll calls from the{' '}
+            <a href="https://api.congress.gov/" target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)' }}>
+              Congress.gov API
+            </a>
+            ; Senate roll calls from the{' '}
+            <a href="https://www.senate.gov/legislative/votes_new.htm" target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)' }}>
+              U.S. Senate
+            </a>
+            ; and committee assignments from the{' '}
+            <a href="https://github.com/unitedstates/congress-legislators" target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)' }}>
+              congress-legislators dataset
+            </a>
+            . Party alignment compares a member's cast vote with their party's modal position;
+            cross-party votes differ from that mode and match the other major party's mode.
+            Bill and policy-area counts reflect Congress.gov records imported so far.
+          </div>
         </div>
       </div>
     );
