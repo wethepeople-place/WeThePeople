@@ -28,3 +28,11 @@ def test_state_workflow_splits_phases_and_requires_coverage():
     assert "--bills-only" in workflow
     assert 'assert report["states"] >= 50' in workflow
     assert 'assert report["bills"] > 0' in workflow
+
+
+def test_state_bill_sync_pages_against_api_page_size():
+    source = (ROOT / "jobs" / "sync_state_data.py").read_text(encoding="utf-8")
+
+    assert "page_size = 20" in source
+    assert "per_page=page_size" in source
+    assert "if len(bills) < page_size:" in source
