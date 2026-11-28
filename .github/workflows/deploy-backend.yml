@@ -1,0 +1,88 @@
+name: Deploy backend to Hetzner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "connectors/**"
+      - "jobs/**"
+      - "models/**"
+      - "routers/**"
+      - "services/**"
+      - "utils/**"
+      - "main.py"
+      - "requirements.txt"
+      - "alembic/**"
+      - "alembic.ini"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Fast-forward production and restart services
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
+            set -euo pipefail
+            cd /home/dshon/wethepeople-backend
+
+            test "$(git branch --show-current)" = "main"
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "Refusing to deploy over tracked production changes" >&2
+              git status --short --untracked-files=no >&2
+              exit 1
+            fi
+
+            previous="$(git rev-parse HEAD)"
+            git fetch --prune origin main
+            git merge-base --is-ancestor "$previous" origin/main
+            git merge --ff-only origin/main
+
+            if ! git diff --quiet "$previous" HEAD -- requirements.txt; then
+              .venv/bin/pip install --disable-pip-version-check -q -r requirements.txt
+            fi
+
+            .venv/bin/python -m compileall -q connectors jobs models routers services utils main.py
+            systemctl restart wethepeople.service
+            systemctl restart wethepeople-scheduler.service
+            systemctl is-active --quiet wethepeople.service
+            systemctl is-active --quiet wethepeople-scheduler.service
+
+            for attempt in $(seq 1 12); do
+              if curl --fail --silent --show-error http://127.0.0.1:8006/health > /dev/null; then
+                echo "Local health check passed on attempt $attempt"
+                echo "deployed_sha=$(git rev-parse HEAD)"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "Local health check failed after 60 seconds" >&2
+            exit 1
+          REMOTE
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error             --retry 12 --retry-delay 5 --retry-all-errors             https://api.wethepeople.place/health > /dev/null
