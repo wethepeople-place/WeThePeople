@@ -46,21 +46,29 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "run_job jobs.seed_tracked_companies" in workflow
     assert "run_job jobs.seed_telecom_companies" in workflow
     assert "run_job jobs.seed_education_companies" in workflow
-    assert "run_job jobs.sync_donations --cycle 2026" in workflow
+    assert "run_job jobs.sync_donations --cycle 2026" not in workflow
     assert "assert lobbying > 0" not in workflow
     assert workflow.count("--skip-lobbying") >= 10
     assert "LDA.gov denied the production recovery host" in workflow
     assert "LDA_SYNC_START_YEAR=2026" in workflow
-    assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts --skip-lobbying" in workflow
-    assert "run_job jobs.sync_chemicals_data --skip-sec --skip-lobbying" in workflow
+    assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts --skip-lobbying --skip-ftc" in workflow
+    assert "run_job jobs.sync_chemicals_data --skip-sec --skip-contracts --skip-lobbying" in workflow
     assert "run_job jobs.sync_finance_political_data --skip-contracts --skip-lobbying" in workflow
     assert "run_job jobs.sync_health_political_data --skip-contracts --skip-lobbying" in workflow
     assert "run_job jobs.sync_defense_data --skip-sec --skip-contracts --skip-lobbying" in workflow
-    assert workflow.count("--skip-contracts") >= 6
+    assert workflow.count("--skip-contracts") >= 10
     assert "sync_chemicals_data --skip-sec --skip-emissions" not in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
-    assert "assert donations > 0" in workflow
+    assert "assert donations > 0" not in workflow
+    assert "FEC_API_KEY is not configured; donations remain externally blocked" in workflow
+
+
+def test_agriculture_sync_imports_timezone_for_refresh_bookkeeping():
+    source = (ROOT / "jobs" / "sync_agriculture_data.py").read_text(encoding="utf-8")
+
+    assert "from datetime import datetime, date, timezone" in source
+    assert "datetime.now(timezone.utc)" in source
 
 
 def test_donation_sync_uses_canonical_production_database():
