@@ -29,3 +29,13 @@ def test_targeted_house_trade_retry_checks_for_imported_rows():
 
     assert "sync_trades_from_disclosures.py --year 2026" in workflow
     assert 'assert row[0] > 0, "No House trades were imported"' in workflow
+
+
+def test_house_trade_sync_skips_duplicate_rows_atomically():
+    source = (ROOT / "jobs" / "sync_trades_from_disclosures.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "on_conflict_do_nothing" in source
+    assert 'index_elements=["dedupe_hash"]' in source
+    assert "session.add(CongressionalTrade(" not in source
