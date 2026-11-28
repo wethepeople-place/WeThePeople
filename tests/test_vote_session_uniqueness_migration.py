@@ -67,3 +67,16 @@ def test_migration_is_idempotent(tmp_path):
     assert MODULE.migrate_connection(connection) is True
     assert MODULE.migrate_connection(connection) is False
 
+
+def test_migration_does_not_fail_on_preexisting_unrelated_violation(tmp_path):
+    connection = _legacy_database(tmp_path / "politics.db")
+    connection.execute("PRAGMA foreign_keys=OFF")
+    connection.execute("INSERT INTO member_votes VALUES (2, 9999)")
+    connection.commit()
+    connection.execute("PRAGMA foreign_keys=ON")
+
+    assert MODULE.migrate_connection(connection) is True
+    assert connection.execute("PRAGMA foreign_key_check").fetchall() == [
+        ("member_votes", 2, "votes", 0)
+    ]
+
