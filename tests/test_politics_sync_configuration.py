@@ -39,3 +39,12 @@ def test_house_trade_sync_skips_duplicate_rows_atomically():
     assert "on_conflict_do_nothing" in source
     assert 'index_elements=["dedupe_hash"]' in source
     assert "session.add(CongressionalTrade(" not in source
+
+
+def test_influence_workflow_exposes_application_import_path():
+    workflow = (
+        ROOT / ".github" / "workflows" / "sync-politics-influence.yml"
+    ).read_text(encoding="utf-8")
+
+    assert workflow.count("docker exec -e PYTHONPATH=/app") >= 20
+    assert 'docker exec "$api_container" python jobs/' not in workflow
