@@ -43,10 +43,10 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
         ROOT / ".github" / "workflows" / "sync-politics-influence.yml"
     ).read_text(encoding="utf-8")
 
-    assert "python -m jobs.seed_tracked_companies" in workflow
-    assert "python -m jobs.seed_telecom_companies" in workflow
-    assert "python -m jobs.seed_education_companies" in workflow
-    assert "python -m jobs.sync_donations --cycle 2026" in workflow
+    assert "run_job jobs.seed_tracked_companies" in workflow
+    assert "run_job jobs.seed_telecom_companies" in workflow
+    assert "run_job jobs.seed_education_companies" in workflow
+    assert "run_job jobs.sync_donations --cycle 2026" in workflow
     assert "assert lobbying > 0" in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
@@ -60,3 +60,14 @@ def test_donation_sync_uses_canonical_production_database():
     assert "session = SessionLocal()" in source
     assert "create_engine" not in source
     assert 'os.getenv("DATABASE_URL"' not in source
+
+
+def test_influence_workflow_binds_legacy_jobs_to_canonical_database():
+    workflow = (
+        ROOT / ".github" / "workflows" / "sync-politics-influence.yml"
+    ).read_text(encoding="utf-8")
+
+    assert 'DATABASE_URL="${WTP_DB_URL:?WTP_DB_URL is required}"' in workflow
+    assert "export DATABASE_URL" in workflow
+    assert 'docker exec "$api_container" python -m jobs.' not in workflow
+    assert workflow.count("run_job jobs.") >= 20
