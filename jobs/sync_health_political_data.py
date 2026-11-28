@@ -16,7 +16,7 @@ Usage:
 """
 
 import os
-from connectors.senate_lda import LDA_BASE
+from connectors.senate_lda import LDA_BASE, POLITE_DELAY
 from connectors.usaspending import USASPENDING_BASE, filter_contracts_by_recipient
 import sys
 import hashlib
@@ -95,7 +95,8 @@ def fetch_lobbying(session, company: TrackedCompany):
     import time
     search_name = company.display_name
     current_year = datetime.now().year
-    years = list(range(current_year, 2019, -1))  # 2020-present
+    start_year = int(os.getenv("LDA_SYNC_START_YEAR", "2020"))
+    years = list(range(current_year, start_year - 1, -1))
 
     count = 0
     for year in years:
@@ -109,7 +110,7 @@ def fetch_lobbying(session, company: TrackedCompany):
                 "page_size": 25,  # API max
             }
             try:
-                time.sleep(1)  # Rate limit
+                time.sleep(POLITE_DELAY)  # LDA.gov anonymous limit: 15 requests/minute
                 if page_num == 0:
                     resp = requests.get(page_url, params=params,
                                         headers={"Accept": "application/json"}, timeout=30)

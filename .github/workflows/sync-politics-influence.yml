@@ -40,7 +40,8 @@ jobs:
           run_job() {
             docker exec "$api_container" sh -c '
               DATABASE_URL="${WTP_DB_URL:?WTP_DB_URL is required}"
-              export DATABASE_URL
+              LDA_SYNC_START_YEAR=2026
+              export DATABASE_URL LDA_SYNC_START_YEAR
               exec python -m "$@"
             ' sh "$@"
           }
@@ -52,22 +53,22 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Finance and health influence"
-          run_job jobs.sync_finance_political_data --skip-lobbying
-          run_job jobs.sync_health_political_data --skip-lobbying
+          run_job jobs.sync_finance_political_data
+          run_job jobs.sync_health_political_data
           echo "::endgroup::"
 
           echo "::group::Technology influence"
-          run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-lobbying
+          run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks
           echo "::endgroup::"
 
           echo "::group::Other sector influence"
-          run_job jobs.sync_energy_data --skip-sec --skip-emissions --skip-lobbying
-          run_job jobs.sync_transportation_data --skip-sec --skip-lobbying
-          run_job jobs.sync_defense_data --skip-sec --skip-lobbying
-          run_job jobs.sync_chemicals_data --skip-sec --skip-emissions --skip-lobbying
-          run_job jobs.sync_agriculture_data --skip-sec --skip-lobbying
-          run_job jobs.sync_telecom_data --skip-sec --skip-lobbying
-          run_job jobs.sync_education_data --skip-sec --skip-lobbying
+          run_job jobs.sync_energy_data --skip-sec --skip-emissions
+          run_job jobs.sync_transportation_data --skip-sec
+          run_job jobs.sync_defense_data --skip-sec
+          run_job jobs.sync_chemicals_data --skip-sec --skip-emissions
+          run_job jobs.sync_agriculture_data --skip-sec
+          run_job jobs.sync_telecom_data --skip-sec
+          run_job jobs.sync_education_data --skip-sec
           echo "::endgroup::"
 
           echo "::group::FEC donations"
@@ -88,7 +89,7 @@ jobs:
 
           echo "::group::Coverage"
           docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={table:db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar() for table in tables}; print(json.dumps(counts,indent=2)); db.close()'
-          docker exec "$api_container" python -c 'from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); lobbying=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records"]); contracts=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]); enforcement=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_enforcement_actions","health_enforcement_actions","ftc_enforcement_actions","energy_enforcement_actions","transportation_enforcement_actions","defense_enforcement_actions","chemical_enforcement_actions","agriculture_enforcement_actions","telecom_enforcement_actions","education_enforcement_actions"]); donations=db.execute(text("SELECT COUNT(*) FROM company_donations")).scalar(); db.close(); print("WARNING: Senate LDA returned no lobbying records; continuing with other influence datasets" if lobbying == 0 else f"Lobbying records present: {lobbying}"); assert contracts > 0, "No contract records imported"; assert enforcement > 0, "No enforcement records imported"; assert donations > 0, "No FEC donation records imported"; print({"lobbying":lobbying,"contracts":contracts,"enforcement":enforcement,"donations":donations})'
+          docker exec "$api_container" python -c 'from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); lobbying=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records"]); contracts=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]); enforcement=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_enforcement_actions","health_enforcement_actions","ftc_enforcement_actions","energy_enforcement_actions","transportation_enforcement_actions","defense_enforcement_actions","chemical_enforcement_actions","agriculture_enforcement_actions","telecom_enforcement_actions","education_enforcement_actions"]); donations=db.execute(text("SELECT COUNT(*) FROM company_donations")).scalar(); db.close(); assert lobbying > 0, "No lobbying records imported"; assert contracts > 0, "No contract records imported"; assert enforcement > 0, "No enforcement records imported"; assert donations > 0, "No FEC donation records imported"; print({"lobbying":lobbying,"contracts":contracts,"enforcement":enforcement,"donations":donations})'
           run_job jobs.warm_closed_loop_cache --quiet
           curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
           echo "::endgroup::"
