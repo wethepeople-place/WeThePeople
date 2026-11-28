@@ -57,7 +57,16 @@ jobs:
             test -n "$api_service"
             cd "$project_dir"
 
-            test "$(git branch --show-current)" = "main"
+            current_branch="$(git branch --show-current)"
+            echo "compose_project_dir=$project_dir"
+            echo "compose_config_files=$config_files"
+            echo "compose_api_service=$api_service"
+            echo "current_branch=${current_branch:-detached}"
+            echo "current_head=$(git rev-parse HEAD)"
+            if [ "$current_branch" != "main" ]; then
+              echo "Refusing to deploy from a production checkout that is not on main" >&2
+              exit 1
+            fi
             if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
               echo "Refusing to deploy over tracked production changes" >&2
               git status --short --untracked-files=no >&2
