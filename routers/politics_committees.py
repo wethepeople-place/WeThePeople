@@ -57,6 +57,10 @@ def _serialize_membership(m: CommitteeMembership, member_info: Optional[TrackedM
 def list_committees(
     chamber: Optional[str] = Query(None, description="Filter by chamber: house, senate, joint"),
     include_subcommittees: bool = Query(False, description="Include subcommittees in listing"),
+    include_empty: bool = Query(
+        False,
+        description="Include legacy committee rows that have no members or populated subcommittees",
+    ),
 ):
     """List all congressional committees with member counts.
 
@@ -108,14 +112,32 @@ def list_committees(
         results = []
         for c in committees:
             member_count = count_map.get(c.thomas_id, 0)
-            serialized = _serialize_committee(c, member_count)
+            subs = (
+                subs_by_parent.get(c.thomas_id, [])
+                if not include_subcommittees and c.parent_thomas_id is None
+                else []
+            )
 
-            if not include_subcommittees and c.parent_thomas_id is None:
-                subs = subs_by_parent.get(c.thomas_id, [])
+            # Old hand-seeded aliases (for example "Judiciary Committee")
+            # can coexist with the canonical congress-legislators row but have
+            # no memberships.  They were surfacing as duplicate 0-member cards.
+            # Keep them queryable with include_empty=1 while hiding them from the
+            # default directory.
+            if (
+                not include_empty
+                and member_count == 0
+                and not any(count_map.get(s.thomas_id, 0) for s in subs)
+            ):
+                continue
+
+            serialized = _serialize_committee(c, member_count)
+            if subs:
                 serialized["subcommittees"] = [
                     _serialize_committee(s, count_map.get(s.thomas_id, 0))
                     for s in subs
                 ]
+            elif not include_subcommittees and c.parent_thomas_id is None:
+                serialized["subcommittees"] = []
 
             results.append(serialized)
 
