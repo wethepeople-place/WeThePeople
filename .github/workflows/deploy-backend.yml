@@ -52,15 +52,15 @@ jobs:
             project_dir="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$api_container")"
             config_files="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$api_container")"
             api_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$api_container")"
+            echo "compose_project_dir=${project_dir:-missing}"
+            echo "compose_config_files=${config_files:-missing}"
+            echo "compose_api_service=${api_service:-missing}"
             test -n "$project_dir"
             test -n "$config_files"
             test -n "$api_service"
             cd "$project_dir"
 
             current_branch="$(git branch --show-current)"
-            echo "compose_project_dir=$project_dir"
-            echo "compose_config_files=$config_files"
-            echo "compose_api_service=$api_service"
             echo "current_branch=${current_branch:-detached}"
             echo "current_head=$(git rev-parse HEAD)"
             if [ "$current_branch" != "main" ]; then
