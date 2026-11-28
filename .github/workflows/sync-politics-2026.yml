@@ -58,8 +58,8 @@ jobs:
 
             docker inspect "$api_container" >/dev/null
             if systemctl list-unit-files "$timer" >/dev/null 2>&1; then
+              timer_was_active=1
               if systemctl is-active --quiet "$timer"; then
-                timer_was_active=1
                 systemctl stop "$timer"
               fi
               for attempt in $(seq 1 120); do
@@ -127,7 +127,11 @@ jobs:
             curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
             echo "::endgroup::"
           REMOTE
-          } | ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" \
+          } | ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" \
             'IFS= read -r API_KEY_CONGRESS; export API_KEY_CONGRESS; bash -s'
 
       - name: Verify the public API
