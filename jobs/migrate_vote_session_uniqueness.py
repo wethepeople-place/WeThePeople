@@ -88,6 +88,9 @@ def migrate_connection(connection: sqlite3.Connection) -> bool:
     duplicates = _duplicate_keys(connection)
     if duplicates:
         raise RuntimeError(f"duplicate session-aware vote keys block migration: {duplicates}")
+    baseline_violations = {
+        tuple(row) for row in connection.execute("PRAGMA foreign_key_check").fetchall()
+    }
 
     columns = [row[1] for row in connection.execute("PRAGMA table_info(votes)")]
     if "vote_session" not in columns:
@@ -144,9 +147,15 @@ def migrate_connection(connection: sqlite3.Connection) -> bool:
     finally:
         connection.execute(f"PRAGMA foreign_keys={'ON' if prior_fk else 'OFF'}")
 
-    violations = connection.execute("PRAGMA foreign_key_check").fetchall()
-    if violations:
-        raise RuntimeError(f"foreign-key violations after vote migration: {violations[:20]}")
+    violations = {
+        tuple(row) for row in connection.execute("PRAGMA foreign_key_check").fetchall()
+    }
+    introduced_violations = sorted(violations - baseline_violations)
+    if introduced_violations:
+        raise RuntimeError(
+            "foreign-key violations introduced by vote migration: "
+            f"{introduced_violations[:20]}"
+        )
     final_sql = connection.execute(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='votes'"
     ).fetchone()[0]
