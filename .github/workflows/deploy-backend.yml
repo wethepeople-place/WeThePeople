@@ -73,22 +73,22 @@ jobs:
             env_file="/run/wtp-api-env-$short_target"
             docker inspect "$api_container" > "$inspect_file"
             port_spec="$(python3 - "$inspect_file" "$env_file" <<'PY'
-            import json
-            import pathlib
-            import sys
+          import json
+          import pathlib
+          import sys
 
-            config = json.loads(pathlib.Path(sys.argv[1]).read_text())[0]
-            values = config["Config"].get("Env") or []
-            if any("\n" in value or "\r" in value for value in values):
-                raise SystemExit("container environment contains unsupported newlines")
-            pathlib.Path(sys.argv[2]).write_text("\n".join(values) + "\n")
-            binding = (config["HostConfig"].get("PortBindings") or {}).get("8006/tcp") or []
-            if len(binding) != 1 or not binding[0].get("HostPort"):
-                raise SystemExit("expected one 8006/tcp host binding")
-            host = binding[0].get("HostIp") or ""
-            port = binding[0]["HostPort"]
-            print(f"{host + ':' if host else ''}{port}:8006")
-            PY
+          config = json.loads(pathlib.Path(sys.argv[1]).read_text())[0]
+          values = config["Config"].get("Env") or []
+          if any("\n" in value or "\r" in value for value in values):
+              raise SystemExit("container environment contains unsupported newlines")
+          pathlib.Path(sys.argv[2]).write_text("\n".join(values) + "\n")
+          binding = (config["HostConfig"].get("PortBindings") or {}).get("8006/tcp") or []
+          if len(binding) != 1 or not binding[0].get("HostPort"):
+              raise SystemExit("expected one 8006/tcp host binding")
+          host = binding[0].get("HostIp") or ""
+          port = binding[0]["HostPort"]
+          print(f"{host + ':' if host else ''}{port}:8006")
+          PY
             )"
             chmod 600 "$inspect_file" "$env_file"
             restart_policy="$(docker inspect -f '{{ .HostConfig.RestartPolicy.Name }}' "$api_container")"
