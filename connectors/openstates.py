@@ -160,8 +160,10 @@ def fetch_state_bills(
     params: Dict[str, Any] = {
         "jurisdiction": state.lower(),
         "page": page,
-        "per_page": min(per_page, 50),
+        # OpenStates bills search rejects page sizes above 20 with HTTP 400.
+        "per_page": min(per_page, 20),
         "sort": "updated_desc",
+        "include": ["sponsorships", "sources"],
     }
     if query:
         params["q"] = query
@@ -204,13 +206,15 @@ def fetch_state_bills(
         # Build a unique bill_id
         bill_id = f"{state_upper.lower()}-{session}-{identifier}".replace(" ", "")
 
-        # Latest action
-        latest_action = ""
-        latest_action_date = None
-        actions = bill.get("latest_action") or {}
-        if actions:
-            latest_action = actions.get("description", "")
-            latest_action_date = actions.get("date")
+        # The v3 list endpoint exposes the latest action as top-level fields.
+        # Keep the older nested fallback for compatibility with saved fixtures.
+        latest_action = bill.get("latest_action_description") or ""
+        latest_action_date = bill.get("latest_action_date")
+        legacy_latest_action = bill.get("latest_action") or {}
+        if not latest_action and isinstance(legacy_latest_action, dict):
+            latest_action = legacy_latest_action.get("description", "")
+        if not latest_action_date and isinstance(legacy_latest_action, dict):
+            latest_action_date = legacy_latest_action.get("date")
 
         # Primary sponsor
         sponsor_name = ""
