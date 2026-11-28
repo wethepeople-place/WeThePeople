@@ -40,7 +40,8 @@ jobs:
           run_job() {
             docker exec "$api_container" sh -c '
               DATABASE_URL="${WTP_DB_URL:?WTP_DB_URL is required}"
-              export DATABASE_URL
+              LDA_SYNC_START_YEAR=2026
+              export DATABASE_URL LDA_SYNC_START_YEAR
               exec python -m "$@"
             ' sh "$@"
           }
