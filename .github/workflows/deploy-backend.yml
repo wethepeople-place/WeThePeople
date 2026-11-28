@@ -52,6 +52,17 @@ jobs:
             project_dir="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$api_container")"
             config_files="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$api_container")"
             api_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$api_container")"
+            echo "container_image=$(docker inspect -f '{{ .Config.Image }}' "$api_container")"
+            echo "container_restart=$(docker inspect -f '{{ .HostConfig.RestartPolicy.Name }}' "$api_container")"
+            echo "container_network=$(docker inspect -f '{{ .HostConfig.NetworkMode }}' "$api_container")"
+            docker inspect -f 'container_mounts={{range .Mounts}}{{.Type}}:{{.Source}}=>{{.Destination}};{{end}}' "$api_container"
+            for candidate in /opt/wethepeople /opt/wethepeople/app; do
+              if git -C "$candidate" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+                echo "checkout=$candidate branch=$(git -C "$candidate" branch --show-current) head=$(git -C "$candidate" rev-parse HEAD)"
+              elif [ -d "$candidate" ]; then
+                echo "directory_without_checkout=$candidate"
+              fi
+            done
             echo "compose_project_dir=${project_dir:-missing}"
             echo "compose_config_files=${config_files:-missing}"
             echo "compose_api_service=${api_service:-missing}"
