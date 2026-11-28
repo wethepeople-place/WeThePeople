@@ -53,6 +53,10 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "LDA_SYNC_START_YEAR=2026" in workflow
     assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts --skip-lobbying" in workflow
     assert "run_job jobs.sync_chemicals_data --skip-sec --skip-lobbying" in workflow
+    assert "run_job jobs.sync_finance_political_data --skip-contracts --skip-lobbying" in workflow
+    assert "run_job jobs.sync_health_political_data --skip-contracts --skip-lobbying" in workflow
+    assert "run_job jobs.sync_defense_data --skip-sec --skip-contracts --skip-lobbying" in workflow
+    assert workflow.count("--skip-contracts") >= 6
     assert "sync_chemicals_data --skip-sec --skip-emissions" not in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
