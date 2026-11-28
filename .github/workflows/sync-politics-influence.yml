@@ -39,39 +39,39 @@ jobs:
           docker inspect "$api_container" >/dev/null
 
           echo "::group::Seed tracked organizations"
-          docker exec "$api_container" python jobs/sync_finance_data.py --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
-          docker exec "$api_container" python jobs/sync_health_data.py --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
+          docker exec "$api_container" python -m jobs.sync_finance_data --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
+          docker exec "$api_container" python -m jobs.sync_health_data --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
           echo "::endgroup::"
 
           echo "::group::Finance and health influence"
-          docker exec "$api_container" python jobs/sync_finance_political_data.py
-          docker exec "$api_container" python jobs/sync_health_political_data.py
+          docker exec "$api_container" python -m jobs.sync_finance_political_data
+          docker exec "$api_container" python -m jobs.sync_health_political_data
           echo "::endgroup::"
 
           echo "::group::Technology influence"
-          docker exec "$api_container" python jobs/sync_tech_data.py --skip-sec --skip-patents --skip-stocks
+          docker exec "$api_container" python -m jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks
           echo "::endgroup::"
 
           echo "::group::Other sector influence"
-          docker exec "$api_container" python jobs/sync_energy_data.py --skip-sec --skip-emissions
-          docker exec "$api_container" python jobs/sync_transportation_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_defense_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_chemicals_data.py --skip-sec --skip-emissions
-          docker exec "$api_container" python jobs/sync_agriculture_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_telecom_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_education_data.py --skip-sec
+          docker exec "$api_container" python -m jobs.sync_energy_data --skip-sec --skip-emissions
+          docker exec "$api_container" python -m jobs.sync_transportation_data --skip-sec
+          docker exec "$api_container" python -m jobs.sync_defense_data --skip-sec
+          docker exec "$api_container" python -m jobs.sync_chemicals_data --skip-sec --skip-emissions
+          docker exec "$api_container" python -m jobs.sync_agriculture_data --skip-sec
+          docker exec "$api_container" python -m jobs.sync_telecom_data --skip-sec
+          docker exec "$api_container" python -m jobs.sync_education_data --skip-sec
           echo "::endgroup::"
 
           echo "::group::Enforcement"
-          docker exec "$api_container" python jobs/sync_finance_enforcement.py
-          docker exec "$api_container" python jobs/sync_health_enforcement.py
-          docker exec "$api_container" python jobs/sync_energy_enforcement.py
-          docker exec "$api_container" python jobs/sync_transportation_enforcement.py
-          docker exec "$api_container" python jobs/sync_defense_enforcement.py
-          docker exec "$api_container" python jobs/sync_chemicals_enforcement.py
-          docker exec "$api_container" python jobs/sync_agriculture_enforcement.py
-          docker exec "$api_container" python jobs/sync_telecom_enforcement.py
-          docker exec "$api_container" python jobs/sync_education_enforcement.py
+          docker exec "$api_container" python -m jobs.sync_finance_enforcement
+          docker exec "$api_container" python -m jobs.sync_health_enforcement
+          docker exec "$api_container" python -m jobs.sync_energy_enforcement
+          docker exec "$api_container" python -m jobs.sync_transportation_enforcement
+          docker exec "$api_container" python -m jobs.sync_defense_enforcement
+          docker exec "$api_container" python -m jobs.sync_chemicals_enforcement
+          docker exec "$api_container" python -m jobs.sync_agriculture_enforcement
+          docker exec "$api_container" python -m jobs.sync_telecom_enforcement
+          docker exec "$api_container" python -m jobs.sync_education_enforcement
           echo "::endgroup::"
 
           echo "::group::Coverage"
