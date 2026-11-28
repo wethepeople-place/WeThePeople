@@ -39,39 +39,39 @@ jobs:
           docker inspect "$api_container" >/dev/null
 
           echo "::group::Seed tracked organizations"
-          docker exec "$api_container" python jobs/sync_finance_data.py --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
-          docker exec "$api_container" python jobs/sync_health_data.py --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_finance_data.py --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_health_data.py --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
           echo "::endgroup::"
 
           echo "::group::Finance and health influence"
-          docker exec "$api_container" python jobs/sync_finance_political_data.py
-          docker exec "$api_container" python jobs/sync_health_political_data.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_finance_political_data.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_health_political_data.py
           echo "::endgroup::"
 
           echo "::group::Technology influence"
-          docker exec "$api_container" python jobs/sync_tech_data.py --skip-sec --skip-patents --skip-stocks
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_tech_data.py --skip-sec --skip-patents --skip-stocks
           echo "::endgroup::"
 
           echo "::group::Other sector influence"
-          docker exec "$api_container" python jobs/sync_energy_data.py --skip-sec --skip-emissions
-          docker exec "$api_container" python jobs/sync_transportation_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_defense_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_chemicals_data.py --skip-sec --skip-emissions
-          docker exec "$api_container" python jobs/sync_agriculture_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_telecom_data.py --skip-sec
-          docker exec "$api_container" python jobs/sync_education_data.py --skip-sec
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_energy_data.py --skip-sec --skip-emissions
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_transportation_data.py --skip-sec
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_defense_data.py --skip-sec
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_chemicals_data.py --skip-sec --skip-emissions
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_agriculture_data.py --skip-sec
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_telecom_data.py --skip-sec
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_education_data.py --skip-sec
           echo "::endgroup::"
 
           echo "::group::Enforcement"
-          docker exec "$api_container" python jobs/sync_finance_enforcement.py
-          docker exec "$api_container" python jobs/sync_health_enforcement.py
-          docker exec "$api_container" python jobs/sync_energy_enforcement.py
-          docker exec "$api_container" python jobs/sync_transportation_enforcement.py
-          docker exec "$api_container" python jobs/sync_defense_enforcement.py
-          docker exec "$api_container" python jobs/sync_chemicals_enforcement.py
-          docker exec "$api_container" python jobs/sync_agriculture_enforcement.py
-          docker exec "$api_container" python jobs/sync_telecom_enforcement.py
-          docker exec "$api_container" python jobs/sync_education_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_finance_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_health_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_energy_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_transportation_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_defense_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_chemicals_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_agriculture_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_telecom_enforcement.py
+          docker exec -e PYTHONPATH=/app "$api_container" python jobs/sync_education_enforcement.py
           echo "::endgroup::"
 
           echo "::group::Coverage"
