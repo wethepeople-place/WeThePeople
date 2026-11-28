@@ -56,9 +56,10 @@ jobs:
           printf '%s\n' "$openstates_key" | docker exec -i "$api_container" sh -c '
             IFS= read -r OPENSTATES_API_KEY
             export OPENSTATES_API_KEY
-            exec python jobs/sync_state_data_all.py --max-pages 3 --stagger-sec 1
+            python jobs/sync_state_data_all.py --legislators-only --stagger-sec 1
+            exec python jobs/sync_state_data_all.py --bills-only --max-pages 3 --stagger-sec 1
           '
-          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); report={"states":db.execute(text("SELECT COUNT(DISTINCT state) FROM state_legislators")).scalar(),"legislators":db.execute(text("SELECT COUNT(*) FROM state_legislators")).scalar(),"bills":db.execute(text("SELECT COUNT(*) FROM state_bills")).scalar()}; print(json.dumps(report,indent=2)); db.close()'
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); report={"states":db.execute(text("SELECT COUNT(DISTINCT state) FROM state_legislators")).scalar(),"legislators":db.execute(text("SELECT COUNT(*) FROM state_legislators")).scalar(),"bills":db.execute(text("SELECT COUNT(*) FROM state_bills")).scalar()}; print(json.dumps(report,indent=2)); db.close(); assert report["states"] >= 50, "State legislator coverage is incomplete"; assert report["bills"] > 0, "No state bills were imported"'
           curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
           REMOTE
           } | ssh \
