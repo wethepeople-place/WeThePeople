@@ -65,7 +65,7 @@ jobs:
           run_job jobs.sync_energy_data --skip-sec --skip-emissions --skip-lobbying
           run_job jobs.sync_transportation_data --skip-sec --skip-lobbying
           run_job jobs.sync_defense_data --skip-sec --skip-lobbying
-          run_job jobs.sync_chemicals_data --skip-sec --skip-emissions --skip-lobbying
+          run_job jobs.sync_chemicals_data --skip-sec --skip-lobbying
           run_job jobs.sync_agriculture_data --skip-sec --skip-lobbying
           run_job jobs.sync_telecom_data --skip-sec --skip-lobbying
           run_job jobs.sync_education_data --skip-sec --skip-lobbying
