@@ -746,6 +746,10 @@ def main():
 
     # Load tracked members for name matching
     members = session.query(TrackedMember).filter_by(is_active=1, chamber="house").all()
+    if not members:
+        raise RuntimeError(
+            "No active House members found in the canonical production database"
+        )
     name_index = build_name_index(members)
     log.info(f"Loaded {len(members)} tracked House members for name matching")
 
