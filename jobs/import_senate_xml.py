@@ -34,7 +34,9 @@ def _value(root: ET.Element, path: str, default: str = "") -> str:
     return value.strip() if value else default
 
 
-def _integer(root: ET.Element, path: str, default: int = 0) -> int:
+def _integer(root: ET.Element | None, path: str, default: int = 0) -> int:
+    if root is None:
+        return default
     raw = _value(root, path)
     try:
         return int(raw)
@@ -84,6 +86,9 @@ def parse_vote_xml(path: Path) -> dict[str, Any]:
                 "lis_member_id": _value(member, "lis_member_id") or None,
             }
         )
+
+    if not voters:
+        raise ValueError(f"{path.name}: no member vote rows found")
 
     source_url = (
         "https://www.senate.gov/legislative/LIS/roll_call_votes/"
