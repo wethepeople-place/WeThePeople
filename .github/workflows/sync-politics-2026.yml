@@ -1,0 +1,113 @@
+name: Sync 2026 politics data
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Back up, migrate, and sync 2026 politics data
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
+            set -Eeuo pipefail
+            api_container="wtp-api"
+            timer="wtp-congress-legislation-sync.timer"
+            service="wtp-congress-legislation-sync.service"
+            temp_root="$(mktemp -d)"
+            timer_was_active=0
+
+            cleanup() {
+              code=$?
+              rm -rf "$temp_root"
+              docker exec "$api_container" rm -rf /tmp/congress-legislators >/dev/null 2>&1 || true
+              if [ "$timer_was_active" = "1" ]; then
+                systemctl start "$timer" || true
+              fi
+              exit "$code"
+            }
+            trap cleanup EXIT
+
+            docker inspect "$api_container" >/dev/null
+            if systemctl list-unit-files "$timer" >/dev/null 2>&1; then
+              if systemctl is-active --quiet "$timer"; then
+                timer_was_active=1
+                systemctl stop "$timer"
+              fi
+              for attempt in $(seq 1 120); do
+                if ! systemctl is-active --quiet "$service"; then
+                  break
+                fi
+                if [ "$attempt" = "120" ]; then
+                  echo "Existing legislation sync did not finish within ten minutes" >&2
+                  exit 1
+                fi
+                sleep 5
+              done
+            fi
+
+            echo "::group::Session-aware database migration"
+            docker exec "$api_container" python jobs/migrate_vote_session_uniqueness.py
+            echo "::endgroup::"
+
+            echo "::group::Current members and committees"
+            git clone --depth 1 https://github.com/unitedstates/congress-legislators "$temp_root/congress-legislators"
+            docker cp "$temp_root/congress-legislators" "$api_container":/tmp/congress-legislators
+            docker exec "$api_container" python jobs/import_congress_legislators.py \
+              --data-dir /tmp/congress-legislators \
+              --bootstrap-members
+            echo "::endgroup::"
+
+            echo "::group::119th Congress legislation"
+            docker exec --env WTP_ENABLE_CONGRESS_LEGISLATION_SYNC=1 "$api_container" \
+              python jobs/sync_congress_legislation.py \
+              --congress 119 \
+              --max-requests 4500
+            echo "::endgroup::"
+
+            echo "::group::2026 House roll calls"
+            docker exec "$api_container" python jobs/sync_votes.py \
+              --congress 119 \
+              --session 2 \
+              --limit 2000
+            echo "::endgroup::"
+
+            echo "::group::2026 Senate roll calls"
+            docker exec "$api_container" python jobs/sync_senate_votes.py \
+              --congress 119 \
+              --session 2
+            echo "::endgroup::"
+
+            echo "::group::Final production coverage"
+            docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); q=lambda sql: [list(row) for row in db.execute(text(sql)).all()]; report={"votes_2026":q("SELECT chamber, COUNT(*), MIN(vote_date), MAX(vote_date) FROM votes WHERE congress=119 AND vote_session=2 GROUP BY chamber ORDER BY chamber"),"member_votes_2026":q("SELECT v.chamber, COUNT(mv.id) FROM votes v LEFT JOIN member_votes mv ON mv.vote_id=v.id WHERE v.congress=119 AND v.vote_session=2 GROUP BY v.chamber ORDER BY v.chamber"),"bills_119":q("SELECT COUNT(*), MAX(updated_at) FROM bills WHERE congress=119"),"members":q("SELECT COUNT(*) FROM tracked_members"),"committees":q("SELECT COUNT(*) FROM committees"),"memberships":q("SELECT COUNT(*) FROM committee_memberships")}; print(json.dumps(report,default=str,indent=2)); db.close()'
+            curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
+            echo "::endgroup::"
+          REMOTE
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/health >/dev/null
