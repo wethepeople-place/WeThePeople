@@ -58,7 +58,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Technology influence"
-          run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks
+          run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts
           echo "::endgroup::"
 
           echo "::group::Other sector influence"
