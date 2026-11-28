@@ -1,3 +1,5 @@
+import pytest
+
 from connectors import openstates
 
 
@@ -88,7 +90,18 @@ def test_bill_search_retries_after_full_backoff(monkeypatch):
     assert [5, 10, 20] == [delay for delay in sleeps if delay != openstates.POLITE_DELAY]
 
 
-def test_openstates_pages_fail_closed_after_retries():
-    source = openstates.__file__
-    assert source
-    assert openstates.MAX_RETRIES == 4
+def test_openstates_pages_fail_closed_after_retries(monkeypatch):
+    calls = 0
+
+    def fake_get(url, *, params, headers, timeout):
+        nonlocal calls
+        calls += 1
+        raise openstates.requests.exceptions.Timeout("boom")
+
+    monkeypatch.setattr(openstates.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(openstates.requests, "get", fake_get)
+
+    with pytest.raises(RuntimeError, match="failed for 'AL' after retries"):
+        openstates.fetch_state_bills("AL")
+
+    assert calls == openstates.MAX_RETRIES == 4
