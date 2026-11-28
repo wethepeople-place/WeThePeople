@@ -815,6 +815,7 @@ def main():
                 continue
 
             pdf_url = PTR_PDF_URL.format(year=year, doc_id=doc_id)
+            pending_dedupe_hashes: set[str] = set()
 
             for txn in transactions:
                 ticker = txn["ticker"]
@@ -828,11 +829,21 @@ def main():
                 dedupe_str = f"{member.person_id}:{ticker or asset_name}:{txn_date}:{txn_type}:{amount}"
                 dedupe = md5(dedupe_str)
 
+                # A single disclosure can repeat the same transaction row.
+                # SQLAlchemy does not surface pending inserts to this query, so
+                # catch same-filing duplicates before the UNIQUE constraint
+                # rolls back every valid transaction in the filing.
+                if dedupe in pending_dedupe_hashes:
+                    total_dupes += 1
+                    continue
+
                 if not args.dry_run:
                     existing = session.query(CongressionalTrade).filter_by(dedupe_hash=dedupe).first()
                     if existing:
                         total_dupes += 1
                         continue
+
+                pending_dedupe_hashes.add(dedupe)
 
                 if args.dry_run:
                     log.info(
