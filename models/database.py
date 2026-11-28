@@ -293,7 +293,13 @@ class Vote(Base):
     """
     __tablename__ = "votes"
     __table_args__ = (
-        UniqueConstraint("congress", "chamber", "roll_number", name="uq_votes_congress_chamber_roll"),
+        UniqueConstraint(
+            "congress",
+            "chamber",
+            "vote_session",
+            "roll_number",
+            name="uq_votes_congress_chamber_session_roll",
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
