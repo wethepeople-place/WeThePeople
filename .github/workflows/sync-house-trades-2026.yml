@@ -1,0 +1,51 @@
+name: Sync 2026 House trades
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Import official House financial disclosures
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" <<'REMOTE'
+          set -Eeuo pipefail
+          api_container="wtp-api"
+          docker inspect "$api_container" >/dev/null
+          docker exec "$api_container" python jobs/sync_trades_from_disclosures.py --year 2026
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); row=list(db.execute(text("SELECT COUNT(*), MIN(transaction_date), MAX(transaction_date) FROM congressional_trades")).one()); print(json.dumps({"house_trades":row},default=str)); db.close(); assert row[0] > 0, "No House trades were imported"'
+          curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
+          REMOTE
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/health >/dev/null
