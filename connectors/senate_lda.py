@@ -4,12 +4,13 @@ Senate LDA Lobbying Disclosure Connector
 Track corporate lobbying expenditures via the Senate Lobbying Disclosure Act API.
 Query by client_name for quarterly filing data.
 
-API docs: https://lda.senate.gov/api/redoc/v1/
-Rate limit: Undocumented (throttled for anonymous access)
+API docs: https://lda.gov/api/redoc/v1/
+Rate limit: 15 requests/minute anonymous; 120/minute with a registered API key
 Auth: None required (optional API key for higher limits)
 """
 
 import hashlib
+import os
 import time
 import requests
 from typing import Optional, List, Dict, Any
@@ -18,9 +19,9 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-LDA_BASE = "https://lda.senate.gov/api/v1/filings/"
+LDA_BASE = "https://lda.gov/api/v1/filings/"
 
-POLITE_DELAY = 1.0
+POLITE_DELAY = 4.1
 
 
 def _compute_hash(*parts: str) -> str:
@@ -60,7 +61,8 @@ def fetch_lobbying_filings(
     from datetime import datetime
 
     current_year = datetime.now().year
-    years = [filing_year] if filing_year else list(range(current_year, 2019, -1))  # 2020-present
+    start_year = int(os.getenv("LDA_SYNC_START_YEAR", "2020"))
+    years = [filing_year] if filing_year else list(range(current_year, start_year - 1, -1))
 
     all_results = []
 
