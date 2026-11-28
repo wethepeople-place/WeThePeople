@@ -47,7 +47,9 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "run_job jobs.seed_telecom_companies" in workflow
     assert "run_job jobs.seed_education_companies" in workflow
     assert "run_job jobs.sync_donations --cycle 2026" in workflow
-    assert "assert lobbying > 0" in workflow
+    assert "assert lobbying > 0" not in workflow
+    assert workflow.count("--skip-lobbying") >= 10
+    assert "Senate LDA returned no lobbying records" in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
     assert "assert donations > 0" in workflow
