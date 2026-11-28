@@ -1,0 +1,95 @@
+name: Sync politics influence data
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync lobbying, contracts, and enforcement
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=120 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" <<'REMOTE'
+          set -Eeuo pipefail
+          api_container="wtp-api"
+          docker inspect "$api_container" >/dev/null
+
+          echo "::group::Seed tracked organizations"
+          docker exec "$api_container" python jobs/sync_finance_data.py --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
+          docker exec "$api_container" python jobs/sync_health_data.py --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
+          echo "::endgroup::"
+
+          echo "::group::Finance and health influence"
+          docker exec "$api_container" python jobs/sync_finance_political_data.py
+          docker exec "$api_container" python jobs/sync_health_political_data.py
+          echo "::endgroup::"
+
+          echo "::group::Technology influence"
+          docker exec "$api_container" python jobs/sync_tech_data.py --skip-sec --skip-patents --skip-stocks
+          echo "::endgroup::"
+
+          echo "::group::Other sector influence"
+          docker exec "$api_container" python jobs/sync_energy_data.py --skip-sec --skip-emissions
+          docker exec "$api_container" python jobs/sync_transportation_data.py --skip-sec
+          docker exec "$api_container" python jobs/sync_defense_data.py --skip-sec
+          docker exec "$api_container" python jobs/sync_chemicals_data.py --skip-sec --skip-emissions
+          docker exec "$api_container" python jobs/sync_agriculture_data.py --skip-sec
+          docker exec "$api_container" python jobs/sync_telecom_data.py --skip-sec
+          docker exec "$api_container" python jobs/sync_education_data.py --skip-sec
+          echo "::endgroup::"
+
+          echo "::group::Enforcement"
+          docker exec "$api_container" python jobs/sync_finance_enforcement.py
+          docker exec "$api_container" python jobs/sync_health_enforcement.py
+          docker exec "$api_container" python jobs/sync_energy_enforcement.py
+          docker exec "$api_container" python jobs/sync_transportation_enforcement.py
+          docker exec "$api_container" python jobs/sync_defense_enforcement.py
+          docker exec "$api_container" python jobs/sync_chemicals_enforcement.py
+          docker exec "$api_container" python jobs/sync_agriculture_enforcement.py
+          docker exec "$api_container" python jobs/sync_telecom_enforcement.py
+          docker exec "$api_container" python jobs/sync_education_enforcement.py
+          echo "::endgroup::"
+
+          echo "::group::Coverage"
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={};
+for table in tables:
+    try: counts[table]=db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+    except Exception as exc: db.rollback(); counts[table]=f"error: {exc.__class__.__name__}"
+print(json.dumps(counts,indent=2)); db.close()'
+          curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
+          echo "::endgroup::"
+          REMOTE
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/aggregate/all/lobbying?limit=1 >/dev/null
+          curl --fail --silent --show-error \
+            https://api.wethepeople.place/aggregate/all/contracts?limit=1 >/dev/null
