@@ -19,36 +19,18 @@ import logging
 from datetime import datetime
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, event as sa_event
-from sqlalchemy.orm import sessionmaker
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.database import Base
+from models.database import Base, SessionLocal, engine
 from models.state_models import StateLegislator, StateBill
 from connectors.openstates import fetch_state_legislators, fetch_state_bills
-from utils.db_compat import is_sqlite, set_pragmas_if_sqlite
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sync_state_data")
-
-DB_PATH = os.getenv("DATABASE_URL", "sqlite:///wethepeople.db")
-
-engine = create_engine(DB_PATH, echo=False)
-
-if is_sqlite():
-    @sa_event.listens_for(engine, "connect")
-    def _set_sqlite_pragmas(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA busy_timeout=60000")
-        cursor.close()
-
-Session = sessionmaker(bind=engine)
-
 
 def md5(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()
@@ -194,7 +176,7 @@ def main():
 
     # Create tables
     Base.metadata.create_all(engine)
-    session = Session()
+    session = SessionLocal()
 
     try:
         leg_count = 0
