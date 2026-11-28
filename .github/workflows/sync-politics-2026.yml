@@ -31,9 +31,13 @@ jobs:
 
       - name: Back up, migrate, and sync 2026 politics data
         shell: bash
+        env:
+          API_KEY_CONGRESS: ${{ secrets.API_KEY_CONGRESS }}
         run: |
           set -euo pipefail
-          ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
+          {
+            printf '%s\n' "$API_KEY_CONGRESS"
+            cat <<'REMOTE'
             set -Eeuo pipefail
             api_container="wtp-api"
             timer="wtp-congress-legislation-sync.timer"
@@ -70,27 +74,12 @@ jobs:
               done
             fi
 
-            congress_api_key="$(
-              set -a
-              inline_environment="$(systemctl show "$service" --property=Environment --value)"
-              if [ -n "$inline_environment" ]; then
-                eval "export $inline_environment"
-              fi
-              while IFS= read -r environment_file; do
-                if [ -r "$environment_file" ]; then
-                  . "$environment_file"
-                fi
-              done < <(
-                systemctl show "$service" --property=EnvironmentFiles --value |
-                  grep -oE '/[^ ;()]+' || true
-              )
-              printf '%s' "${API_KEY_CONGRESS:-${CONGRESS_API_KEY:-}}"
-            )"
+            congress_api_key="${API_KEY_CONGRESS:-${CONGRESS_API_KEY:-}}"
             if [ -z "$congress_api_key" ]; then
-              echo "Congress.gov API key was not found in the legislation sync service environment" >&2
+              echo "Congress.gov API key was not supplied to the sync workflow" >&2
               exit 1
             fi
-            echo "Resolved the Congress.gov API key from the configured sync service"
+            echo "Received the Congress.gov API key from the protected Actions secret"
             run_with_congress_key() {
               printf '%s\n' "$congress_api_key" | docker exec -i "$api_container" sh -c '
                 IFS= read -r API_KEY_CONGRESS
@@ -138,6 +127,8 @@ jobs:
             curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
             echo "::endgroup::"
           REMOTE
+          } | ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" \
+            'IFS= read -r API_KEY_CONGRESS; export API_KEY_CONGRESS; bash -s'
 
       - name: Verify the public API
         shell: bash
