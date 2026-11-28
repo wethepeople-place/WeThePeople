@@ -58,8 +58,8 @@ jobs:
 
             docker inspect "$api_container" >/dev/null
             if systemctl list-unit-files "$timer" >/dev/null 2>&1; then
+              timer_was_active=1
               if systemctl is-active --quiet "$timer"; then
-                timer_was_active=1
                 systemctl stop "$timer"
               fi
               for attempt in $(seq 1 120); do
