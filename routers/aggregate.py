@@ -292,6 +292,47 @@ def _query_contracts(sector: str, limit: int, db: Session):
     return _cached_or_compute("contracts", sector, limit, _compute)
 
 
+
+
+# ── Cross-sector queries used by the Politics influence pages ──
+
+def _query_all_sectors(kind: str, limit: int, db: Session):
+    """Merge normalized records from every tracked sector.
+
+    Politics has no company table of its own. Its influence pages are a
+    cross-sector view of organizations lobbying government, receiving federal
+    contracts, or facing enforcement. Every row retains its source sector.
+    """
+    query_for = {
+        "enforcement": (_query_enforcement, "actions"),
+        "lobbying": (_query_lobbying, "filings"),
+        "contracts": (_query_contracts, "contracts"),
+    }
+    query, result_key = query_for[kind]
+    merged = []
+    total = 0
+    for sector in SECTOR_MODELS:
+        payload = query(sector, limit, db)
+        total += int(payload.get("total") or 0)
+        merged.extend({**row, "sector": sector} for row in payload[result_key])
+
+    if kind == "contracts":
+        merged.sort(key=lambda row: row.get("award_amount") or 0, reverse=True)
+    elif kind == "enforcement":
+        merged.sort(key=lambda row: row.get("case_date") or "", reverse=True)
+    else:
+        merged.sort(
+            key=lambda row: (
+                row.get("filing_year") or 0,
+                row.get("filing_period") or "",
+                row.get("income") or 0,
+            ),
+            reverse=True,
+        )
+
+    return {"total": total, result_key: merged[:limit]}
+
+
 # ── Enforcement endpoints ──
 
 @router.get("/finance/enforcement")
@@ -446,3 +487,21 @@ def telecom_contracts_all(limit: int = Query(500, ge=1, le=500), db: Session = D
 @router.get("/education/contracts")
 def education_contracts_all(limit: int = Query(500, ge=1, le=500), db: Session = Depends(get_db)):
     return _query_contracts("education", limit, db)
+
+
+
+# ── Cross-sector Politics influence endpoints ──
+
+@router.get("/all/enforcement")
+def all_enforcement(limit: int = Query(500, ge=1, le=500), db: Session = Depends(get_db)):
+    return _query_all_sectors("enforcement", limit, db)
+
+
+@router.get("/all/lobbying")
+def all_lobbying(limit: int = Query(500, ge=1, le=500), db: Session = Depends(get_db)):
+    return _query_all_sectors("lobbying", limit, db)
+
+
+@router.get("/all/contracts")
+def all_contracts(limit: int = Query(500, ge=1, le=500), db: Session = Depends(get_db)):
+    return _query_all_sectors("contracts", limit, db)
