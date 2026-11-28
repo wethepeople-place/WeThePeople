@@ -19,7 +19,7 @@ import time
 import hashlib
 import argparse
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, List, Dict, Any
 
 import requests
