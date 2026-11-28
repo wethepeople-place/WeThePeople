@@ -47,7 +47,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sync_trades_from_disclosures")
 
-DB_PATH = os.getenv("DATABASE_URL", "sqlite:///wethepeople.db")
+DB_PATH = os.getenv("WTP_DB_URL") or os.getenv("DATABASE_URL") or "sqlite:///wethepeople.db"
 
 # ---------------------------------------------------------------------------
 # House Clerk disclosure URLs
@@ -766,6 +766,10 @@ def main():
 
     # Load tracked members for name matching
     members = session.query(TrackedMember).filter_by(is_active=1, chamber="house").all()
+    if not members:
+        raise RuntimeError(
+            "No active House members found; verify WTP_DB_URL/DATABASE_URL before importing disclosures"
+        )
     name_index = build_name_index(members)
     log.info(f"Loaded {len(members)} tracked House members for name matching")
 
