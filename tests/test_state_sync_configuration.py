@@ -47,10 +47,11 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "run_job jobs.seed_telecom_companies" in workflow
     assert "run_job jobs.seed_education_companies" in workflow
     assert "run_job jobs.sync_donations --cycle 2026" in workflow
-    assert "assert lobbying > 0" in workflow
-    assert "--skip-lobbying" not in workflow
+    assert "assert lobbying > 0" not in workflow
+    assert workflow.count("--skip-lobbying") >= 10
+    assert "LDA.gov denied the production recovery host" in workflow
     assert "LDA_SYNC_START_YEAR=2026" in workflow
-    assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts" in workflow
+    assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts --skip-lobbying" in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
     assert "assert donations > 0" in workflow
