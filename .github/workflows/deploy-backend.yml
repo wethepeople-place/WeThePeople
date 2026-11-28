@@ -44,72 +44,102 @@ jobs:
         run: |
           set -euo pipefail
           ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
-            set -euo pipefail
+            set -Eeuo pipefail
 
             api_container="wtp-api"
+            checkout="/opt/wethepeople/app"
             docker inspect "$api_container" > /dev/null
-
-            project_dir="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$api_container")"
-            config_files="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$api_container")"
-            api_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$api_container")"
-            echo "container_image=$(docker inspect -f '{{ .Config.Image }}' "$api_container")"
-            echo "container_restart=$(docker inspect -f '{{ .HostConfig.RestartPolicy.Name }}' "$api_container")"
-            echo "container_network=$(docker inspect -f '{{ .HostConfig.NetworkMode }}' "$api_container")"
-            docker inspect -f 'container_mounts={{range .Mounts}}{{.Type}}:{{.Source}}=>{{.Destination}};{{end}}' "$api_container"
-            for candidate in /opt/wethepeople /opt/wethepeople/app; do
-              if git -C "$candidate" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-                echo "checkout=$candidate branch=$(git -C "$candidate" branch --show-current) head=$(git -C "$candidate" rev-parse HEAD)"
-              elif [ -d "$candidate" ]; then
-                echo "directory_without_checkout=$candidate"
-              fi
-            done
-            echo "compose_project_dir=${project_dir:-missing}"
-            echo "compose_config_files=${config_files:-missing}"
-            echo "compose_api_service=${api_service:-missing}"
-            test -n "$project_dir"
-            test -n "$config_files"
-            test -n "$api_service"
-            cd "$project_dir"
-
-            current_branch="$(git branch --show-current)"
-            echo "current_branch=${current_branch:-detached}"
-            echo "current_head=$(git rev-parse HEAD)"
-            if [ "$current_branch" != "main" ]; then
-              echo "Refusing to deploy from a production checkout that is not on main" >&2
-              exit 1
-            fi
-            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            git -C "$checkout" rev-parse --is-inside-work-tree > /dev/null
+            if [ -n "$(git -C "$checkout" status --porcelain --untracked-files=no)" ]; then
               echo "Refusing to deploy over tracked production changes" >&2
-              git status --short --untracked-files=no >&2
+              git -C "$checkout" status --short --untracked-files=no >&2
               exit 1
             fi
 
-            previous="$(git rev-parse HEAD)"
-            git fetch --prune origin main
-            git merge-base --is-ancestor "$previous" origin/main
-            git merge --ff-only origin/main
+            previous_checkout="$(git -C "$checkout" rev-parse HEAD)"
+            git -C "$checkout" fetch --prune origin main
+            target="$(git -C "$checkout" rev-parse origin/main)"
+            git -C "$checkout" merge-base --is-ancestor "$previous_checkout" "$target"
+            short_target="$(printf '%s' "$target" | cut -c1-7)"
+            release="/opt/wethepeople/releases/$short_target"
+            image_tag="wethepeople-api:$short_target"
+            test ! -e "$release"
+            mkdir "$release"
+            git -C "$checkout" archive "$target" | tar -x -C "$release"
 
-            IFS=',' read -r -a compose_files <<< "$config_files"
-            compose_args=()
-            for compose_file in "${compose_files[@]}"; do
-              compose_args+=(-f "$compose_file")
+            docker build               --label "org.opencontainers.image.revision=$target"               --tag "$image_tag"               "$release"
+
+            inspect_file="/run/wtp-api-inspect-$short_target.json"
+            env_file="/run/wtp-api-env-$short_target"
+            docker inspect "$api_container" > "$inspect_file"
+            port_spec="$(python3 - "$inspect_file" "$env_file" <<'PY'
+            import json
+            import pathlib
+            import sys
+
+            config = json.loads(pathlib.Path(sys.argv[1]).read_text())[0]
+            values = config["Config"].get("Env") or []
+            if any("\n" in value or "\r" in value for value in values):
+                raise SystemExit("container environment contains unsupported newlines")
+            pathlib.Path(sys.argv[2]).write_text("\n".join(values) + "\n")
+            binding = (config["HostConfig"].get("PortBindings") or {}).get("8006/tcp") or []
+            if len(binding) != 1 or not binding[0].get("HostPort"):
+                raise SystemExit("expected one 8006/tcp host binding")
+            host = binding[0].get("HostIp") or ""
+            port = binding[0]["HostPort"]
+            print(f"{host + ':' if host else ''}{port}:8006")
+            PY
+            )"
+            chmod 600 "$inspect_file" "$env_file"
+            restart_policy="$(docker inspect -f '{{ .HostConfig.RestartPolicy.Name }}' "$api_container")"
+            network_mode="$(docker inspect -f '{{ .HostConfig.NetworkMode }}' "$api_container")"
+            previous_id="$(docker inspect -f '{{ .Id }}' "$api_container" | cut -c1-12)"
+            previous_container="wtp-api-rollback-$previous_id"
+            test "$restart_policy" = "unless-stopped"
+            test "$network_mode" = "bridge"
+            if docker ps -a --format '{{.Names}}' | grep -Fxq "$previous_container"; then
+              echo "Rollback container name already exists: $previous_container" >&2
+              exit 1
+            fi
+
+            rollback_needed=0
+            rollback() {
+              code=$?
+              if [ "$rollback_needed" = "1" ]; then
+                docker rm -f "$api_container" > /dev/null 2>&1 || true
+                docker rename "$previous_container" "$api_container" || true
+                docker start "$api_container" > /dev/null || true
+              fi
+              rm -f "$inspect_file" "$env_file"
+              exit "$code"
+            }
+            trap rollback ERR
+
+            docker stop "$api_container" > /dev/null
+            docker rename "$api_container" "$previous_container"
+            rollback_needed=1
+            docker run --detach               --name "$api_container"               --restart "$restart_policy"               --network "$network_mode"               --publish "$port_spec"               --volumes-from "$previous_container"               --env-file "$env_file"               "$image_tag" > /dev/null
+
+            healthy=0
+            for attempt in $(seq 1 18); do
+              if curl --fail --silent --show-error http://127.0.0.1:8006/health > /dev/null; then
+                echo "Local health check passed on attempt $attempt"
+                healthy=1
+                break
+              fi
+              sleep 5
             done
-            docker compose --project-directory "$project_dir" "${compose_args[@]}" up -d --build "$api_service"
+            test "$healthy" = "1"
+            git -C "$checkout" switch --detach "$target" > /dev/null
             if systemctl list-unit-files wtp-congress-legislation-sync.timer > /dev/null 2>&1; then
               systemctl restart wtp-congress-legislation-sync.timer
             fi
 
-            for attempt in $(seq 1 18); do
-              if curl --fail --silent --show-error http://127.0.0.1:8006/health > /dev/null; then
-                echo "Local health check passed on attempt $attempt"
-                echo "deployed_sha=$(git rev-parse HEAD)"
-                exit 0
-              fi
-              sleep 5
-            done
-            echo "Local health check failed after 90 seconds" >&2
-            docker logs --tail 100 "$api_container" >&2 || true
-            exit 1
+            rollback_needed=0
+            trap - ERR
+            rm -f "$inspect_file" "$env_file"
+            echo "deployed_sha=$target"
+            echo "rollback_container=$previous_container"
           REMOTE
 
       - name: Verify the public API
