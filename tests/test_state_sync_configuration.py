@@ -36,3 +36,17 @@ def test_state_bill_sync_pages_against_api_page_size():
     assert "page_size = 20" in source
     assert "per_page=page_size" in source
     assert "if len(bills) < page_size:" in source
+
+
+def test_influence_workflow_seeds_entities_and_checks_coverage():
+    workflow = (
+        ROOT / ".github" / "workflows" / "sync-politics-influence.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "python -m jobs.seed_tracked_companies" in workflow
+    assert "python -m jobs.seed_telecom_companies" in workflow
+    assert "python -m jobs.seed_education_companies" in workflow
+    assert "python -m jobs.sync_donations --cycle 2026" in workflow
+    assert "assert lobbying > 0" in workflow
+    assert "assert contracts > 0" in workflow
+    assert "assert donations > 0" in workflow
