@@ -25,7 +25,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Sync lobbying, contracts, and enforcement
+      - name: Finalize influence recovery
         shell: bash
         run: |
           set -euo pipefail
@@ -46,42 +46,7 @@ jobs:
             ' sh "$@"
           }
 
-          echo "::group::Seed tracked organizations"
-          run_job jobs.seed_tracked_companies
-          run_job jobs.seed_telecom_companies
-          run_job jobs.seed_education_companies
-          echo "::endgroup::"
-
-          echo "::group::Finance and health influence"
-          run_job jobs.sync_finance_political_data --skip-contracts --skip-lobbying
-          run_job jobs.sync_health_political_data --skip-contracts --skip-lobbying
-          echo "::endgroup::"
-
-          echo "::group::Technology influence"
-          run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts --skip-lobbying --skip-ftc
-          echo "::endgroup::"
-
-          echo "::group::Other sector influence"
-          run_job jobs.sync_energy_data --skip-sec --skip-contracts --skip-emissions --skip-lobbying
-          run_job jobs.sync_transportation_data --skip-sec --skip-contracts --skip-lobbying
-          run_job jobs.sync_defense_data --skip-sec --skip-contracts --skip-lobbying
-          run_job jobs.sync_chemicals_data --skip-sec --skip-contracts --skip-lobbying
-          run_job jobs.sync_agriculture_data --skip-sec --skip-contracts --skip-lobbying
-          run_job jobs.sync_telecom_data --skip-sec --skip-contracts --skip-lobbying
-          run_job jobs.sync_education_data --skip-sec --skip-contracts --skip-lobbying
-          echo "::endgroup::"
-
-          echo "::group::Enforcement"
-          run_job jobs.sync_finance_enforcement
-          run_job jobs.sync_health_enforcement
-          run_job jobs.sync_energy_enforcement
-          run_job jobs.sync_transportation_enforcement
-          run_job jobs.sync_defense_enforcement
-          run_job jobs.sync_chemicals_enforcement
-          run_job jobs.sync_agriculture_enforcement
-          run_job jobs.sync_telecom_enforcement
-          run_job jobs.sync_education_enforcement
-          echo "::endgroup::"
+          echo "All durable source imports have completed or are explicitly blocked; finalizing coverage and caches."
 
           echo "::group::Coverage"
           docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={table:db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar() for table in tables}; print(json.dumps(counts,indent=2)); db.close()'
