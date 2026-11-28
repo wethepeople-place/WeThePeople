@@ -1,0 +1,32 @@
+name: Inspect 2026 politics data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Inspect live politics coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
+            set -euo pipefail
+            docker inspect wtp-api > /dev/null
+            docker exec wtp-api python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); q=lambda sql: [list(row) for row in db.execute(text(sql)).all()]; report={"votes_by_chamber_session":q("SELECT chamber, COALESCE(vote_session, -1), COUNT(*), MIN(vote_date), MAX(vote_date) FROM votes WHERE congress=119 GROUP BY chamber, vote_session ORDER BY chamber, vote_session"),"member_votes_by_chamber_session":q("SELECT v.chamber, COALESCE(v.vote_session, -1), COUNT(mv.id) FROM votes v LEFT JOIN member_votes mv ON mv.vote_id=v.id WHERE v.congress=119 GROUP BY v.chamber, v.vote_session ORDER BY v.chamber, v.vote_session"),"vote_table_sql":db.execute(text("SELECT sql FROM sqlite_master WHERE type=\x27table\x27 AND name=\x27votes\x27")).scalar(),"bills_119":q("SELECT COUNT(*), MIN(updated_at), MAX(updated_at) FROM bills WHERE congress=119"),"tracked_members":q("SELECT COUNT(*), SUM(CASE WHEN bioguide_id IS NOT NULL THEN 1 ELSE 0 END) FROM tracked_members"),"committees":q("SELECT COUNT(*) FROM committees"),"committee_memberships":q("SELECT COUNT(*) FROM committee_memberships")}; print(json.dumps(report,default=str,indent=2)); db.close()'
+          REMOTE
