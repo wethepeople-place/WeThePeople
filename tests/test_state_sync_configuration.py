@@ -50,6 +50,7 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "assert lobbying > 0" in workflow
     assert "--skip-lobbying" not in workflow
     assert "LDA_SYNC_START_YEAR=2026" in workflow
+    assert "run_job jobs.sync_tech_data --skip-sec --skip-patents --skip-stocks --skip-contracts" in workflow
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
     assert "assert donations > 0" in workflow
