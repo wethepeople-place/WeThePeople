@@ -47,18 +47,14 @@ jobs:
             set -euo pipefail
 
             api_container="wtp-api"
-            scheduler_container="wtp-scheduler"
             docker inspect "$api_container" > /dev/null
-            docker inspect "$scheduler_container" > /dev/null
 
             project_dir="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$api_container")"
             config_files="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$api_container")"
             api_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$api_container")"
-            scheduler_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$scheduler_container")"
             test -n "$project_dir"
             test -n "$config_files"
             test -n "$api_service"
-            test -n "$scheduler_service"
             cd "$project_dir"
 
             test "$(git branch --show-current)" = "main"
@@ -78,7 +74,10 @@ jobs:
             for compose_file in "${compose_files[@]}"; do
               compose_args+=(-f "$compose_file")
             done
-            docker compose --project-directory "$project_dir" "${compose_args[@]}" up -d --build "$api_service" "$scheduler_service"
+            docker compose --project-directory "$project_dir" "${compose_args[@]}" up -d --build "$api_service"
+            if systemctl list-unit-files wtp-congress-legislation-sync.timer > /dev/null 2>&1; then
+              systemctl restart wtp-congress-legislation-sync.timer
+            fi
 
             for attempt in $(seq 1 18); do
               if curl --fail --silent --show-error http://127.0.0.1:8006/health > /dev/null; then
