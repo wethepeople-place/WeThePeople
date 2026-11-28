@@ -12,6 +12,43 @@ jobs:
     timeout-minutes: 180
     environment: production
     steps:
+      - name: Download official Senate roll-call XML
+        shell: bash
+        run: |
+          set -euo pipefail
+          vote_dir="$RUNNER_TEMP/senate-votes"
+          menu_url="https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_119_2.htm"
+          base_url="https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192"
+          user_agent="WeThePeople/1.0 (civic transparency; https://app.wethepeople.place)"
+          mkdir -p "$vote_dir"
+          curl --fail --silent --show-error --location \
+            --retry 5 --retry-all-errors --connect-timeout 20 --max-time 60 \
+            --user-agent "$user_agent" "$menu_url" -o "$vote_dir/menu.htm"
+          grep -oE 'vote_119_2_[0-9]{5}\.htm' "$vote_dir/menu.htm" \
+            | sort -u | sed 's/\.htm$/.xml/' > "$vote_dir/files.txt"
+          test -s "$vote_dir/files.txt"
+
+          actual="$(wc -l < "$vote_dir/files.txt" | tr -d ' ')"
+          max_vote="$(sed -E 's/.*_([0-9]{5})\.xml/\1/' "$vote_dir/files.txt" \
+            | sed 's/^0*//' | sort -n | tail -1)"
+          if [ "$actual" -ne "$max_vote" ]; then
+            echo "Official Senate index is incomplete: found $actual of $max_vote roll calls" >&2
+            exit 1
+          fi
+
+          while IFS= read -r file; do
+            curl --fail --silent --show-error --location \
+              --retry 5 --retry-all-errors --connect-timeout 20 --max-time 60 \
+              --user-agent "$user_agent" "$base_url/$file" -o "$vote_dir/$file"
+          done < "$vote_dir/files.txt"
+
+          downloaded="$(find "$vote_dir" -maxdepth 1 -name 'vote_119_2_*.xml' | wc -l | tr -d ' ')"
+          if [ "$downloaded" -ne "$actual" ]; then
+            echo "Downloaded $downloaded of $actual official Senate XML files" >&2
+            exit 1
+          fi
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/senate-votes.tgz" senate-votes
+
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -23,6 +60,14 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload official Senate roll calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            "$RUNNER_TEMP/senate-votes.tgz" \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}:/tmp/wtp-senate-votes.tgz"
 
       - name: Back up, migrate, and sync 2026 politics data
         shell: bash
@@ -43,7 +88,8 @@ jobs:
             cleanup() {
               code=$?
               rm -rf "$temp_root"
-              docker exec "$api_container" rm -rf /tmp/congress-legislators >/dev/null 2>&1 || true
+              docker exec "$api_container" rm -rf /tmp/congress-legislators /tmp/senate-votes >/dev/null 2>&1 || true
+              rm -f /tmp/wtp-senate-votes.tgz
               if [ "$timer_was_active" = "1" ]; then
                 systemctl start "$timer" || true
               fi
@@ -123,7 +169,11 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::2026 Senate roll calls"
-            docker exec "$api_container" python jobs/sync_senate_votes.py \
+            tar -xzf /tmp/wtp-senate-votes.tgz -C "$temp_root"
+            docker exec "$api_container" rm -rf /tmp/senate-votes
+            docker cp "$temp_root/senate-votes" "$api_container":/tmp/senate-votes
+            docker exec "$api_container" python jobs/import_senate_xml.py \
+              --source-dir /tmp/senate-votes \
               --congress 119 \
               --session 2
             unset congress_api_key
