@@ -1,0 +1,70 @@
+name: Sync 2026 state bills
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment: production
+    steps:
+      - name: Require OpenStates API key
+        shell: bash
+        env:
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$OPENSTATES_API_KEY"
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync OpenStates bills only
+        shell: bash
+        env:
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+        run: |
+          set -euo pipefail
+          {
+            printf '%s\n' "$OPENSTATES_API_KEY"
+            cat <<'REMOTE'
+          set -Eeuo pipefail
+          api_container="wtp-api"
+          docker inspect "$api_container" >/dev/null
+          openstates_key="${OPENSTATES_API_KEY:-}"
+          test -n "$openstates_key"
+          printf '%s\n' "$openstates_key" | docker exec -i "$api_container" sh -c '
+            IFS= read -r OPENSTATES_API_KEY
+            export OPENSTATES_API_KEY
+            exec python -m jobs.sync_state_data_all --bills-only --max-pages 3 --stagger-sec 10
+          '
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); report={"states":db.execute(text("SELECT COUNT(DISTINCT state) FROM state_bills")).scalar() or 0,"bills":db.execute(text("SELECT COUNT(*) FROM state_bills")).scalar() or 0}; print(json.dumps(report,indent=2)); db.close(); assert report["states"] >= 45, "State bill coverage is incomplete"; assert report["bills"] >= 1000, "Too few state bills were imported"'
+          REMOTE
+          } | ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=120 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" \
+            'IFS= read -r OPENSTATES_API_KEY; export OPENSTATES_API_KEY; bash -s'
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/states >/dev/null
