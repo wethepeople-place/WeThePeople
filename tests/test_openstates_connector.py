@@ -60,3 +60,8 @@ def test_bill_search_clamps_page_size_and_reads_v3_action_fields(monkeypatch):
             "source_url": "https://example.gov/hb1",
         }
     ]
+
+
+def test_all_state_sync_uses_conservative_rate_limit_settings():
+    assert openstates.POLITE_DELAY >= 4.0
+    assert openstates.MAX_RETRIES >= 5

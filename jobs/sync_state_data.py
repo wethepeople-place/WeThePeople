@@ -105,9 +105,10 @@ def sync_bills(session, state: str, dry_run: bool = False, max_pages: int = 10) 
     log.info(f"Fetching bills for {state.upper()}...")
 
     total_synced = 0
+    page_size = 20  # OpenStates v3 bills endpoint maximum
 
     for page in range(1, max_pages + 1):
-        bills = fetch_state_bills(state, page=page, per_page=50)
+        bills = fetch_state_bills(state, page=page, per_page=page_size)
 
         if not bills:
             break
@@ -151,7 +152,7 @@ def sync_bills(session, state: str, dry_run: bool = False, max_pages: int = 10) 
         log.info(f"  [{state.upper()}] Page {page}: {count_new} new bills ({len(bills)} fetched)")
 
         # If we got fewer than a full page, we're done
-        if len(bills) < 50:
+        if len(bills) < page_size:
             break
 
     if dry_run:

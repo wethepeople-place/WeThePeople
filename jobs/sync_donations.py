@@ -31,12 +31,10 @@ from typing import Optional
 
 import requests
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.database import Base, TrackedMember, CompanyDonation
+from models.database import Base, CompanyDonation, SessionLocal, TrackedMember, engine
 from models.finance_models import TrackedInstitution
 from models.health_models import TrackedCompany
 from models.tech_models import TrackedTechCompany
@@ -47,14 +45,12 @@ from models.chemicals_models import TrackedChemicalCompany
 from models.agriculture_models import TrackedAgricultureCompany
 from models.education_models import TrackedEducationCompany
 from models.telecom_models import TrackedTelecomCompany
-from utils.db_compat import is_sqlite, set_pragmas_if_sqlite
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sync_donations")
 
-DB_PATH = os.getenv("DATABASE_URL", "sqlite:///wethepeople.db")
 FEC_API_KEY = os.getenv("FEC_API_KEY", "DEMO_KEY")
 FEC_BASE_URL = "https://api.open.fec.gov/v1"
 
@@ -63,20 +59,6 @@ def current_fec_cycle(today: Optional[date] = None) -> str:
     """Return the FEC two-year transaction period containing ``today``."""
     year = (today or date.today()).year
     return str(year if year % 2 == 0 else year + 1)
-
-engine = create_engine(DB_PATH, connect_args={"check_same_thread": False} if "sqlite" in DB_PATH else {})
-
-import sqlalchemy.event as sa_event
-
-if is_sqlite():
-    @sa_event.listens_for(engine, "connect")
-    def _set_sqlite_pragmas(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA busy_timeout=60000")
-        cursor.close()
-
-Session = sessionmaker(bind=engine)
 
 
 def _dedupe_hash(text: str) -> str:
@@ -373,7 +355,7 @@ def main():
                      "Get a free key at https://api.open.fec.gov/developers/")
 
     Base.metadata.create_all(engine)
-    session = Session()
+    session = SessionLocal()
 
     # Build member lookup for matching candidates
     member_lookup = build_member_lookup(session)

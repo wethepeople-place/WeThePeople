@@ -19,8 +19,8 @@ from utils.logging import get_logger
 logger = get_logger(__name__)
 
 OPENSTATES_BASE = "https://v3.openstates.org"
-POLITE_DELAY = 2.0  # OpenStates rate-limits aggressively
-MAX_RETRIES = 3
+POLITE_DELAY = 4.0  # Keep sustained all-state syncs below observed throttling
+MAX_RETRIES = 5
 
 
 def _compute_hash(*parts: str) -> str:
