@@ -29,3 +29,13 @@ def test_targeted_house_trade_retry_checks_for_imported_rows():
 
     assert "sync_trades_from_disclosures.py --year 2026" in workflow
     assert 'assert row[0] > 0, "No House trades were imported"' in workflow
+
+
+def test_house_trade_sync_dedupes_pending_filing_rows():
+    source = (ROOT / "jobs" / "sync_trades_from_disclosures.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "pending_dedupe_hashes: set[str] = set()" in source
+    assert "if dedupe in pending_dedupe_hashes:" in source
+    assert "pending_dedupe_hashes.add(dedupe)" in source
