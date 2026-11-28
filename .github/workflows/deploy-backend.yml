@@ -37,13 +37,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Fast-forward production and restart services
         shell: bash
         run: |
           set -euo pipefail
-          ssh "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
+          ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" 'bash -s' <<'REMOTE'
             set -euo pipefail
             cd /home/dshon/wethepeople-backend
 
