@@ -53,8 +53,8 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Finance and health influence"
-          run_job jobs.sync_finance_political_data --skip-lobbying
-          run_job jobs.sync_health_political_data --skip-lobbying
+          run_job jobs.sync_finance_political_data --skip-contracts --skip-lobbying
+          run_job jobs.sync_health_political_data --skip-contracts --skip-lobbying
           echo "::endgroup::"
 
           echo "::group::Technology influence"
@@ -62,9 +62,9 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Other sector influence"
-          run_job jobs.sync_energy_data --skip-sec --skip-emissions --skip-lobbying
-          run_job jobs.sync_transportation_data --skip-sec --skip-lobbying
-          run_job jobs.sync_defense_data --skip-sec --skip-lobbying
+          run_job jobs.sync_energy_data --skip-sec --skip-contracts --skip-emissions --skip-lobbying
+          run_job jobs.sync_transportation_data --skip-sec --skip-contracts --skip-lobbying
+          run_job jobs.sync_defense_data --skip-sec --skip-contracts --skip-lobbying
           run_job jobs.sync_chemicals_data --skip-sec --skip-lobbying
           run_job jobs.sync_agriculture_data --skip-sec --skip-lobbying
           run_job jobs.sync_telecom_data --skip-sec --skip-lobbying
