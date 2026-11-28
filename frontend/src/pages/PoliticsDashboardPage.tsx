@@ -549,10 +549,18 @@ export default function PoliticsDashboardPage() {
       // get_chamber_party_breakdown).
       apiClient.getChamberPartyBreakdown(true),
     ])
-      .then(([s, p, a, bp]) => {
+      .then(async ([s, p, a, bp]) => {
+        let featuredPeople = p.people || [];
+        // Gold-ledger coverage is optional and can legitimately be empty.
+        // Fall back to the current congressional roster so the dashboard does
+        // not render a blank "Featured members" column.
+        if (featuredPeople.length === 0) {
+          const fallback = await apiClient.getPeople({ limit: 6 });
+          featuredPeople = fallback.people || [];
+        }
         if (cancelled) return;
         setStats(s);
-        setPeople(p.people || []);
+        setPeople(featuredPeople);
         setActions(a || []);
         setBreakdown(bp);
         setLoadError(null);
@@ -619,9 +627,9 @@ export default function PoliticsDashboardPage() {
       to: '/politics/activity',
     },
     {
-      label: 'Legislative actions',
+      label: 'Public claims',
       value: fmtNum(stats?.total_claims || 0),
-      subLabel: 'Votes, amendments, markups',
+      subLabel: 'Matched to official records',
       color: 'var(--color-amber)',
       to: '/politics/activity',
     },
@@ -665,7 +673,7 @@ export default function PoliticsDashboardPage() {
     'Senate LDA',
     'USASpending.gov',
     'FEC',
-    'Quiver Quant',
+    'House disclosures',
     'Federal Register',
     'OpenStates',
     'SAM.gov',
