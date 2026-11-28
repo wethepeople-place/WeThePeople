@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 OPENSTATES_BASE = "https://v3.openstates.org"
 POLITE_DELAY = 2.0  # OpenStates rate-limits aggressively
-MAX_RETRIES = 3
+MAX_RETRIES = 4
 
 
 def _compute_hash(*parts: str) -> str:
@@ -104,7 +104,9 @@ def fetch_state_legislators(
                 else:
                     break
         if data is None:
-            break
+            raise RuntimeError(
+                f"OpenStates legislators page {page} failed for '{state}' after retries"
+            )
 
         results = data.get("results") or []
         if not results:
@@ -212,7 +214,9 @@ def fetch_state_bills(
             else:
                 return []
     if data is None:
-        return []
+        raise RuntimeError(
+            f"OpenStates bills page {page} failed for '{state}' after retries"
+        )
 
     results = data.get("results") or []
     bills: List[Dict[str, Any]] = []
