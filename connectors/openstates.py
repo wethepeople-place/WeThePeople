@@ -38,6 +38,15 @@ def _headers() -> Dict[str, str]:
     return h
 
 
+def _request_error_detail(exc: requests.exceptions.RequestException) -> str:
+    """Return a bounded API error body without request headers or credentials."""
+    response = getattr(exc, "response", None)
+    if response is None:
+        return ""
+    body = (response.text or "").strip().replace("\n", " ")
+    return f" | response: {body[:1000]}" if body else ""
+
+
 def fetch_state_legislators(
     state: str,
     chamber: Optional[str] = None,
@@ -84,7 +93,12 @@ def fetch_state_legislators(
                 data = resp.json()
                 break
             except requests.exceptions.RequestException as e:
-                logger.error("OpenStates legislators fetch failed for '%s': %s", state, e)
+                logger.error(
+                    "OpenStates legislators fetch failed for '%s': %s%s",
+                    state,
+                    e,
+                    _request_error_detail(e),
+                )
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(5 * (2 ** attempt))
                 else:
@@ -187,7 +201,12 @@ def fetch_state_bills(
             data = resp.json()
             break
         except requests.exceptions.RequestException as e:
-            logger.error("OpenStates bills fetch failed for '%s': %s", state, e)
+            logger.error(
+                "OpenStates bills fetch failed for '%s': %s%s",
+                state,
+                e,
+                _request_error_detail(e),
+            )
             if attempt < MAX_RETRIES - 1:
                 time.sleep(5 * (2 ** attempt))
             else:
