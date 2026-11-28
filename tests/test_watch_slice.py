@@ -353,10 +353,16 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     assert production_disabled["accessibility"]["official_transcript_label"] == "Official enrolled H.R. 6644"
     monkeypatch.setenv("WTP_ENABLE_PRODUCTION_WATCH_EMBED", "true")
     production_enabled = client.get("/videos/housing-rent-road-act-explained").json()
-    assert production_enabled["delivery"] == payload["videos"][0]["delivery"] | {"development_only": False}
+    # The production evidence expired on 2026-11-11. Enabling the runtime flag
+    # must not bypass validation; expired items remain safe link-outs.
+    assert production_enabled["delivery"] == {
+        "mode": "link_out",
+        "canonical_url": payload["videos"][0]["delivery"]["canonical_url"],
+        "development_only": False,
+    }
     assert production_enabled["accessibility"] == payload["videos"][0]["accessibility"] | {"development_only": False}
-    assert client.get("/videos/housing-rent-road-act-becomes-law").json()["delivery"]["provider"] == "tiktok"
-    assert client.get("/videos/housing-rent-road-act-speaker").json()["delivery"]["provider"] == "facebook"
+    for video_id in ("housing-rent-road-act-becomes-law", "housing-rent-road-act-speaker"):
+        assert client.get(f"/videos/{video_id}").json()["delivery"]["mode"] == "link_out"
 
 
 def test_watch_loader_rejects_unsafe_official_embed_metadata():
