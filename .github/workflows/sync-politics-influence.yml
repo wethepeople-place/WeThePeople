@@ -39,8 +39,9 @@ jobs:
           docker inspect "$api_container" >/dev/null
 
           echo "::group::Seed tracked organizations"
-          docker exec "$api_container" python -m jobs.sync_finance_data --skip-sec --skip-fdic --skip-cfpb --skip-fred --skip-press --skip-stocks
-          docker exec "$api_container" python -m jobs.sync_health_data --skip-fda --skip-trials --skip-cms --skip-sec --skip-stocks
+          docker exec "$api_container" python -m jobs.seed_tracked_companies
+          docker exec "$api_container" python -m jobs.seed_telecom_companies
+          docker exec "$api_container" python -m jobs.seed_education_companies
           echo "::endgroup::"
 
           echo "::group::Finance and health influence"
@@ -62,6 +63,10 @@ jobs:
           docker exec "$api_container" python -m jobs.sync_education_data --skip-sec
           echo "::endgroup::"
 
+          echo "::group::FEC donations"
+          docker exec "$api_container" python -m jobs.sync_donations --cycle 2026
+          echo "::endgroup::"
+
           echo "::group::Enforcement"
           docker exec "$api_container" python -m jobs.sync_finance_enforcement
           docker exec "$api_container" python -m jobs.sync_health_enforcement
@@ -76,6 +81,8 @@ jobs:
 
           echo "::group::Coverage"
           docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={table:db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar() for table in tables}; print(json.dumps(counts,indent=2)); db.close()'
+          docker exec "$api_container" python -c 'from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); lobbying=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records"]); contracts=sum(db.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in ["finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]); donations=db.execute(text("SELECT COUNT(*) FROM company_donations")).scalar(); db.close(); assert lobbying > 0, "No lobbying records imported"; assert contracts > 0, "No contract records imported"; assert donations > 0, "No FEC donation records imported"; print({"lobbying":lobbying,"contracts":contracts,"donations":donations})'
+          docker exec "$api_container" python -m jobs.warm_closed_loop_cache --quiet
           curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
           echo "::endgroup::"
           REMOTE
