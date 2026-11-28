@@ -633,8 +633,8 @@ export default function SectorContractsPage() {
   const location = useLocation();
   const sectorKey = detectSector(location.pathname);
   const config = SECTOR_MAP[sectorKey];
-  const entityWord = config.entityKey === 'institutions' ? 'institutions' : 'companies';
-  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : 'Companies';
+  const entityWord = config.entityKey === 'institutions' ? 'institutions' : config.entityKey === 'organizations' ? 'organizations' : 'companies';
+  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : config.entityKey === 'organizations' ? 'Organizations' : 'Companies';
 
   const [allContracts, setAllContracts] = useState<ContractItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -739,7 +739,7 @@ export default function SectorContractsPage() {
       config={config}
       eyebrow="Government Contracts"
       title={`${config.label} contract timeline`}
-      subtitle={`Government contract awards over time across all tracked ${config.label.toLowerCase()} ${entityWord}.`}
+      subtitle={sectorKey === 'politics' ? 'Federal contract awards across tracked organizations in every sector.' : `Government contract awards over time across all tracked ${config.label.toLowerCase()} ${entityWord}.`}
       rightSlot={csvExport}
       error={error}
       errorLabel="contracts"

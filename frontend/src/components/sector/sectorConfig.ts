@@ -42,7 +42,7 @@ export interface SectorConfig {
   /** Comma-separated RGB for `rgba(${rgb},alpha)` usage */
   accentRGB: string;
   Header: React.FC;
-  entityKey: 'companies' | 'institutions';
+  entityKey: 'companies' | 'institutions' | 'organizations';
   profilePath: (id: string) => string;
   /** Per-tab aggregate endpoints */
   endpoints: {
@@ -99,9 +99,13 @@ export const SECTOR_MAP: Record<string, SectorConfig> = {
     accentToken: SECTOR_ACCENTS.politics.accent,
     accentRGB: hexToRgbTriplet(SECTOR_ACCENTS.politics.accent),
     Header: PoliticsSectorHeader,
-    entityKey: 'companies',
+    entityKey: 'organizations',
     profilePath: () => '/politics',
-    endpoints: { lobbying: '', contracts: '', enforcement: '' },
+    endpoints: {
+      lobbying: `${API_BASE}/aggregate/all/lobbying?limit=500`,
+      contracts: `${API_BASE}/aggregate/all/contracts?limit=500`,
+      enforcement: `${API_BASE}/aggregate/all/enforcement?limit=500`,
+    },
   },
 };
 

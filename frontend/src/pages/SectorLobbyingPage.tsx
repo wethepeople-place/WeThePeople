@@ -83,8 +83,8 @@ export default function SectorLobbyingPage() {
   const location = useLocation();
   const sectorKey = detectSector(location.pathname);
   const config = SECTOR_MAP[sectorKey];
-  const entityWord = config.entityKey === 'institutions' ? 'institutions' : 'companies';
-  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : 'Companies';
+  const entityWord = config.entityKey === 'institutions' ? 'institutions' : config.entityKey === 'organizations' ? 'organizations' : 'companies';
+  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : config.entityKey === 'organizations' ? 'Organizations' : 'Companies';
 
   const [allFilings, setAllFilings] = useState<LobbyingFiling[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +197,7 @@ export default function SectorLobbyingPage() {
       config={config}
       eyebrow="Lobbying Activity"
       title={`${config.label} lobbying breakdown`}
-      subtitle={`Lobbying spending by issue area across all tracked ${config.label.toLowerCase()} ${entityWord}.`}
+      subtitle={sectorKey === 'politics' ? 'Lobbying spending by issue area across tracked organizations that influence federal policy.' : `Lobbying spending by issue area across all tracked ${config.label.toLowerCase()} ${entityWord}.`}
       rightSlot={csvExport}
       error={error}
       errorLabel="lobbying data"

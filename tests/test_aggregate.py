@@ -1,9 +1,12 @@
-"""Tests for /aggregate router endpoints across all 6 sectors."""
+"""Tests for sector and cross-sector /aggregate endpoints."""
 
 import pytest
 
 
-SECTORS = ["finance", "health", "tech", "energy", "transportation", "defense"]
+SECTORS = [
+    "finance", "health", "tech", "energy", "transportation", "defense",
+    "chemicals", "agriculture", "telecom", "education",
+]
 
 
 @pytest.mark.parametrize("sector", SECTORS)
@@ -54,3 +57,18 @@ def test_aggregate_lobbying_respects_limit(client):
     assert r.status_code == 200
     data = r.json()
     assert len(data["filings"]) <= 1
+
+
+
+@pytest.mark.parametrize(
+    ("kind", "result_key"),
+    [("enforcement", "actions"), ("lobbying", "filings"), ("contracts", "contracts")],
+)
+def test_cross_sector_aggregate_200(client, kind, result_key):
+    response = client.get(f"/aggregate/all/{kind}", params={"limit": 5})
+    assert response.status_code == 200
+    data = response.json()
+    assert "total" in data
+    assert result_key in data
+    assert isinstance(data[result_key], list)
+    assert len(data[result_key]) <= 5
