@@ -1,0 +1,110 @@
+name: Sync official 2026 Senate votes
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Download official Senate roll-call XML
+        shell: bash
+        run: |
+          set -euo pipefail
+          vote_dir="$RUNNER_TEMP/senate-votes"
+          menu_url="https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_119_2.htm"
+          base_url="https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192"
+          user_agent="WeThePeople/1.0 (civic transparency; https://app.wethepeople.place)"
+          mkdir -p "$vote_dir"
+          curl --fail --silent --show-error --location \
+            --retry 5 --retry-all-errors --connect-timeout 20 --max-time 60 \
+            --user-agent "$user_agent" "$menu_url" -o "$vote_dir/menu.htm"
+          grep -oE 'vote_119_2_[0-9]{5}\.htm' "$vote_dir/menu.htm" \
+            | sort -u | sed 's/\.htm$/.xml/' > "$vote_dir/files.txt"
+          test -s "$vote_dir/files.txt"
+
+          actual="$(wc -l < "$vote_dir/files.txt" | tr -d ' ')"
+          max_vote="$(sed -E 's/.*_([0-9]{5})\.xml/\1/' "$vote_dir/files.txt" \
+            | sed 's/^0*//' | sort -n | tail -1)"
+          if [ "$actual" -ne "$max_vote" ]; then
+            echo "Official Senate index is incomplete: found $actual of $max_vote roll calls" >&2
+            exit 1
+          fi
+
+          while IFS= read -r file; do
+            curl --fail --silent --show-error --location \
+              --retry 5 --retry-all-errors --connect-timeout 20 --max-time 60 \
+              --user-agent "$user_agent" "$base_url/$file" -o "$vote_dir/$file"
+          done < "$vote_dir/files.txt"
+
+          downloaded="$(find "$vote_dir" -maxdepth 1 -name 'vote_119_2_*.xml' | wc -l | tr -d ' ')"
+          test "$downloaded" -eq "$actual"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/senate-votes.tgz" senate-votes
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload official Senate roll calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            "$RUNNER_TEMP/senate-votes.tgz" \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}:/tmp/wtp-senate-votes.tgz"
+
+      - name: Import official Senate roll calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" <<'REMOTE'
+          set -Eeuo pipefail
+          api_container="wtp-api"
+          temp_root="$(mktemp -d)"
+          cleanup() {
+            code=$?
+            rm -rf "$temp_root"
+            rm -f /tmp/wtp-senate-votes.tgz
+            docker exec "$api_container" rm -rf /tmp/senate-votes >/dev/null 2>&1 || true
+            exit "$code"
+          }
+          trap cleanup EXIT
+
+          docker inspect "$api_container" >/dev/null
+          tar -xzf /tmp/wtp-senate-votes.tgz -C "$temp_root"
+          docker exec "$api_container" rm -rf /tmp/senate-votes
+          docker cp "$temp_root/senate-votes" "$api_container":/tmp/senate-votes
+          docker exec "$api_container" python jobs/migrate_vote_session_uniqueness.py
+          docker exec "$api_container" python jobs/import_senate_xml.py \
+            --source-dir /tmp/senate-votes \
+            --congress 119 \
+            --session 2
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); rows=[list(row) for row in db.execute(text("SELECT COUNT(*), COUNT(DISTINCT mv.vote_id), COUNT(mv.id), MIN(v.vote_date), MAX(v.vote_date) FROM votes v LEFT JOIN member_votes mv ON mv.vote_id=v.id WHERE v.congress=119 AND v.chamber=\047senate\047 AND v.vote_session=2")).all()]; print(json.dumps({"senate_2026":rows},default=str)); db.close()'
+          curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
+          REMOTE
+
+      - name: Verify the public API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/health >/dev/null
