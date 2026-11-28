@@ -1,0 +1,63 @@
+name: Sync 2026 politics claims
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-politics-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+      - name: Trust the production host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Backfill and evaluate source-backed claims
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=120 \
+            -o TCPKeepAlive=yes \
+            "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" <<'REMOTE'
+          set -Eeuo pipefail
+          api_container="wtp-api"
+          docker inspect "$api_container" >/dev/null
+
+          run_job() {
+            docker exec "$api_container" sh -c '
+              DATABASE_URL="${WTP_DB_URL:?WTP_DB_URL is required}"
+              export DATABASE_URL
+              exec python -m "$@"
+            ' sh "$@"
+          }
+
+          run_job jobs.backfill_claims_from_actions --limit-per-member 20
+          run_job jobs.evaluate_legislative_claims
+
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import func; from models.database import SessionLocal, Claim, ClaimEvaluation; db=SessionLocal(); report={"claims":db.query(func.count(Claim.id)).scalar() or 0,"evaluations":db.query(func.count(ClaimEvaluation.id)).scalar() or 0,"members":db.query(func.count(func.distinct(Claim.person_id))).scalar() or 0}; print(json.dumps(report,indent=2)); db.close(); assert report["claims"] > 0, "No claims were created"; assert report["evaluations"] > 0, "No claims were evaluated"; assert report["members"] > 0, "Claims are not linked to members"'
+          curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
+          REMOTE
+
+      - name: Verify the public claims API
+        shell: bash
+        run: |
+          set -euo pipefail
+          stats="$(curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://api.wethepeople.place/claims/dashboard/stats)"
+          python -c 'import json,sys; d=json.load(sys.stdin); assert d["total_claims"] > 0; assert d["total_evaluated"] > 0; print(json.dumps(d, indent=2))' <<<"$stats"
