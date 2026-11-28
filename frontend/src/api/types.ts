@@ -272,15 +272,38 @@ export interface ComparePersonData {
   total_claims: number;
   total_scored: number;
   total_actions?: number;
+  sponsored_bills: number;
+  cosponsored_bills: number;
+  enacted_bills: number;
+  committee_count: number;
+  committee_leadership_roles: number;
+  total_votes: number;
+  vote_positions: Record<string, number>;
+  party_alignment_rate: number | null;
+  party_comparable_votes: number;
+  cross_party_votes: number;
   by_tier: Record<string, number>;
   by_category: Record<string, number>;
   by_timing?: Record<string, number>;
   by_progress?: Record<string, number>;
+  action_data_available: boolean;
+  vote_data_available: boolean;
+  committee_data_available: boolean;
+  data_status: 'available' | 'partial' | 'not_loaded';
+  legislative_refreshed_at: string | null;
 }
 
 export interface CompareResponse {
   people: ComparePersonData[];
   comparison_count: number;
+  coverage?: {
+    available: number;
+    partial: number;
+    not_loaded: number;
+  };
+  warnings?: string[];
+  sources?: Record<string, string>;
+  methodology?: Record<string, string>;
 }
 
 // /votes response

@@ -5,7 +5,7 @@ compare, industry donors, person committees.
 """
 
 from fastapi import APIRouter, Query, HTTPException, Depends, Response
-from sqlalchemy import func, desc, case
+from sqlalchemy import func, desc, case, and_
 from typing import Optional, Dict, Any
 from datetime import date
 import threading
@@ -59,6 +59,121 @@ def _safe_json_loads(value):
     if isinstance(parsed, str):
         return [parsed]
     return []
+
+
+def _official_bioguide_photo_url(bioguide_id: Optional[str]) -> Optional[str]:
+    """Return the official Congressional Bioguide portrait URL.
+
+    Bioguide IDs are stable identifiers and the portrait path is deterministic,
+    so the directory can show an official image even before the optional photo
+    cache job has populated ``tracked_members.photo_url``.
+    """
+    value = (bioguide_id or "").strip().upper()
+    if not value:
+        return None
+    return f"https://bioguide.congress.gov/bioguide/photo/{value[0]}/{value}.jpg"
+
+
+def _normalise_vote_position(position: Optional[str]) -> str:
+    value = (position or "").strip().lower().replace("-", " ")
+    if value in {"yea", "aye", "yes"}:
+        return "yes"
+    if value in {"nay", "no"}:
+        return "no"
+    if value == "present":
+        return "present"
+    if value in {"not voting", "absent"}:
+        return "not_voting"
+    return "other"
+
+
+def _modal_positions(counts: Dict[str, int]) -> set[str]:
+    eligible = {key: value for key, value in counts.items() if key in {"yes", "no", "present"}}
+    if not eligible:
+        return set()
+    maximum = max(eligible.values())
+    return {key for key, value in eligible.items() if value == maximum}
+
+
+def _member_vote_metrics(db, member: TrackedMember) -> Dict[str, Any]:
+    """Summarise official roll-call records and party alignment for one member."""
+    if not member.bioguide_id:
+        return {
+            "total_votes": 0,
+            "vote_positions": {},
+            "party_alignment_rate": None,
+            "party_comparable_votes": 0,
+            "cross_party_votes": 0,
+        }
+
+    member_rows = (
+        db.query(MemberVote.vote_id, MemberVote.position)
+        .filter(MemberVote.bioguide_id == member.bioguide_id)
+        .all()
+    )
+    if not member_rows:
+        return {
+            "total_votes": 0,
+            "vote_positions": {},
+            "party_alignment_rate": None,
+            "party_comparable_votes": 0,
+            "cross_party_votes": 0,
+        }
+
+    vote_positions: Dict[str, int] = {}
+    member_position_by_vote: Dict[int, str] = {}
+    for vote_id, position in member_rows:
+        normalised = _normalise_vote_position(position)
+        vote_positions[normalised] = vote_positions.get(normalised, 0) + 1
+        member_position_by_vote[vote_id] = normalised
+
+    own_party = (member.party or "").strip().upper()[:1]
+    other_party = "R" if own_party == "D" else "D" if own_party == "R" else None
+    vote_ids = list(member_position_by_vote)
+    party_counts: Dict[tuple[int, str], Dict[str, int]] = {}
+
+    # Keep IN clauses safely below SQLite's variable limit while also working
+    # unchanged on PostgreSQL.
+    for start in range(0, len(vote_ids), 500):
+        chunk = vote_ids[start:start + 500]
+        rows = (
+            db.query(MemberVote.vote_id, MemberVote.party, MemberVote.position, func.count(MemberVote.id))
+            .filter(MemberVote.vote_id.in_(chunk), MemberVote.party.in_(["D", "R", "I"]))
+            .group_by(MemberVote.vote_id, MemberVote.party, MemberVote.position)
+            .all()
+        )
+        for vote_id, party, position, count in rows:
+            key = (vote_id, (party or "").strip().upper()[:1])
+            normalised = _normalise_vote_position(position)
+            bucket = party_counts.setdefault(key, {})
+            bucket[normalised] = bucket.get(normalised, 0) + int(count or 0)
+
+    aligned = 0
+    comparable = 0
+    cross_party = 0
+    if own_party in {"D", "R"}:
+        for vote_id, member_position in member_position_by_vote.items():
+            if member_position not in {"yes", "no", "present"}:
+                continue
+            own_modes = _modal_positions(party_counts.get((vote_id, own_party), {}))
+            if not own_modes:
+                continue
+            comparable += 1
+            if member_position in own_modes:
+                aligned += 1
+                continue
+            if other_party:
+                other_modes = _modal_positions(party_counts.get((vote_id, other_party), {}))
+                if member_position in other_modes:
+                    cross_party += 1
+
+    return {
+        "total_votes": len(member_rows),
+        "vote_positions": vote_positions,
+        "party_alignment_rate": round((aligned / comparable) * 100, 1) if comparable else None,
+        "party_comparable_votes": comparable,
+        "cross_party_votes": cross_party,
+    }
 
 
 def _serialize_gold_row(row: GoldLedgerEntry) -> Dict[str, Any]:
@@ -379,7 +494,7 @@ def get_people(
                     "state": r.state,
                     "party": r.party,
                     "is_active": bool(r.is_active),
-                    "photo_url": r.photo_url,
+                    "photo_url": r.photo_url or _official_bioguide_photo_url(r.bioguide_id),
                     "ai_profile_summary": r.ai_profile_summary,
                     "sanctions_status": r.sanctions_status,
                 }
@@ -416,7 +531,7 @@ def get_person_directory_entry(person_id: str):
             "state": row.state,
             "party": row.party,
             "is_active": bool(row.is_active),
-            "photo_url": row.photo_url,
+            "photo_url": row.photo_url or _official_bioguide_photo_url(row.bioguide_id),
             "ai_profile_summary": row.ai_profile_summary,
             "sanctions_status": row.sanctions_status,
             "sanctions_data": sanctions_data_parsed,
@@ -942,7 +1057,7 @@ def get_comparison(
     db = SessionLocal()
     try:
         person_ids = [pid.strip() for pid in ids.split(",") if pid.strip()]
-        if not person_ids or len(person_ids) > 10:
+        if len(person_ids) < 2 or len(person_ids) > 10:
             raise HTTPException(status_code=400, detail="Provide 2-10 person IDs")
 
         results = []
@@ -959,6 +1074,50 @@ def get_comparison(
                   .group_by(ClaimEvaluation.tier).all()
             )
             total_actions = db.query(func.count(Action.id)).filter(Action.person_id == pid).scalar() or 0
+            action_counts = dict(
+                db.query(func.lower(Action.action_type), func.count(Action.id))
+                .filter(Action.person_id == pid, Action.action_type.isnot(None))
+                .group_by(func.lower(Action.action_type))
+                .all()
+            )
+            sponsored_bills = int(action_counts.get("sponsored", 0) or 0)
+            cosponsored_bills = int(action_counts.get("cosponsored", 0) or 0)
+
+            enacted_bills = (
+                db.query(func.count(func.distinct(Bill.bill_id)))
+                .join(
+                    Action,
+                    and_(
+                        Bill.congress == Action.bill_congress,
+                        func.lower(Bill.bill_type) == func.lower(Action.bill_type),
+                        Bill.bill_number == Action.bill_number,
+                    ),
+                )
+                .filter(
+                    Action.person_id == pid,
+                    func.lower(Action.action_type) == "sponsored",
+                    Bill.status_bucket == "enacted",
+                )
+                .scalar()
+                or 0
+            )
+
+            vote_metrics = _member_vote_metrics(db, member)
+            committee_count = (
+                db.query(func.count(CommitteeMembership.id))
+                .filter(CommitteeMembership.bioguide_id == member.bioguide_id)
+                .scalar()
+                or 0
+            )
+            committee_leadership_roles = (
+                db.query(func.count(CommitteeMembership.id))
+                .filter(
+                    CommitteeMembership.bioguide_id == member.bioguide_id,
+                    func.lower(CommitteeMembership.role).notin_(["member", "ex_officio"]),
+                )
+                .scalar()
+                or 0
+            )
 
             # by_category: actions grouped by policy_area
             by_category = dict(
@@ -981,6 +1140,20 @@ def get_comparison(
                   .group_by(ClaimEvaluation.progress).all()
             ) if hasattr(ClaimEvaluation, 'progress') else {}
 
+            action_data_available = bool(member.last_full_refresh_at or total_actions)
+            vote_data_available = bool(vote_metrics["total_votes"])
+            committee_data_available = bool(committee_count)
+            available_groups = sum([
+                action_data_available,
+                vote_data_available,
+                committee_data_available,
+            ])
+            data_status = (
+                "available" if available_groups == 3
+                else "partial" if available_groups > 0
+                else "not_loaded"
+            )
+
             results.append({
                 "person_id": pid,
                 "display_name": member.display_name,
@@ -994,9 +1167,53 @@ def get_comparison(
                 "by_timing": by_timing,
                 "by_progress": by_progress,
                 "total_actions": total_actions,
+                "sponsored_bills": sponsored_bills,
+                "cosponsored_bills": cosponsored_bills,
+                "enacted_bills": int(enacted_bills),
+                "committee_count": int(committee_count),
+                "committee_leadership_roles": int(committee_leadership_roles),
+                **vote_metrics,
+                "action_data_available": action_data_available,
+                "vote_data_available": vote_data_available,
+                "committee_data_available": committee_data_available,
+                "data_status": data_status,
+                "legislative_refreshed_at": (
+                    member.last_full_refresh_at.isoformat()
+                    if member.last_full_refresh_at else None
+                ),
             })
 
-        response = {"people": results}
+        response = {
+            "people": results,
+            "comparison_count": len(results),
+            "coverage": {
+                "available": sum(1 for row in results if row["data_status"] == "available"),
+                "partial": sum(1 for row in results if row["data_status"] == "partial"),
+                "not_loaded": sum(1 for row in results if row["data_status"] == "not_loaded"),
+            },
+            "sources": {
+                "members_and_photos": "https://bioguide.congress.gov/",
+                "bills": "https://api.congress.gov/",
+                "house_votes": "https://api.congress.gov/",
+                "senate_votes": "https://www.senate.gov/legislative/votes_new.htm",
+                "committees": "https://github.com/unitedstates/congress-legislators",
+            },
+            "methodology": {
+                "party_alignment": (
+                    "Share of comparable cast votes matching the modal position "
+                    "of the member's party."
+                ),
+                "cross_party_votes": (
+                    "Comparable cast votes differing from the member's party mode "
+                    "and matching the other major party's mode."
+                ),
+                "enacted_bills": "Sponsored bills whose current lifecycle status is enacted.",
+                "legislative_import_scope": (
+                    "Bill and policy-area counts reflect Congress.gov sponsorship records "
+                    "successfully imported for the member."
+                ),
+            },
+        }
         found_ids = {r["person_id"] for r in results}
         missing_ids = [pid for pid in person_ids if pid not in found_ids]
         if missing_ids:

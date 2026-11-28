@@ -148,15 +148,16 @@ JOB_REGISTRY: List[JobDef] = [
         # Was previously unscheduled — left the Actions table stuck at
         # 2026-02-25 for ~9 weeks until the gap was caught in the May 2
         # walkthrough audit. Wires the existing connector
-        # (`connectors.congress.ingest_member_legislation`) into a daily
-        # cron so each member's sponsored + cosponsored bills get
+        # (`connectors.congress.ingest_member_legislation`) into a restartable
+        # batch so every member's sponsored + cosponsored bills get
         # refreshed and the "Last Active" badge / dashboard recent-
         # activity feed reflect actual recent activity.
         name="sync_member_actions",
         script="jobs/sync_member_actions.py",
-        interval_hours=24,
-        timeout_sec=3600,
-        description="Sponsored + cosponsored bills per member (Congress.gov)",
+        args=["--batch-size", "80"],
+        interval_hours=6,
+        timeout_sec=5400,
+        description="Restartable sponsored + cosponsored bill batches (Congress.gov)",
     ),
     JobDef(
         # Re-enabled 2026-05-02 (afternoon) after `connectors/epa_ghgrp.py`

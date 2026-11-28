@@ -1,26 +1,22 @@
-"""Refresh the per-member legislative `Action` rows.
+"""Refresh the per-member legislative ``Action`` rows.
 
-This was the missing schedule entry that left the Actions table stuck
-at 2026-02-25 — the `connectors.congress.ingest_member_legislation`
-function existed but nobody was calling it on a cron, so the
-"Last Active Feb 25" badge on every politician profile and the stale
-`Recent activity` feed on /politics both reflected a 9-week gap.
+The member legislation connector existed before this job was scheduled, which
+left the Actions table stale. This job closes that gap with restartable batches.
 
 What it does:
-  - Iterates every active TrackedMember
-  - For each: fetches their sponsored + cosponsored bills from
-    Congress.gov via the Congress connector
-  - Upserts Action + SourceDocument rows (the connector handles
-    dedupe via the bill_congress / bill_type / bill_number /
-    action_type natural key)
+  - Selects a batch of active members, prioritising members that have never
+    completed an import and then the stalest successful refreshes.
+  - Fetches sponsored and cosponsored bills from Congress.gov.
+  - Upserts Action and SourceDocument rows using the connector's natural key.
+  - Records coverage only after both feeds succeed for a member.
 
-Cadence: daily at 03:00 UTC. The Congress.gov API is generous on
-limits but each member can take 5-10s to refresh, so 537 * 7s ≈ 1h
-worst case. We keep `limit_pages=2` (default) to bound runtime.
+Cadence: every six hours in restartable batches. A failed member stays eligible
+for a later run. ``limit_pages=2`` is the default to bound runtime and API use.
 
 Usage:
     python jobs/sync_member_actions.py
-    python jobs/sync_member_actions.py --limit-pages 5      # deeper history
+    python jobs/sync_member_actions.py --limit-pages 5
+    python jobs/sync_member_actions.py --batch-size 80
     python jobs/sync_member_actions.py --members rashida_tlaib elissa_slotkin
 """
 
@@ -40,36 +36,61 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("sync_member_actions")
 
 
-def run(limit_pages: int = 2, person_ids: list[str] | None = None) -> int:
-    """Run the member-legislation sync. Returns 0 on success, 1 on hard fail."""
-    from connectors.congress import ingest_member_legislation, API_KEY
+def run(
+    limit_pages: int = 2,
+    person_ids: list[str] | None = None,
+    batch_size: int = 80,
+) -> int:
+    """Run the member-legislation sync. Return 0 unless the whole batch fails."""
+    from connectors.congress import API_KEY, ingest_member_legislation
 
     if not API_KEY:
         log.error("No Congress.gov API key configured (set CONGRESS_API_KEY env). Exiting.")
         return 1
 
-    t0 = time.time()
+    started_at = time.time()
     try:
-        ingest_member_legislation(limit_pages=limit_pages, person_ids=person_ids)
+        result = ingest_member_legislation(
+            limit_pages=limit_pages,
+            person_ids=person_ids,
+            limit_members=None if person_ids else batch_size,
+        )
     except Exception as exc:
         log.exception("ingest_member_legislation raised: %s", exc)
         return 1
-    log.info("sync_member_actions finished in %.1fs", time.time() - t0)
+
+    log.info("sync_member_actions finished in %.1fs: %s", time.time() - started_at, result)
+    if result["processed_members"] == 0 and result["failed_members"] > 0:
+        return 1
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--limit-pages", type=int, default=int(os.getenv("WTP_CONGRESS_LIMIT_PAGES", "2")),
-        help="Pages of bill results to fetch per member per category (default 2).",
+        "--limit-pages",
+        type=int,
+        default=int(os.getenv("WTP_CONGRESS_LIMIT_PAGES", "2")),
+        help="Pages of bill results per member and category (default 2).",
     )
     parser.add_argument(
-        "--members", nargs="*", default=None,
-        help="Restrict to these person_ids (e.g. for a one-off backfill).",
+        "--members",
+        nargs="*",
+        default=None,
+        help="Restrict the run to these person_ids.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=int(os.getenv("WTP_MEMBER_ACTION_BATCH_SIZE", "80")),
+        help="Maximum overdue members per run (default 80; ignored with --members).",
     )
     args = parser.parse_args()
-    return run(limit_pages=args.limit_pages, person_ids=args.members)
+    return run(
+        limit_pages=args.limit_pages,
+        person_ids=args.members,
+        batch_size=args.batch_size,
+    )
 
 
 if __name__ == "__main__":

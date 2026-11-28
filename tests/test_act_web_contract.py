@@ -32,13 +32,15 @@ def test_act_contact_is_deliberate_private_and_never_auto_sends():
     assert "private_note: message" not in PANEL
 
 
-def test_act_hub_uses_moderated_truthful_states_and_disables_legal_enrollment():
+def test_act_hub_exposes_truthful_voting_and_representative_tools():
     for anchor in (
-        "No moderated Circles are public yet",
-        "Unreviewed community submissions are never published automatically",
-        "Legal pathways are not enabled",
-        "will not decide eligibility or enroll plaintiffs",
+        "Plan my vote",
+        "Contact my representatives",
+        "nothing is sent without your say",
+        "Enter your ZIP code",
     ):
         assert anchor in HUB
-    assert "Join lawsuit" in HUB
-    assert "RSVP privately" in HUB
+    assert 'src="/elections?embed=1"' in HUB
+    assert 'src="/politics/find-rep?embed=1"' in HUB
+    assert "Join lawsuit" not in HUB
+    assert "RSVP privately" not in HUB
