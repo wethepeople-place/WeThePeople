@@ -95,8 +95,8 @@ export default function SectorEnforcementPage() {
   const location = useLocation();
   const sectorKey = detectSector(location.pathname);
   const config = SECTOR_MAP[sectorKey];
-  const entityWord = config.entityKey === 'institutions' ? 'institutions' : 'companies';
-  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : 'Companies';
+  const entityWord = config.entityKey === 'institutions' ? 'institutions' : config.entityKey === 'organizations' ? 'organizations' : 'companies';
+  const EntityWord = config.entityKey === 'institutions' ? 'Institutions' : config.entityKey === 'organizations' ? 'Organizations' : 'Companies';
 
   const [allActions, setAllActions] = useState<EnforcementAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +220,7 @@ export default function SectorEnforcementPage() {
       config={config}
       eyebrow="Enforcement Actions"
       title={`${config.label} enforcement tracker`}
-      subtitle={`Regulatory enforcement actions and penalties across all tracked ${config.label.toLowerCase()} ${entityWord}, color-coded by severity.`}
+      subtitle={sectorKey === 'politics' ? 'Regulatory enforcement actions across tracked organizations in every sector, color-coded by severity.' : `Regulatory enforcement actions and penalties across all tracked ${config.label.toLowerCase()} ${entityWord}, color-coded by severity.`}
       rightSlot={csvExport}
       error={error}
       errorLabel="enforcement data"
