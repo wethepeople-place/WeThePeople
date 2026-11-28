@@ -34,20 +34,15 @@ from typing import Optional
 import requests
 import pdfplumber
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.database import Base, TrackedMember, CongressionalTrade
-from utils.db_compat import is_sqlite, set_pragmas_if_sqlite
+from models.database import Base, CongressionalTrade, SessionLocal, TrackedMember, engine
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sync_trades_from_disclosures")
-
-DB_PATH = os.getenv("DATABASE_URL", "sqlite:///wethepeople.db")
 
 # ---------------------------------------------------------------------------
 # House Clerk disclosure URLs
@@ -110,21 +105,6 @@ AMOUNT_BRACKETS = [
     (5_000_001, 25_000_000),
     (25_000_001, 50_000_000),
 ]
-
-engine = create_engine(DB_PATH, connect_args={"check_same_thread": False} if "sqlite" in DB_PATH else {})
-
-import sqlalchemy.event as sa_event
-
-if is_sqlite():
-    @sa_event.listens_for(engine, "connect")
-    def _set_sqlite_pragmas(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA busy_timeout=60000")
-        cursor.close()
-
-Session = sessionmaker(bind=engine)
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -754,7 +734,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     Base.metadata.create_all(engine)
-    session = Session()
+    session = SessionLocal()
 
     # Determine which years to process
     current_year = datetime.now().year
