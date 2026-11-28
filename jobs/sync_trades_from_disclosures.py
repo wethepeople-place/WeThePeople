@@ -34,6 +34,7 @@ from typing import Optional
 import requests
 import pdfplumber
 from dotenv import load_dotenv
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -828,12 +829,6 @@ def main():
                 dedupe_str = f"{member.person_id}:{ticker or asset_name}:{txn_date}:{txn_type}:{amount}"
                 dedupe = md5(dedupe_str)
 
-                if not args.dry_run:
-                    existing = session.query(CongressionalTrade).filter_by(dedupe_hash=dedupe).first()
-                    if existing:
-                        total_dupes += 1
-                        continue
-
                 if args.dry_run:
                     log.info(
                         f"  [DRY-RUN] {member.display_name} | {txn_type} | "
@@ -850,28 +845,40 @@ def main():
                     if 0 <= gap_days <= 365:
                         reporting_gap = f"{gap_days} Days"
 
-                session.add(CongressionalTrade(
-                    person_id=member.person_id,
-                    ticker=ticker,
-                    asset_name=asset_name,
-                    transaction_type=txn_type,
-                    amount_range=amount,
-                    disclosure_date=filing_date,
-                    transaction_date=txn_date,
-                    owner=owner,
-                    source_url=pdf_url,
-                    reporting_gap=reporting_gap,
-                    dedupe_hash=dedupe,
-                ))
-                total_new += 1
+                # Let SQLite enforce idempotency atomically. Query-then-insert can
+                # still lose every other trade in a filing when a duplicate reaches
+                # flush/commit; ON CONFLICT skips only that row.
+                result = session.execute(
+                    sqlite_insert(CongressionalTrade)
+                    .values(
+                        person_id=member.person_id,
+                        ticker=ticker,
+                        asset_name=asset_name,
+                        transaction_type=txn_type,
+                        amount_range=amount,
+                        disclosure_date=filing_date,
+                        transaction_date=txn_date,
+                        owner=owner,
+                        source_url=pdf_url,
+                        reporting_gap=reporting_gap,
+                        dedupe_hash=dedupe,
+                    )
+                    .on_conflict_do_nothing(index_elements=["dedupe_hash"])
+                )
+                if result.rowcount:
+                    total_new += result.rowcount
+                else:
+                    total_dupes += 1
 
-            # Commit in batches per filing to avoid huge transactions
-            if not args.dry_run and total_new > 0:
+            # Commit in batches per filing to avoid huge transactions. A duplicate
+            # is already isolated by ON CONFLICT and cannot roll back sibling rows.
+            if not args.dry_run:
                 try:
                     session.commit()
                 except Exception as e:
-                    log.error(f"Commit error: {e}")
+                    log.error(f"Commit error for filing {doc_id}: {e}")
                     session.rollback()
+                    raise
 
             # Rate limit between downloads
             time.sleep(RATE_LIMIT_DELAY)
