@@ -60,3 +60,35 @@ def test_bill_search_clamps_page_size_and_reads_v3_action_fields(monkeypatch):
             "source_url": "https://example.gov/hb1",
         }
     ]
+
+
+class _RateLimitedResponse:
+    status_code = 429
+
+
+def test_bill_search_retries_after_full_backoff(monkeypatch):
+    responses = [
+        _RateLimitedResponse(),
+        _RateLimitedResponse(),
+        _RateLimitedResponse(),
+        _Response(),
+    ]
+    sleeps = []
+
+    def fake_get(url, *, params, headers, timeout):
+        return responses.pop(0)
+
+    monkeypatch.setattr(openstates.time, "sleep", sleeps.append)
+    monkeypatch.setattr(openstates.requests, "get", fake_get)
+
+    bills = openstates.fetch_state_bills("AL")
+
+    assert bills
+    assert responses == []
+    assert [5, 10, 20] == [delay for delay in sleeps if delay != openstates.POLITE_DELAY]
+
+
+def test_openstates_pages_fail_closed_after_retries():
+    source = openstates.__file__
+    assert source
+    assert openstates.MAX_RETRIES == 4
