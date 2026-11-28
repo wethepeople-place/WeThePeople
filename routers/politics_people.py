@@ -1074,28 +1074,38 @@ def get_comparison(
                   .group_by(ClaimEvaluation.tier).all()
             )
             total_actions = db.query(func.count(Action.id)).filter(Action.person_id == pid).scalar() or 0
-            action_counts = dict(
-                db.query(func.lower(Action.action_type), func.count(Action.id))
-                .filter(Action.person_id == pid, Action.action_type.isnot(None))
-                .group_by(func.lower(Action.action_type))
+            # The legislation importer writes the authoritative sponsor/cosponsor
+            # relationships to MemberBillGroundTruth.  Action is a separate
+            # claim-matching projection and may lag behind, so using it here made
+            # fully imported member records appear as "Not loaded" on Compare.
+            legislative_counts = dict(
+                db.query(
+                    func.lower(MemberBillGroundTruth.role),
+                    func.count(MemberBillGroundTruth.id),
+                )
+                .filter(MemberBillGroundTruth.bioguide_id == member.bioguide_id)
+                .group_by(func.lower(MemberBillGroundTruth.role))
                 .all()
             )
-            sponsored_bills = int(action_counts.get("sponsored", 0) or 0)
-            cosponsored_bills = int(action_counts.get("cosponsored", 0) or 0)
+            sponsored_bills = int(
+                (legislative_counts.get("sponsored", 0) or 0)
+                + (legislative_counts.get("sponsor", 0) or 0)
+            )
+            cosponsored_bills = int(
+                (legislative_counts.get("cosponsored", 0) or 0)
+                + (legislative_counts.get("cosponsor", 0) or 0)
+            )
+            legislative_record_count = sponsored_bills + cosponsored_bills
 
             enacted_bills = (
                 db.query(func.count(func.distinct(Bill.bill_id)))
                 .join(
-                    Action,
-                    and_(
-                        Bill.congress == Action.bill_congress,
-                        func.lower(Bill.bill_type) == func.lower(Action.bill_type),
-                        Bill.bill_number == Action.bill_number,
-                    ),
+                    MemberBillGroundTruth,
+                    MemberBillGroundTruth.bill_id == Bill.bill_id,
                 )
                 .filter(
-                    Action.person_id == pid,
-                    func.lower(Action.action_type) == "sponsored",
+                    MemberBillGroundTruth.bioguide_id == member.bioguide_id,
+                    func.lower(MemberBillGroundTruth.role).in_(["sponsored", "sponsor"]),
                     Bill.status_bucket == "enacted",
                 )
                 .scalar()
@@ -1119,11 +1129,17 @@ def get_comparison(
                 or 0
             )
 
-            # by_category: actions grouped by policy_area
+            # Policy areas come from the same imported bill records as the
+            # overview metrics, keeping the matrix and totals in sync.
             by_category = dict(
-                db.query(Action.policy_area, func.count(Action.id))
-                  .filter(Action.person_id == pid, Action.policy_area.isnot(None))
-                  .group_by(Action.policy_area).all()
+                db.query(Bill.policy_area, func.count(MemberBillGroundTruth.id))
+                .join(MemberBillGroundTruth, MemberBillGroundTruth.bill_id == Bill.bill_id)
+                .filter(
+                    MemberBillGroundTruth.bioguide_id == member.bioguide_id,
+                    Bill.policy_area.isnot(None),
+                )
+                .group_by(Bill.policy_area)
+                .all()
             )
 
             # by_timing: claims grouped by timing dimension
@@ -1140,7 +1156,9 @@ def get_comparison(
                   .group_by(ClaimEvaluation.progress).all()
             ) if hasattr(ClaimEvaluation, 'progress') else {}
 
-            action_data_available = bool(member.last_full_refresh_at or total_actions)
+            action_data_available = bool(
+                legislative_record_count or member.last_full_refresh_at or total_actions
+            )
             vote_data_available = bool(vote_metrics["total_votes"])
             committee_data_available = bool(committee_count)
             available_groups = sum([
@@ -1166,7 +1184,7 @@ def get_comparison(
                 "by_category": by_category,
                 "by_timing": by_timing,
                 "by_progress": by_progress,
-                "total_actions": total_actions,
+                "total_actions": legislative_record_count or total_actions,
                 "sponsored_bills": sponsored_bills,
                 "cosponsored_bills": cosponsored_bills,
                 "enacted_bills": int(enacted_bills),
