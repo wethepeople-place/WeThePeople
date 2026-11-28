@@ -357,7 +357,11 @@ def test_checked_in_watch_fixture_is_three_item_development_catalog(tmp_path, mo
     # must not bypass validation; expired items remain safe link-outs.
     assert production_enabled["delivery"] == {
         "mode": "link_out",
+        "provider": None,
+        "provider_video_id": None,
         "canonical_url": payload["videos"][0]["delivery"]["canonical_url"],
+        "poster_url": None,
+        "source_label": None,
         "development_only": False,
     }
     assert production_enabled["accessibility"] == payload["videos"][0]["accessibility"] | {"development_only": False}
