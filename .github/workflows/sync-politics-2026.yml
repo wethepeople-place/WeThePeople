@@ -67,53 +67,25 @@ jobs:
             fi
 
             congress_api_key="$(
-              python3 - "$service" <<'PY'
-import pathlib
-import re
-import shlex
-import subprocess
-import sys
-
-unit = sys.argv[1]
-values = {}
-
-def add_assignment(raw):
-    raw = raw.strip()
-    if raw.startswith("export "):
-        raw = raw[7:].lstrip()
-    if "=" not in raw:
-        return
-    name, value = raw.split("=", 1)
-    name = name.strip()
-    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
-        return
-    parts = shlex.split(value, comments=True, posix=True)
-    values[name] = parts[0] if parts else ""
-
-inline = subprocess.check_output(
-    ["systemctl", "show", unit, "--property=Environment", "--value"],
-    text=True,
-)
-for assignment in shlex.split(inline, comments=True, posix=True):
-    add_assignment(assignment)
-
-environment_files = subprocess.check_output(
-    ["systemctl", "show", unit, "--property=EnvironmentFiles", "--value"],
-    text=True,
-)
-for match in re.finditer(r"(?:^|\s)-?(/[^\s;{}()]+)", environment_files):
-    path = pathlib.Path(match.group(1))
-    if not path.is_file():
-        continue
-    for line in path.read_text(encoding="utf-8").splitlines():
-        add_assignment(line)
-
-key = values.get("API_KEY_CONGRESS") or values.get("CONGRESS_API_KEY") or ""
-if not key:
-    raise SystemExit("Congress.gov API key was not found in the legislation sync service environment")
-print(key, end="")
-PY
+              set -a
+              inline_environment="$(systemctl show "$service" --property=Environment --value)"
+              if [ -n "$inline_environment" ]; then
+                eval "export $inline_environment"
+              fi
+              while IFS= read -r environment_file; do
+                if [ -r "$environment_file" ]; then
+                  . "$environment_file"
+                fi
+              done < <(
+                systemctl show "$service" --property=EnvironmentFiles --value |
+                  grep -oE '/[^ ;()]+' || true
+              )
+              printf '%s' "${API_KEY_CONGRESS:-${CONGRESS_API_KEY:-}}"
             )"
+            if [ -z "$congress_api_key" ]; then
+              echo "Congress.gov API key was not found in the legislation sync service environment" >&2
+              exit 1
+            fi
             echo "Resolved the Congress.gov API key from the configured sync service"
             run_with_congress_key() {
               printf '%s\n' "$congress_api_key" | docker exec -i "$api_container" sh -c '
