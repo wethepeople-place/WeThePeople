@@ -51,3 +51,12 @@ def test_influence_workflow_seeds_entities_and_checks_coverage():
     assert "assert contracts > 0" in workflow
     assert "assert enforcement > 0" in workflow
     assert "assert donations > 0" in workflow
+
+
+def test_donation_sync_uses_canonical_production_database():
+    source = (ROOT / "jobs" / "sync_donations.py").read_text(encoding="utf-8")
+
+    assert "SessionLocal" in source
+    assert "session = SessionLocal()" in source
+    assert "create_engine" not in source
+    assert 'os.getenv("DATABASE_URL"' not in source
