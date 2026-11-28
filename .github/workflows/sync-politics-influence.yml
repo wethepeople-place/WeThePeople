@@ -75,11 +75,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Coverage"
-          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={};
-for table in tables:
-    try: counts[table]=db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
-    except Exception as exc: db.rollback(); counts[table]=f"error: {exc.__class__.__name__}"
-print(json.dumps(counts,indent=2)); db.close()'
+          docker exec "$api_container" python -c 'import json; from sqlalchemy import text; from models.database import SessionLocal; db=SessionLocal(); tables=["finance_lobbying_records","health_lobbying_records","lobbying_records","energy_lobbying_records","transportation_lobbying_records","defense_lobbying_records","chemical_lobbying_records","agriculture_lobbying_records","telecom_lobbying_records","education_lobbying_records","finance_government_contracts","health_government_contracts","government_contracts","energy_government_contracts","transportation_government_contracts","defense_government_contracts","chemical_government_contracts","agriculture_government_contracts","telecom_government_contracts","education_government_contracts"]; counts={table:db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar() for table in tables}; print(json.dumps(counts,indent=2)); db.close()'
           curl --fail --silent --show-error http://127.0.0.1:8006/health >/dev/null
           echo "::endgroup::"
           REMOTE
